@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from app.score import compare, reader_agent
+from app.score import compare, reader_agent, scan_job
 from app.score.note_text import length_from_beats
 from app.score.parse import parse_score_file
 from app.score.reading import ReadBar, ReadNote, Reading
@@ -107,3 +107,31 @@ def test_homr_and_the_reader_run_at_the_same_time(client, session_id, stub_homr,
     done = scan(client, session_id)
     assert done["score_status"] == "scanned" and done["double_checked"] is True
     assert time.time() - started < 1.9
+
+
+def test_comparison_that_crashes_does_not_fail_the_scan(client, session_id, stub_homr, reader, monkeypatch):
+    real_compare = scan_job.compare_bars
+    calls = []
+
+    def crash_on_a_reading(score, reading):
+        calls.append(reading)
+        if reading is not None:
+            raise ValueError("compare blew up")
+        return real_compare(score, None)
+
+    stub_homr("ok")
+    reader(ode_reading())
+    monkeypatch.setattr(scan_job, "compare_bars", crash_on_a_reading)
+    done = scan(client, session_id)
+    assert (done["score_status"], done["double_checked"], done["doubtful_bars"]) == ("scanned", False, [])
+    assert done["warnings"].count(compare.NO_READING_WARNING) == 1
+    assert len(calls) == 2
+
+
+def test_reader_that_never_answers_counts_as_no_reading(client, session_id, stub_homr, reader, monkeypatch):
+    monkeypatch.setattr(scan_job, "READER_WAIT_S", 0.5)
+    stub_homr("ok")
+    reader(ode_reading(), delay=2)
+    done = scan(client, session_id)
+    assert (done["score_status"], done["double_checked"]) == ("scanned", False)
+    assert done["warnings"].count(compare.NO_READING_WARNING) == 1

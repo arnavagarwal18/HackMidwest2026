@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import logging
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 
 from app import store
@@ -23,6 +24,8 @@ from app.score.model import Score
 from app.score.reading import Reading
 
 logger = logging.getLogger(__name__)
+
+READER_WAIT_S = reader_agent.DEFAULT_TIMEOUT_S + 5  # the reader's own limit, plus a margin
 
 THREE_CHOICES = "Try a sharper, straighter photo, upload a MusicXML or MIDI file, or pick a built-in piece."
 SCAN_MESSAGES = {
@@ -47,7 +50,7 @@ def run_scan(session_id: str, photo: Path) -> None:
         cleaned = clean.clean_photo(photo, folder / clean.CLEANED_FILENAME)
         reading_future = reader.submit(_run_reader, cleaned)
         score = homr_runner.run_homr(cleaned, folder)
-        _record_success(session_id, folder, score, reading_future.result())
+        _record_success(session_id, folder, score, _await_reading(reading_future))
     except ScanError as exc:
         logger.error("Scan of session %s failed (%s): %s", session_id, exc.code, exc)
         _record_failure(session_id, exc.code)
@@ -67,8 +70,25 @@ def _run_reader(cleaned_png: Path) -> Reading | None:
         return None
 
 
+def _await_reading(reading_future: Future) -> Reading | None:
+    try:
+        return reading_future.result(timeout=READER_WAIT_S)
+    except FutureTimeoutError:
+        logger.error("Score reader gave no answer within %s s, so there is no reading", READER_WAIT_S)
+        return None
+
+
+def _compare(score: Score, reading: Reading | None) -> CompareResult:
+    """compare_bars, but a comparison that crashes counts as 'no reading': the scan itself is still good."""
+    try:
+        return compare_bars(score, reading)
+    except Exception:
+        logger.exception("Comparing the two readings crashed, so the scan is not double-checked")
+        return compare_bars(score, None)
+
+
 def _record_success(session_id: str, folder: Path, score: Score, reading: Reading | None) -> None:
-    comparison: CompareResult = compare_bars(score, reading)
+    comparison = _compare(score, reading)
     score.warnings.extend(comparison.warnings)
     score.save(folder)
     store.update(session_id, "score_error", None)
