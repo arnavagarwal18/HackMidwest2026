@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from app.score import compare, homr_runner, reader_agent, scan_job
+from app import store
+from app.score import clean, compare, homr_runner, reader_agent, scan_job
 from tests.photo_factory import encode, staff_image
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -173,6 +174,22 @@ def test_photo_after_confirm_is_wrong_state(client, session_id):
 def test_non_image_is_415(client, session_id):
     assert_error(post_photo(client, session_id, data=b"%PDF-1.4 hello", name="photo.png"), 415, "unsupported_type")
     assert status(client, session_id)["score_status"] == "none"
+
+
+def test_webp_photo_is_scanned(client, session_id, stub_homr):
+    stub_homr("ok")
+    response = post_photo(client, session_id, data=encode(staff_image(), "WEBP"), name="sheet.webp")
+    assert response.status_code == 202
+    assert wait_until_done(client, session_id)["score_status"] == "scanned"
+    session_folder = store.session_dir(session_id)
+    assert (session_folder / "photo_upload.webp").exists()
+    assert (session_folder / clean.CLEANED_FILENAME).exists()
+
+
+def test_other_riff_file_is_415_with_the_photo_message(client, session_id):
+    response = post_photo(client, session_id, data=b"RIFF\x00\x00\x00\x00WAVEfmt ", name="photo.webp")
+    assert_error(response, 415, "unsupported_type")
+    assert response.json()["error"]["message"] == "That file isn't a JPEG, PNG or WebP photo."
 
 
 def test_photo_over_15_mb_is_413(client, session_id):

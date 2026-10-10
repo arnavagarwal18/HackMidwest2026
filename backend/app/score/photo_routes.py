@@ -24,7 +24,13 @@ PHOTO_FILENAME_STEM = "photo_upload"
 _start_lock = threading.Lock()  # makes "check not scanning, then mark scanning" one step
 
 
+def _is_webp(data: bytes) -> bool:
+    return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+
 def _photo_suffix(data: bytes) -> str | None:
+    if _is_webp(data):
+        return ".webp"
     return next((suffix for magic, suffix in PHOTO_SIGNATURES.items() if data.startswith(magic)), None)
 
 
@@ -34,7 +40,7 @@ def _read_photo(upload: UploadFile) -> tuple[bytes, str]:
         raise AppError(413, "file_too_large", f"That photo is too big. Photos can be at most {MAX_PHOTO_BYTES // (1024 * 1024)} MB.")
     suffix = _photo_suffix(data)
     if suffix is None:
-        raise AppError(415, "unsupported_type", "That file isn't a JPEG or PNG photo.")
+        raise AppError(415, "unsupported_type", "That file isn't a JPEG, PNG or WebP photo.")
     return data, suffix
 
 
