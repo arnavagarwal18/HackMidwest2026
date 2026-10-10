@@ -2,6 +2,7 @@ import random
 
 import pytest
 
+from app.errors import AppError
 from app.diagnosis.errors import DiagnosisInputError
 from app.diagnosis.expected import build_expected_notes
 from app.diagnosis.take_alignment import align_take
@@ -240,6 +241,14 @@ def test_transposed_take_marks_against_sounding_pitch():
 def test_bad_input_raises_readable_error(take_overrides, message):
     with pytest.raises(DiagnosisInputError, match=message):
         align_take(make_scale_score(), perfect_played(SCALE_MIDIS), make_take(**take_overrides), 0)
+
+
+def test_input_error_is_a_422_app_error():
+    with pytest.raises(DiagnosisInputError) as raised:
+        align_take(make_scale_score(), [], make_take(bar_to=9), 0)
+
+    assert isinstance(raised.value, AppError)
+    assert (raised.value.status, raised.value.code) == (422, "bad_diagnosis_input")
 
 
 def test_missing_played_field_raises_readable_error():
