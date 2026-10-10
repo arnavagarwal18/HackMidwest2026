@@ -221,9 +221,9 @@
   "form": [
     {
       "id": "f:t1:1",
-      "rule": "bow_arm_height",
-      "label": "Right elbow rises in bar 4",
-      "side": "right",
+      "rule": "trumpet_elbows_pinned",
+      "label": "Elbows pinned to your sides in bar 4",
+      "side": "both",
       "start_s": 6.0,
       "end_s": 7.0,
       "peak_s": 6.5,
@@ -231,10 +231,10 @@
         4,
         4
       ],
-      "value": 38.0,
-      "threshold": 30.0,
-      "unit": "deg",
-      "direction": "above",
+      "value": 0.06,
+      "threshold": 0.1,
+      "unit": "ratio",
+      "direction": "below",
       "severity": "minor",
       "confidence": 0.7,
       "linked": [

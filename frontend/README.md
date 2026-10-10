@@ -121,6 +121,28 @@ Mock takes for trying each state (use them as the take id): `take_1` (video), `t
 Tests: `node frontend/tests/results.test.mjs` (Node 22+, Chrome). It runs one small headless Chrome (low-memory flags) and
 stops it when done.
 
+### Video overlay (`js/results/overlay.js`)
+
+For a video take the results screen draws the tracked body over the video and lists the form flags. `screens/results.js` calls
+`mountOverlay(renderDone(...), { sessionId, take })` after rendering and destroys the previous overlay when the screen is rendered
+again; a mic take returns `null` (no canvas, no tracks fetch).
+
+| File (`js/results/overlay/`) | Job |
+| --- | --- |
+| `frames.js` | `nearestFrame(frames, t)`: binary search on `t`; `null` when there are no frames or the nearest is more than 0.2 s away. |
+| `geometry.js` | `contentRect(box, intrinsic, objectFit)` (where the picture sits in the element, so letterboxing lines up) and `toCanvas`. |
+| `flag_points.js` | `RULE_LANDMARKS` (rule -> pose points; `trumpet_head_down`, `trumpet_elbows_pinned`, `shoulders_raised`, `slouching`), `involvedLandmarks(flag)` (respects `side`), `activeFlags`. |
+| `draw.js` | Pose lines (shoulders, elbows, wrists, ears to shoulders, shoulders to hips), hand points, red points and the label during a flag. |
+| `flag_list.js` | The list in `#form-flag-slot`; each row jumps with `jumpTo(resolveId(flag.id, index))` to `peak_s`. |
+
+`GET .../tracks` is fetched once, when `form_status` is `done` (`onAnalysis(analysis)` does nothing after the first fetch). A failure
+(4xx, 5xx, unreachable, or an answer with no `frames`) is logged, hides the overlay and shows "Body lines unavailable" next to the
+checkbox slot; the flag list and the rest of the screen keep working and nothing retries. The "Show body lines" checkbox stops the
+animation-frame loop and clears the canvas. The loop and the `hashchange` listener stop on leaving the route (and the loop also stops
+by itself if the screen was replaced). In mock mode `mock/get_tracks.json` covers the 12 s mock video, with a flagged second at 6 to 7 s.
+
+Tests: `node --test frontend/tests/overlay.test.mjs` (fake canvas and DOM; no browser).
+
 ## Take setup (`#/take`)
 
 `js/screens/take.js` joins the pieces in `js/take/`:

@@ -28,3 +28,7 @@ button.sentence-text:hover { text-decoration: underline; }
 .exercise h3 { margin: 0; }
 .button-link { display: inline-block; padding: 0.25rem 0.9rem; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); text-decoration: none; }
 .transposition { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+
+.overlay-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+.overlay-controls { margin: 0.5rem 0; }
+.overlay-note { font-size: 0.85rem; }

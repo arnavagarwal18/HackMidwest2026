@@ -10,6 +10,7 @@ export class FakeNode {
     this.className = '';
     this.ownText = '';
     this.hidden = false;
+    this.dataset = {};
   }
 
   set textContent(value) { this.ownText = String(value); this.children.forEach((c) => { c.parent = null; }); this.children = []; }
@@ -18,6 +19,7 @@ export class FakeNode {
   setAttribute(name, value) { this.attributes[name] = value; }
   append(...nodes) { nodes.forEach((node) => { node.parent = this; this.children.push(node); }); }
   replaceChildren(...nodes) { this.children.forEach((c) => { c.parent = null; }); this.children = []; this.append(...nodes); }
+  remove() { if (this.parent) { this.parent.children = this.parent.children.filter((c) => c !== this); this.parent = null; } }
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
   click() { (this.listeners.click ?? []).forEach((fn) => fn({ target: this })); }
   all() { return this.children.flatMap((c) => [c, ...c.all()]); }

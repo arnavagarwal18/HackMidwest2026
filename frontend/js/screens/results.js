@@ -3,6 +3,7 @@ import { state } from '../state.js';
 import { element } from '../dom.js';
 import { fetchResultsOnce, stageLabel, STAGES } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
+import { mountOverlay } from '../results/overlay.js';
 import { renderRequestFailed, renderTooLong, renderWorking } from '../results/status.js';
 import { renderDone, renderFailed } from '../results/view.js';
 import { render as renderChat } from './chat.js';
@@ -19,9 +20,14 @@ export async function render(root, { take }) {
   Promise.resolve(renderChat(chatPanel, { take })).catch(reportError);
 
   const isActive = () => view.isConnected; // false once the router has moved to another screen
+  let overlay = null; // the body-lines overlay of the finished take on screen (none for mic takes)
   const show = (result) => {
-    if (result.analysis.status === 'failed') renderFailed(view, result.analysis);
-    else renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition });
+    overlay?.destroy();
+    overlay = null;
+    if (result.analysis.status === 'failed') return renderFailed(view, result.analysis);
+    const rendered = renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition });
+    overlay = rendered?.player ? mountOverlay(rendered, { sessionId, take }) : null; // a can't-tell take has no player
+    overlay?.onAnalysis(result.analysis);
   };
 
   function failRequest(err) {
