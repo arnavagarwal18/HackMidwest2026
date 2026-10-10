@@ -1,5 +1,246 @@
 {
   "status": "done",
   "error": null,
-  "form_status": "not_checked"
+  "form_status": "done",
+  "calibrated": true,
+  "transposition": {
+    "semitones": 0,
+    "source": "auto"
+  },
+  "alignment_quality": 0.82,
+  "cant_tell": false,
+  "cant_tell_reason": null,
+  "tempo": {
+    "played_bpm": 88,
+    "target_bpm": 96,
+    "clean_bpm": 80
+  },
+  "notes": [
+    {
+      "id": "n:t1:3:1",
+      "bar": 3,
+      "idx": 1,
+      "expected_name": "D5",
+      "expected_midi": 74,
+      "expected_onset_s": 4.0,
+      "status": "ok",
+      "played_i": 0,
+      "played_name": "D5",
+      "played_midi_float": 74.04,
+      "cents_off": 4,
+      "timing_ms": 12,
+      "confidence": 0.9
+    },
+    {
+      "id": "n:t1:3:2",
+      "bar": 3,
+      "idx": 2,
+      "expected_name": "E5",
+      "expected_midi": 76,
+      "expected_onset_s": 4.5,
+      "status": "wrong",
+      "played_i": 1,
+      "played_name": "F5",
+      "played_midi_float": 77.1,
+      "cents_off": 110,
+      "timing_ms": -8,
+      "confidence": 0.9
+    },
+    {
+      "id": "n:t1:3:3",
+      "bar": 3,
+      "idx": 3,
+      "expected_name": "F#5",
+      "expected_midi": 78,
+      "expected_onset_s": 5.0,
+      "status": "missed",
+      "played_i": null,
+      "played_name": null,
+      "played_midi_float": null,
+      "cents_off": null,
+      "timing_ms": null,
+      "confidence": 0.0
+    },
+    {
+      "id": "n:t1:3:4",
+      "bar": 3,
+      "idx": 4,
+      "expected_name": "G5",
+      "expected_midi": 79,
+      "expected_onset_s": 5.5,
+      "status": "ok",
+      "played_i": 2,
+      "played_name": "G5",
+      "played_midi_float": 78.97,
+      "cents_off": -3,
+      "timing_ms": 20,
+      "confidence": 0.9
+    },
+    {
+      "id": "n:t1:4:1",
+      "bar": 4,
+      "idx": 1,
+      "expected_name": "A5",
+      "expected_midi": 81,
+      "expected_onset_s": 6.0,
+      "status": "ok",
+      "played_i": 3,
+      "played_name": "A5",
+      "played_midi_float": 81.02,
+      "cents_off": 2,
+      "timing_ms": 95,
+      "confidence": 0.9
+    },
+    {
+      "id": "n:t1:4:2",
+      "bar": 4,
+      "idx": 2,
+      "expected_name": "B5",
+      "expected_midi": 83,
+      "expected_onset_s": 6.5,
+      "status": "uncertain",
+      "played_i": 4,
+      "played_name": "B5",
+      "played_midi_float": 82.7,
+      "cents_off": -30,
+      "timing_ms": 70,
+      "confidence": 0.4
+    }
+  ],
+  "extras": [
+    {
+      "id": "x:t1:1",
+      "bar": 3,
+      "onset_s": 4.75,
+      "played_name": "C5",
+      "played_midi_float": 72.1,
+      "confidence": 0.6
+    }
+  ],
+  "bars": [
+    {
+      "id": "b:t1:3",
+      "bar": 3,
+      "expected": 4,
+      "ok": 2,
+      "wrong": 1,
+      "missed": 1,
+      "extra": 1,
+      "uncertain": 0,
+      "mean_timing_ms": 8,
+      "local_bpm": 94,
+      "drift_pct": 0.5,
+      "drift": "steady"
+    },
+    {
+      "id": "b:t1:4",
+      "bar": 4,
+      "expected": 2,
+      "ok": 1,
+      "wrong": 0,
+      "missed": 0,
+      "extra": 0,
+      "uncertain": 1,
+      "mean_timing_ms": 82,
+      "local_bpm": 88,
+      "drift_pct": -8.0,
+      "drift": "dragging"
+    }
+  ],
+  "problems": [
+    {
+      "id": "p:t1:1",
+      "kind": "notes",
+      "bars": [
+        3,
+        3
+      ],
+      "first_time_s": 4.5,
+      "measurement_ids": [
+        "n:t1:3:2",
+        "n:t1:3:3",
+        "x:t1:1"
+      ],
+      "size": 3,
+      "certainty": 0.9,
+      "score": 2.7,
+      "tier": 1,
+      "numbers": {
+        "wrong": 1,
+        "missed": 1,
+        "extra": 1
+      }
+    },
+    {
+      "id": "p:t1:2",
+      "kind": "late",
+      "bars": [
+        4,
+        4
+      ],
+      "first_time_s": 6.0,
+      "measurement_ids": [
+        "n:t1:4:1",
+        "b:t1:4"
+      ],
+      "size": 1,
+      "certainty": 0.8,
+      "score": 0.8,
+      "tier": 1,
+      "numbers": {
+        "mean_timing_ms": 82
+      }
+    }
+  ],
+  "tier1": [
+    {
+      "problem_id": "p:t1:1",
+      "text": "In bar 3 the E came out as an F, and the F sharp was missing.",
+      "measurement_ids": [
+        "n:t1:3:2",
+        "n:t1:3:3"
+      ],
+      "jump": {
+        "bar": 3,
+        "time_s": 4.5
+      }
+    },
+    {
+      "problem_id": "p:t1:2",
+      "text": "Bar 4 came in about 82 ms late.",
+      "measurement_ids": [
+        "n:t1:4:1",
+        "b:t1:4"
+      ],
+      "jump": {
+        "bar": 4,
+        "time_s": 6.0
+      }
+    }
+  ],
+  "form": [
+    {
+      "id": "f:t1:1",
+      "rule": "bow_arm_height",
+      "label": "Right elbow rises in bar 4",
+      "side": "right",
+      "start_s": 6.0,
+      "end_s": 7.0,
+      "peak_s": 6.5,
+      "bars": [
+        4,
+        4
+      ],
+      "value": 38.0,
+      "threshold": 30.0,
+      "unit": "deg",
+      "direction": "above",
+      "severity": "minor",
+      "confidence": 0.7,
+      "linked": [
+        "p:t1:2"
+      ]
+    }
+  ],
+  "media_url": "/sessions/sess_mock1/takes/take_1/media"
 }

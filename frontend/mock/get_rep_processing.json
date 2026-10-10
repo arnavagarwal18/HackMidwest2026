@@ -1,0 +1,14 @@
+{
+  "take_id": null,
+  "exercise_id": "ex1",
+  "tempo_bpm": 66,
+  "status": "processing",
+  "passed": null,
+  "reasons": [],
+  "errors": null,
+  "mean_abs_timing_ms": null,
+  "form_flag_ids": [],
+  "next_bpm": null,
+  "streak": null,
+  "exercise_complete": null
+}

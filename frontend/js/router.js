@@ -44,6 +44,7 @@ async function renderCurrent() {
   document.querySelectorAll('nav a').forEach((link) => {
     link.classList.toggle('current', link.getAttribute('href').split('/')[1] === window.location.hash.split('/')[1]);
   });
+  root.className = ''; // screens may set their own layout class
   root.replaceChildren();
   try {
     const screen = await import(`./screens/${match.screen}.js`);

@@ -77,3 +77,8 @@ pre.response {
   border: 1px solid #e4e4e0;
   font-size: 0.85rem;
 }
+
+/* Results screen: analysis on the left, Instructor chat panel on the right (stacked on narrow screens). */
+main.with-chat { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.25rem; max-width: 80rem; }
+@media (max-width: 50rem) { main.with-chat { grid-template-columns: 1fr; } }
+.chat-panel { padding: 0 1rem; border-left: 1px solid #e4e4e0; }

@@ -1,109 +1,59 @@
-import { showUnreachable, clearBanner } from './banner.js';
-import { mockResponse } from './mock.js';
+// Every back-end call, as a named function. Screens import from here and never call fetch themselves.
+// Each function takes the session id explicitly (state.session_id) and resolves to the parsed JSON body.
+// On an HTTP 4xx/5xx it throws ApiError { code, message, status, details }; the screen shows
+// err.message in the red banner (reportError in banner.js) and keeps the learner's inputs.
+// If the server is unreachable the call waits for the learner to press Retry in the banner.
+import { API_BASE, MOCK_MODE } from './config.js';
+import { get, postForm, postJson } from './http.js';
+import { MOCK_MEDIA_URL } from './mock.js';
 
-const params = new URLSearchParams(window.location.search);
-export const MOCK_MODE = params.get('mock') === '1';
-const API_BASE = (params.get('api') || '').replace(/\/$/, '');
+export { ApiError } from './http.js';
+export { MOCK_MODE };
 
-export class ApiError extends Error {
-  constructor(code, message, status, details = {}) {
-    super(message);
-    this.name = 'ApiError';
-    this.code = code;
-    this.status = status;
-    this.details = details; // the rest of the error object, e.g. notes for calibration_failed
-  }
-}
+const sess = (id) => `/sessions/${encodeURIComponent(id)}`;
+const withInstrument = (path, instrument) => (instrument ? `${path}?instrument=${encodeURIComponent(instrument)}` : path);
 
-class NetworkError extends Error {}
+// ---- Session and score (LLD-1) ----
+export const createSession = (instrument) => postJson('/sessions', { instrument });
+export const getSession = (id) => get(sess(id));
+export const getBuiltins = (instrument) => get(withInstrument('/builtins', instrument));
+export const uploadScorePhoto = (id, file) => postForm(`${sess(id)}/score/photo`, { file });
+export const getScoreStatus = (id) => get(`${sess(id)}/score/status`); // poll while score_status is 'scanning'
+export const uploadScoreFile = (id, file) => postForm(`${sess(id)}/score/file`, { file });
+export const chooseBuiltinScore = (id, pieceId) => postJson(`${sess(id)}/score/file`, { builtin: pieceId });
+export const confirmScore = (id) => postJson(`${sess(id)}/score/confirm`);
 
-function buildOptions(method, body) {
-  if (body === undefined) return { method };
-  if (body instanceof FormData) return { method, body };
-  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-}
+// ---- Calibration (LLD-2) ----
+export const getReferenceNotes = (instrument) => get(withInstrument('/reference-notes', instrument));
+// files: { ref_0, ref_1, ref_2, click, inst_0?, inst_1?, inst_2? }; a 422 calibration_failed has err.details.notes.
+export const submitCalibration = (id, files, clickAtS) => postForm(`${sess(id)}/calibration`, files, { click_at_s: clickAtS });
+export const skipCalibration = (id) => postJson(`${sess(id)}/calibration/skip`);
+export const getCalibration = (id) => get(`${sess(id)}/calibration`);
 
-async function rawResponse(method, path, body) {
-  if (MOCK_MODE) {
-    const mocked = await mockResponse(method, path);
-    if (!mocked) {
-      throw new ApiError('mock_missing', `No mock response for ${method} ${path}.`, 0);
-    }
-    return mocked;
-  }
-  let res;
-  try {
-    res = await fetch(API_BASE + path, buildOptions(method, body));
-  } catch (err) {
-    console.error(`Cannot reach the server for ${method} ${path}:`, err);
-    throw new NetworkError(err.message);
-  }
-  let parsed = null;
-  try {
-    parsed = await res.json();
-  } catch (err) {
-    console.error(`${method} ${path} returned a non-JSON body (HTTP ${res.status}):`, err);
-  }
-  return { ok: res.ok, status: res.status, body: parsed };
-}
+// ---- Takes and analysis (LLD-2, LLD-3) ----
+// fields: { kind, source, bar_from, bar_to, tempo_bpm, count_in_beats, downbeat_s }
+export const uploadTake = (id, file, fields) => postForm(`${sess(id)}/takes`, { file }, fields);
+export const takeMediaUrl = (id, take) => (MOCK_MODE ? MOCK_MEDIA_URL : `${API_BASE}${sess(id)}/takes/${encodeURIComponent(take)}/media`);
+export const getAnalysis = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/analysis`); // poll until status is 'done' or 'failed'
+export const setTransposition = (id, semitones) => postJson(`${sess(id)}/transposition`, { semitones });
 
-async function attempt(method, path, body) {
-  const { ok, status, body: data } = await rawResponse(method, path, body);
-  if (data && data.error) {
-    const { code, message, ...details } = data.error;
-    throw new ApiError(code || 'error', message || 'The app server reported an error.', status, details);
-  }
-  if (!ok || data === null) {
-    throw new ApiError(
-      `http_${status}`,
-      `The app server answered ${method} ${path} with an unexpected response (HTTP ${status}).`,
-      status,
-    );
-  }
-  return data;
-}
+// ---- Form (LLD-4) ----
+export const getTracks = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/tracks`);
+export const checkCamera = (id, jpeg) => postForm(`${sess(id)}/camera-check`, { file: jpeg });
 
-// Server down: show the banner and wait; each Retry press repeats this request once.
-function waitForRetry(method, path, body) {
-  return new Promise((resolve, reject) => {
-    showUnreachable(async () => {
-      try {
-        const data = await attempt(method, path, body);
-        clearBanner();
-        resolve(data);
-      } catch (err) {
-        if (err instanceof NetworkError) return; // banner stays; user can press Retry again
-        clearBanner();
-        reject(err);
-      }
-    });
-  });
-}
+// ---- Feedback, trace and chat (LLD-5) ----
+export const getFeedback = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
+export const requestFeedback = (id, take) => postJson(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
+export const getTrace = (id, feedbackId) => get(`${sess(id)}/feedback/${encodeURIComponent(feedbackId)}/trace`);
+export const getChat = (id) => get(`${sess(id)}/chat`);
+export const sendChat = (id, message, takeId = null) => postJson(`${sess(id)}/chat`, { message, take_id: takeId });
 
-export async function request(method, path, body) {
-  try {
-    return await attempt(method, path, body);
-  } catch (err) {
-    if (err instanceof NetworkError) return waitForRetry(method, path, body);
-    throw err;
-  }
-}
+// ---- Practice and progress (LLD-6) ----
+export const getExercise = (id, ex) => get(`${sess(id)}/exercises/${encodeURIComponent(ex)}`);
+// fields: { kind, source, downbeat_s }
+export const uploadRep = (id, ex, file, fields) => postForm(`${sess(id)}/exercises/${encodeURIComponent(ex)}/reps`, { file }, fields);
+export const getRep = (id, ex, rep) => get(`${sess(id)}/exercises/${encodeURIComponent(ex)}/reps/${encodeURIComponent(rep)}`); // poll while 'processing'
+export const getProgress = (id) => get(`${sess(id)}/progress`);
 
-export const api = {
-  get: (path) => request('GET', path),
-  post: (path, body) => request('POST', path, body ?? {}),
-  // Multipart upload: the audio/photo goes in field 'file', other values as text fields.
-  upload: (path, file, fields = {}) => {
-    const form = new FormData();
-    form.append('file', file);
-    Object.entries(fields).forEach(([key, value]) => form.append(key, value));
-    return request('POST', path, form);
-  },
-  // Multipart with several named files (calibration: ref_0..2, click).
-  uploadMany: (path, files, fields = {}) => {
-    const form = new FormData();
-    Object.entries(files).forEach(([key, file]) => form.append(key, file));
-    Object.entries(fields).forEach(([key, value]) => form.append(key, value));
-    return request('POST', path, form);
-  },
-};
+// ---- Phone link ----
+export const getLanAddress = () => get('/lan-address');

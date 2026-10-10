@@ -1,0 +1,9 @@
+{
+  "transposition": {
+    "semitones": 2,
+    "source": "user"
+  },
+  "rerun_takes": [
+    "take_1"
+  ]
+}

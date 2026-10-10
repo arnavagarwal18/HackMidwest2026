@@ -1,4 +1,126 @@
 {
-  "feedback_id": "fb_1",
-  "status": "processing"
+  "feedback": {
+    "id": "fb_1",
+    "take_id": "take_1",
+    "created_at": "2026-10-10T20:00:00Z",
+    "mode": "ai",
+    "fallback_reason": null,
+    "cant_tell": false,
+    "tier1": [
+      {
+        "problem_id": "p:t1:1",
+        "text": "In bar 3 the E came out as an F, and the F sharp was missing.",
+        "measurement_ids": [
+          "n:t1:3:2",
+          "n:t1:3:3"
+        ],
+        "jump": {
+          "bar": 3,
+          "time_s": 4.5
+        }
+      },
+      {
+        "problem_id": "p:t1:2",
+        "text": "Bar 4 came in about 82 ms late.",
+        "measurement_ids": [
+          "n:t1:4:1",
+          "b:t1:4"
+        ],
+        "jump": {
+          "bar": 4,
+          "time_s": 6.0
+        }
+      }
+    ],
+    "sentences": [
+      {
+        "text": "Your E in bar 3 sounded as an F; slow it down and check the finger placement.",
+        "cites": [
+          "n:t1:3:2"
+        ],
+        "claims": [
+          {
+            "measurement_id": "n:t1:3:2",
+            "field": "status",
+            "value": "wrong"
+          }
+        ],
+        "jump": {
+          "bar": 3,
+          "time_s": 4.5
+        },
+        "checked": true
+      },
+      {
+        "text": "Bar 4 arrived late, so count the beat before it.",
+        "cites": [
+          "b:t1:4"
+        ],
+        "claims": [
+          {
+            "measurement_id": "b:t1:4",
+            "field": "mean_timing_ms",
+            "value": 82
+          }
+        ],
+        "jump": {
+          "bar": 4,
+          "time_s": 6.0
+        },
+        "checked": true
+      }
+    ],
+    "dropped": [
+      {
+        "text": "Your tone was too thin.",
+        "reasons": [
+          "no measurement backs this claim"
+        ]
+      }
+    ],
+    "plan_id": "plan_1",
+    "check": {
+      "coach_tries": 1,
+      "planner_tries": 1,
+      "claims_checked": 4,
+      "claims_failed": 1,
+      "sentences_dropped": 1
+    },
+    "duration_ms": 4200
+  },
+  "plan": {
+    "id": "plan_1",
+    "take_id": "take_1",
+    "feedback_id": "fb_1",
+    "mode": "ai",
+    "exercises": [
+      {
+        "id": "ex1",
+        "title": "Bar 3 slow",
+        "text": "Play bars 3 to 4 slowly, then speed up.",
+        "bar_from": 3,
+        "bar_to": 4,
+        "start_bpm": 60,
+        "target_bpm": 96,
+        "step_bpm": 6,
+        "reps_to_pass": 3,
+        "pass_mark": {
+          "max_errors": 0,
+          "max_mean_timing_ms": 60,
+          "form_rule": null
+        },
+        "problem_ids": [
+          "p:t1:1",
+          "p:t1:2"
+        ],
+        "claims": [
+          {
+            "measurement_id": "p:t1:1",
+            "field": "kind",
+            "value": "notes"
+          }
+        ]
+      }
+    ]
+  }
 }

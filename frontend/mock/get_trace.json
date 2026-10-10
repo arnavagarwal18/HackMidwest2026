@@ -1,5 +1,54 @@
 {
   "feedback_id": "fb_1",
-  "claims": [],
-  "note": "Placeholder; exact shape arrives with the trace screen."
+  "mode": "ai",
+  "events": [
+    {
+      "t_ms": 0,
+      "agent": "orchestrator",
+      "event": "tool_call",
+      "name": "get_problems",
+      "detail": "take_1",
+      "duration_ms": 5
+    },
+    {
+      "t_ms": 10,
+      "agent": "orchestrator",
+      "event": "tool_result",
+      "name": "get_problems",
+      "detail": "2 problems",
+      "duration_ms": 0
+    },
+    {
+      "t_ms": 20,
+      "agent": "coach",
+      "event": "model_call",
+      "name": "coach_model",
+      "detail": "2 sentences",
+      "duration_ms": 2800
+    },
+    {
+      "t_ms": 2830,
+      "agent": "checker",
+      "event": "check_pass",
+      "name": "claim",
+      "detail": "n:t1:3:2 is wrong",
+      "duration_ms": 1
+    },
+    {
+      "t_ms": 2835,
+      "agent": "checker",
+      "event": "dropped",
+      "name": "sentence",
+      "detail": "Your tone was too thin.",
+      "duration_ms": 1
+    },
+    {
+      "t_ms": 2840,
+      "agent": "planner",
+      "event": "model_call",
+      "name": "planner_model",
+      "detail": "1 exercise",
+      "duration_ms": 1200
+    }
+  ]
 }

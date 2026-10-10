@@ -1,5 +1,5 @@
 // Page reload: pick the session up again from localStorage and decide which screen to show.
-import { api } from './api.js';
+import { getCalibration, getSession } from './api.js';
 import { clearSession, loadStoredSessionId, setSession, state } from './state.js';
 
 const SESSION_GONE_NOTICE = 'Your earlier session was not found; starting fresh.';
@@ -10,9 +10,10 @@ export async function resumeSession(currentHash) {
   if (!sessionId) return { hash: '#/start', notice: null, error: null };
 
   try {
-    const session = await api.get(`/sessions/${encodeURIComponent(sessionId)}`);
+    const session = await getSession(sessionId);
     setSession(session.session_id, session.instrument);
     state.score.status = session.score_status;
+    if (session.has_calibration) state.calibration = (await getCalibration(sessionId)).profile;
     return { hash: session.score_status === 'confirmed' ? '#/take' : '#/score', notice: null, error: null };
   } catch (err) {
     if (err.code === 'session_not_found') {

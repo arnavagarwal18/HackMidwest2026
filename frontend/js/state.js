@@ -1,5 +1,9 @@
-// The one shared state object. Everything except session_id is lost on reload.
-const SESSION_KEY = 'practice_coach_session_id';
+// The one shared state object. Everything except session_id is lost on reload;
+// session_id is also kept in localStorage so resume.js can rebuild the rest from the back end.
+import { MOCK_MODE } from './config.js';
+
+// Mock mode keeps its own key so a walk-through never overwrites a real session.
+const SESSION_KEY = MOCK_MODE ? 'practice_coach_session_id_mock' : 'practice_coach_session_id';
 
 function freshState() {
   return {

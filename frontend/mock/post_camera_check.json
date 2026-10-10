@@ -1,4 +1,8 @@
 {
-  "ok": true,
-  "note": "Placeholder; exact shape arrives with the camera screen."
+  "ok": false,
+  "missing": [
+    "left hand"
+  ],
+  "too_small": false,
+  "too_dark": false
 }
