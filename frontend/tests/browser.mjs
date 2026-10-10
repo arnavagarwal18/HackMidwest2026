@@ -43,7 +43,7 @@ export async function launchChrome() {
   const chrome = spawn(binary, [
     '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--disable-gpu',
     '--disable-extensions', '--renderer-process-limit=1', '--js-flags=--max-old-space-size=256',
-    '--autoplay-policy=no-user-gesture-required', '--window-size=1200,700', 'about:blank',
+    '--autoplay-policy=no-user-gesture-required', '--mute-audio', '--window-size=1200,700', 'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
   const wsUrl = await new Promise((resolve, reject) => {
     let log = '';
