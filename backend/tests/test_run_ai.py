@@ -9,7 +9,7 @@ from tests.test_checker_feedback import LATE_TEXT, sentence
 from tests.test_coach_hook import submit, wrong_sentence
 
 OVERVIEW = tool_turn("get_take_overview", {})
-BRIEF = tool_turn("coach", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, violin."})
+BRIEF = tool_turn("coach", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, trumpet."})
 ACCESS_DENIED = ClientError({"Error": {"Code": "AccessDeniedException", "Message": "not allowed"}}, "ConverseStream")
 
 

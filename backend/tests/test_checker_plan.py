@@ -140,11 +140,11 @@ def test_max_errors_above_two_fails(check_ctx):
 
 def test_form_rule_must_be_flagged_in_take(check_ctx):
     mark = {"max_errors": 0, "max_mean_timing_ms": None}
-    ok = exercise(pass_mark={**mark, "form_rule": "elbow_height"}, bar_from=4, bar_to=4, problem_ids=["p:t1:2"],
+    ok = exercise(pass_mark={**mark, "form_rule": "trumpet_head_down"}, bar_from=4, bar_to=4, problem_ids=["p:t1:2"],
                   text="Play bar 4 at 58 BPM, up 4 BPM per step to 70 BPM, 3 clean reps.")
     assert check_plan(plan(ok, whole_range()), check_ctx)["ok"]
     bad = copy.deepcopy(ok)
-    bad["pass_mark"]["form_rule"] = "bow_angle"
+    bad["pass_mark"]["form_rule"] = "trumpet_elbows_pinned"
     assert_fails_with(check_plan(plan(bad, whole_range()), check_ctx), "bad pass mark")
 
 

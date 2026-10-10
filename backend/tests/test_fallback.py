@@ -85,7 +85,7 @@ def test_form_problem_gets_a_form_rule(fixture_data):
                     "size": 1, "certainty": 0.7, "score": 0.5, "tier": 1, "numbers": {}}
     diagnosis = {**fixture_data["diagnosis"], "problems": [*fixture_data["diagnosis"]["problems"], form_problem]}
     result = build_fallback(diagnosis, TAKE, [], {"f:t1:0": fixture_data["form"]["flags"][0]})
-    assert [e["pass_mark"]["form_rule"] for e in result.exercises] == [None, None, "elbow_height", None]
+    assert [e["pass_mark"]["form_rule"] for e in result.exercises] == [None, None, "trumpet_head_down", None]
     assert result.exercises[2]["pass_mark"]["max_mean_timing_ms"] is None
 
 
