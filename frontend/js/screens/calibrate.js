@@ -83,7 +83,14 @@ export async function render(root) {
     clearBanner();
     let meter = null;
     try {
-      if (!stream) ({ stream } = await openStream());
+      if (!stream) {
+        const opened = await openStream();
+        if (disposed) { // the learner left while the permission prompt was open
+          stopStream(opened.stream);
+          return null;
+        }
+        stream = opened.stream;
+      }
       meter = await renderLevelMeter(meterBox, stream);
       return await recordClip({ stream, ...options });
     } catch (err) {

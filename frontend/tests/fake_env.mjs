@@ -40,14 +40,16 @@ export class FakeNode {
 }
 
 // Installs fake window/document/audio globals. `search` is the page's query string. Returns the pieces tests drive.
-export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000', micError = null } = {}) {
+export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000', micError = null, holdMic = false } = {}) {
   const realSetTimeout = globalThis.setTimeout;
   globalThis.setTimeout = (fn, ms, ...args) => realSetTimeout(fn, Math.min(ms, 2), ...args); // a 3 s clip takes 2 ms
   const handlers = [];
   const banner = new FakeNode('div');
   banner.hidden = true;
   const head = new FakeNode('head');
-  const env = { banner, head, handlers, streams: [], clipsStarted: 0, clickTimes: [] };
+  let grantMic = () => {};
+  const micAnswer = holdMic ? new Promise((resolve) => { grantMic = resolve; }) : null; // the permission prompt, until grantMic()
+  const env = { grantMic: () => grantMic(), banner, head, handlers, streams: [], clipsStarted: 0, clickTimes: [] };
 
   globalThis.document = {
     createElement: (tag) => new FakeNode(tag),
@@ -74,6 +76,7 @@ export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000'
     value: {
       mediaDevices: {
         async getUserMedia() {
+          if (micAnswer) await micAnswer;
           if (micError) throw Object.assign(new Error('denied'), { name: micError });
           const tracks = [{ stopped: false, stop() { this.stopped = true; } }];
           const stream = { tracks, getTracks: () => tracks, getVideoTracks: () => [] };

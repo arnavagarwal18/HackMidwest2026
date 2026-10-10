@@ -179,3 +179,16 @@ test('leaving the route releases the microphone', async () => {
   assert.equal(fresh.streams[0].tracks[0].stopped, true);
   assert.equal(root.button('Skip calibration').disabled, true);
 });
+
+test('leaving while the mic permission prompt is open releases the mic once it is granted', async () => {
+  const pending = installFakeBrowser({ holdMic: true });
+  const root = await startScreen();
+  const recording = root.button(/^Record Bb3/).click(); // stays at the permission prompt
+  pending.leave();
+  pending.grantMic();
+  await recording;
+  assert.equal(pending.streams.length, 1);
+  assert.equal(pending.streams[0].tracks[0].stopped, true);
+  assert.equal(pending.clipsStarted, 0, 'no recording starts after leaving');
+  assert.equal(pending.banner.hidden, true, 'nothing is reported on the next screen');
+});
