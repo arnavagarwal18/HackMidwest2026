@@ -150,7 +150,7 @@ def make_tools(
             return json.dumps({"error": str(exc)})
         except Exception as exc:
             log.exception("tool %s failed for take %s", body.__name__, take_id)
-            return json.dumps({"error": f"{body.__name__} failed: {exc}"})
+            return json.dumps({"error": f"{body.__name__} failed ({type(exc).__name__})"})
 
     def get_take_overview() -> str:
         """Summary of the take: whether it can be judged, tempos, note counts by status, headline sentences and form status."""
