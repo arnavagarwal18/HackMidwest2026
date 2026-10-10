@@ -57,7 +57,7 @@ const TAKE_VARIANTS = {
   take_mic: { get_analysis: 'get_analysis_mic' }, // a mic take: no form check
   take_failed: { get_analysis: 'get_analysis_failed' },
   take_cant_tell: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' },
-  take_fallback: { get_feedback: 'get_feedback_fallback' },
+  take_fallback: { get_feedback: 'get_feedback_fallback', post_chat: 'post_chat_fallback' }, // the chat POST names its take in the body
   take_stuck: { get_analysis: 'get_analysis_transcribed' }, // never finishes
 };
 
@@ -100,12 +100,12 @@ function pollFile(route, pathOnly, finalFile) {
 }
 
 // Picks the mock file for this request (advancing poll counters), or null when no route matches.
-export function mockFileFor(method, path) {
+export function mockFileFor(method, path, requestBody) {
   const pathOnly = path.split('?')[0];
   const route = ROUTES.find((r) => r.method === method && r.regex.test(pathOnly));
   if (!route) return null;
   if (route.resets) resetPolls(route.resets);
-  const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1];
+  const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1] ?? requestBody?.take_id;
   const exerciseId = /\/exercises\/([^/]+)/.exec(pathOnly)?.[1];
   const finalFile = (TAKE_VARIANTS[takeId] ?? EXERCISE_VARIANTS[exerciseId])?.[route.file] ?? route.file;
   if (route.poll) return pollFile(route, pathOnly, finalFile);
@@ -119,7 +119,7 @@ export function mockFileFor(method, path) {
 // Returns the same { ok, status, body } shape as a real response, or null when no mock exists.
 export async function mockResponse(method, path, requestBody) {
   mockRequestLog.push({ method, path, body: requestBody instanceof FormData ? undefined : requestBody });
-  const file = mockFileFor(method, path);
+  const file = mockFileFor(method, path, requestBody);
   if (!file) return null;
   await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
   const res = await fetch(`mock/${file}.json`);

@@ -10,7 +10,7 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 | `index.html` | The single page: header nav, red/blue banner strip (`#banner`), screen mount (`#screen`). |
 | `css/app.css` | All styles. |
 | `js/router.js` | Hash router. Maps `#/start`, `#/score`, `#/calibrate`, `#/take`, `#/results/:take`, `#/exercise/:ex`, `#/progress`, `#/trace/:fb` to `js/screens/<name>.js` and calls its `render(root, params)`. |
-| `js/screens/*.js` | One module per screen, each exporting `render(root, params)`. Today they are placeholders (`placeholder.js` prints the saved response of each call the real screen will make). `chat.js` is the Instructor panel; `results.js` renders it beside the results. |
+| `js/screens/*.js` | One module per screen, each exporting `render(root, params)`. Today they are placeholders (`placeholder.js` prints the saved response of each call the real screen will make). `chat.js` is the Instructor panel (logic in `js/chat/`: `model.js` checks and limits, `transcript.js` drawing, `panel.js` the panel); `results.js` renders it beside the results. |
 | `js/results/*.js` | The results screen's parts (see "Results screen" below). `js/dom.js` has the small DOM helpers they share. |
 | `js/api.js` | One named function per back-end route (see the file). Screens call these, never `fetch`. |
 | `js/http.js` | Transport behind `api.js`: fetch, JSON, `ApiError`, the server-down Retry flow. |
@@ -121,6 +121,16 @@ Mock takes for trying each state (use them as the take id): `take_1` (video), `t
 
 Tests: `node frontend/tests/results.test.mjs` (Node 22+, Chrome). It runs one small headless Chrome (low-memory flags) and
 stops it when done.
+
+### Instructor chat panel (`js/screens/chat.js`, `js/chat/*.js`)
+
+`results.js` renders the panel at once (it loads `GET /sessions/{id}/chat`) and calls `chat.setResults({ jumpContext, feedback })`
+when the take's results are on screen: the feedback sentences become the opening message and the sentences' bar/time jumps
+start to work (turns about another take, or a take with no results to jump in, show plain text). Send is disabled while a reply
+is pending ("thinking" shows; the UI gives up after 35 s). Errors (including 409 "Instructor is already replying.") go to the
+banner and keep the typed text. A `mode: 'fallback'` turn shows "AI instructor unavailable". Mock mode: `take_fallback` gets
+the fallback reply (`mock/post_chat_fallback.json`), other takes the AI reply (`mock/post_chat.json`).
+Tests: `node --test frontend/tests/chat.test.mjs` (no browser).
 
 ### Video overlay (`js/results/overlay.js`)
 

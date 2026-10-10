@@ -32,3 +32,13 @@ button.sentence-text:hover { text-decoration: underline; }
 .overlay-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
 .overlay-controls { margin: 0.5rem 0; }
 .overlay-note { font-size: 0.85rem; }
+
+/* Instructor chat panel (beside the results) */
+.chat-transcript { list-style: none; margin: 0 0 0.75rem; padding: 0; max-height: 60vh; overflow-y: auto; }
+.chat-turn { margin: 0 0 0.6rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: #fff; border: 1px solid #e4e4e0; }
+.chat-user { background: var(--notice-bg); border-color: transparent; }
+.chat-speaker { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.chat-text { margin: 0.2rem 0 0; }
+.chat-turn .sentences { margin: 0.2rem 0 0; }
+.chat-form { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+.chat-input { width: 100%; box-sizing: border-box; font: inherit; padding: 0.4rem 0.6rem; }

@@ -17,17 +17,21 @@ export async function render(root, { take }) {
   const chatPanel = element('aside', '', 'chat-panel');
   root.className = 'with-chat';
   root.append(view, chatPanel);
-  Promise.resolve(renderChat(chatPanel, { take })).catch(reportError);
+  const chat = renderChat(chatPanel, { take });
 
   const isActive = () => view.isConnected; // false once the router has moved to another screen
   let overlay = null; // the body-lines overlay of the finished take on screen (none for mic takes)
   const show = (result) => {
     overlay?.destroy();
     overlay = null;
-    if (result.analysis.status === 'failed') return renderFailed(view, result.analysis);
+    if (result.analysis.status === 'failed') {
+      chat.setResults({});
+      return renderFailed(view, result.analysis);
+    }
     const rendered = renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition });
     overlay = rendered?.player ? mountOverlay(rendered, { sessionId, take }) : null; // a can't-tell take has no player
     overlay?.onAnalysis(result.analysis);
+    chat.setResults({ jumpContext: rendered ? { index: rendered.index, jumper: rendered.jumper } : null, feedback: result.feedback });
   };
 
   function failRequest(err) {

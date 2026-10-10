@@ -1,0 +1,41 @@
+{
+  "user_turn": {
+    "turn": 1,
+    "role": "user",
+    "text": "Why was bar 3 wrong?",
+    "take_id": "take_fallback",
+    "sentences": null,
+    "dropped": null,
+    "mode": null,
+    "created_at": "2026-10-10T20:01:00Z"
+  },
+  "instructor_turn": {
+    "turn": 2,
+    "role": "instructor",
+    "text": "Bar 3 had a wrong note.",
+    "take_id": "take_fallback",
+    "sentences": [
+      {
+        "text": "In bar 3 the E came out as an F.",
+        "cites": [
+          "n:t1:3:2"
+        ],
+        "claims": [
+          {
+            "measurement_id": "n:t1:3:2",
+            "field": "status",
+            "value": "wrong"
+          }
+        ],
+        "jump": {
+          "bar": 3,
+          "time_s": 4.5
+        },
+        "checked": true
+      }
+    ],
+    "dropped": [],
+    "mode": "fallback",
+    "created_at": "2026-10-10T20:01:03Z"
+  }
+}
