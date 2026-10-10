@@ -1,0 +1,13 @@
+/* Calibration screen. Loaded by js/screens/calibrate.js. */
+.calibrate-intro { margin-bottom: 1rem; }
+.calibrate-qr { width: 11rem; max-width: 60%; margin: 0.5rem 0; border: 1px solid #e4e4e0; border-radius: 6px; overflow: hidden; }
+.calibrate-qr svg { display: block; width: 100%; height: auto; }
+.calibrate-address { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+.calibrate-steps { padding-left: 0; list-style: none; display: grid; gap: 0.5rem; }
+.calibrate-step { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.calibrate-prompt { flex: 1 1 18rem; }
+.calibrate-meter meter { width: 12rem; }
+.calibrate-failures { padding-left: 0; list-style: none; display: grid; gap: 0.4rem; }
+.calibrate-failures li { display: flex; align-items: center; gap: 0.75rem; color: var(--error); font-weight: 600; }
+.calibrate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.calibrate-done { padding: 0.5rem 0.75rem; background: #d1fadf; color: #05603a; border-radius: 6px; }

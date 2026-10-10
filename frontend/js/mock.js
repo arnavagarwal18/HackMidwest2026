@@ -61,6 +61,14 @@ const TAKE_VARIANTS = {
   take_stuck: { get_analysis: 'get_analysis_transcribed' }, // never finishes
 };
 
+// URL switches that change an answer: ?calibration=failed makes the first POST .../calibration answer 422 calibration_failed
+// (then it succeeds, as after a Retry). Read when asked, so tests can change window.location.search.
+const FAILED_CALIBRATION = { group: 'calibration', processingFile: 'error_calibration_failed', polls: 1 };
+const calibrationVariant = () => new URLSearchParams(window.location.search).get('calibration');
+
+// error_*.json files stand for a failed response; most are a 404, these have their own status.
+const ERROR_STATUS = { error_calibration_failed: 422 };
+
 const pollCounts = new Map(); // `${group}|${path}` -> polls answered so far
 
 function resetPolls(groups) {
@@ -89,6 +97,9 @@ export function mockFileFor(method, path) {
   const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1];
   const finalFile = TAKE_VARIANTS[takeId]?.[route.file] ?? route.file;
   if (route.poll) return pollFile(route, pathOnly, finalFile);
+  if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
+    return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);
+  }
   if (route.file === 'get_session') return SESSION_VARIANTS[pathOnly.split('/')[2]] ?? route.file;
   return finalFile;
 }
@@ -106,5 +117,5 @@ export async function mockResponse(method, path, requestBody) {
   }
   const body = await res.json();
   const isError = file.startsWith('error_'); // error_*.json files stand for a failed (non-2xx) response
-  return { ok: !isError, status: isError ? 404 : 200, body };
+  return { ok: !isError, status: isError ? (ERROR_STATUS[file] ?? 404) : 200, body };
 }

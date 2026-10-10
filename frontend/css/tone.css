@@ -1,0 +1,8 @@
+/* The standalone tone page (tone.html), used on a phone. */
+.tone-page { display: grid; gap: 1rem; max-width: 28rem; margin: 0 auto; padding: 1rem; }
+.tone-page h1 { margin: 0; }
+.tone-note { padding: 1.5rem 1rem; font-size: 1.5rem; font-weight: 600; touch-action: manipulation; }
+.tone-note.asked { border-width: 3px; }
+.tone-note.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tone-hold { padding: 0.9rem 1rem; font-size: 1.1rem; touch-action: manipulation; }
+.tone-hold[aria-pressed="true"] { background: var(--notice-bg); color: var(--accent); font-weight: 600; }
