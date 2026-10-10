@@ -50,3 +50,13 @@ MISSING_MAX_FRACTION = 0.7  # a rule is skipped when its measure is missing in m
 GAP_CLOSE_S = 0.5  # gaps shorter than this inside a run of bad frames are closed
 MIN_EPISODE_S = 1.0  # shorter runs are dropped
 TRACKING_QUALITY_MIN = 0.5  # below this share of frames with a tracked person, form_status is 'low_quality'
+
+# Tracking (LLD-4 change 2)
+HAND_MODEL_PATH = MODELS_DIR / "hand_landmarker.task"
+POSE_LANDMARK_COUNT = 25  # landmarks 0-24 are kept: face, shoulders, arms, hands, hips
+HAND_LANDMARK_COUNT = 21
+LEFT_WRIST = 15  # pose landmark indices; left and right are the learner's own
+RIGHT_WRIST = 16
+MAX_NATIVE_FPS = 240  # a container reporting more than this has a broken frame rate
+TRACKS_FILE_SUFFIX = "_tracks.json"
+COORDINATE_DECIMALS = 4  # precision kept when saving landmarks
