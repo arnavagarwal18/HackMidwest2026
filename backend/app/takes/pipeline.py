@@ -3,6 +3,7 @@ import logging
 import threading
 
 from .. import store
+from ..practice import needs_form_check, score_rep
 from .media_tools import MediaError, extract_wav, probe, wav_duration_s
 from .pipeline_steps import Step, StepFailed, resolve_step, transcribe_take
 from .take_store import update_take
@@ -90,30 +91,55 @@ def _give_feedback(session_id: str, take_id: str, run: Step | None) -> None:
         run(session_id, take_id)
 
 
+def _is_rep(session_id: str, take_id: str) -> bool:
+    return store.get(session_id).takes[take_id].get("purpose", "take") == "rep"
+
+
+def _score_rep(session_id: str, take_id: str, run: Step | None) -> None:
+    """Score a rep take, also when its processing failed (score_rep records that); score_rep never raises."""
+    (run or score_rep)(session_id, take_id)
+
+
+def _finish_failed_rep(session_id: str, take_id: str, run: Step | None) -> None:
+    try:
+        if _is_rep(session_id, take_id):
+            _score_rep(session_id, take_id, run)
+    except Exception:
+        logger.exception("Could not score the failed rep take %s/%s", session_id, take_id)
+
+
 def run_take_pipeline(session_id: str, take_id: str, *, transcriber=None, diagnose: Step | None = None,
-                      check_form: Step | None = None, give_feedback: Step | None = None) -> None:
+                      check_form: Step | None = None, give_feedback: Step | None = None,
+                      score: Step | None = None) -> None:
     """Process one take in a background thread; never raises, failures are recorded on the take.
 
     The keyword arguments replace the transcriber and the LLD-3 / LLD-4 / LLD-5 steps (tests); by default the steps
     are looked up as app.diagnosis.run, app.form.run and app.agents.run.run_feedback when needed, and skipped
-    while they don't exist.
+    while they don't exist. A 'rep' take skips the agents: its form check runs only when its exercise has a form rule,
+    and `score` (practice.score_rep) judges it, whether or not the earlier steps failed.
     """
     with _lock_for(session_id):
         try:
             extract_audio(session_id, take_id)
             transcribe_take(session_id, take_id, transcriber)
             _diagnose(session_id, take_id, diagnose)
-            if store.get(session_id).takes[take_id]["kind"] == "video":
+            rep = _is_rep(session_id, take_id)
+            if store.get(session_id).takes[take_id]["kind"] == "video" and (not rep or needs_form_check(session_id, take_id)):
                 _check_form(session_id, take_id, check_form)
-            _give_feedback(session_id, take_id, give_feedback)
+            if rep:
+                _score_rep(session_id, take_id, score)
+            else:
+                _give_feedback(session_id, take_id, give_feedback)
             if store.get(session_id).takes[take_id]["status"] != "failed":  # run_feedback marks the take failed if it can't save
                 update_take(session_id, take_id, status="done")
         except (MediaError, StepFailed) as exc:
             logger.warning("Take %s/%s failed: %s (%s)", session_id, take_id, exc.code, exc)
             _fail(session_id, take_id, exc.code)
+            _finish_failed_rep(session_id, take_id, score)
         except Exception:
             logger.exception("Take %s/%s pipeline crashed", session_id, take_id)
             try:
                 _fail(session_id, take_id, "pipeline_error")
             except Exception:
                 logger.exception("Could not record the failure of take %s/%s", session_id, take_id)
+            _finish_failed_rep(session_id, take_id, score)
