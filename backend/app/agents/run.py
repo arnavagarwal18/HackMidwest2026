@@ -110,10 +110,10 @@ def _create_records(session_id: str, take_id: str, trace: Trace, started: float)
 
 
 def _init_practice(session_id: str, plan_id: str) -> None:
-    init_plan = resolve_step("app.practice", "init_plan")
-    if init_plan is None:
-        return
     try:
+        init_plan = resolve_step("app.practice", "init_plan")
+        if init_plan is None:
+            return
         init_plan(session_id, plan_id)
     except Exception:
         log.exception("practice.init_plan failed for plan %s/%s", session_id, plan_id)

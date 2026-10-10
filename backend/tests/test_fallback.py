@@ -223,3 +223,13 @@ def test_practice_init_plan_is_called_when_it_exists_and_its_failure_is_survived
     session_id, take_id = add_diagnosed_take(fixture_data)
     assert run.run_feedback(session_id, take_id) == "fb1"
     assert calls == ["pl1"]
+
+
+def test_a_broken_practice_import_does_not_stop_run_feedback(sessions_root, fixture_data, monkeypatch, caplog):
+    def broken_import(module, attr):
+        raise ModuleNotFoundError("No module named 'numpyy'", name="numpyy")
+
+    monkeypatch.setattr(run, "resolve_step", broken_import)
+    session_id, take_id = add_diagnosed_take(fixture_data)
+    assert run.run_feedback(session_id, take_id) == "fb1"
+    assert "practice.init_plan failed" in caplog.text
