@@ -5,7 +5,7 @@ import cv2
 
 from app import store
 from app.takes.take_store import add_take, update_take
-from tests.media_factory import _ffmpeg
+from tests.media_factory import _ffmpeg, make_wav
 
 PHOTO = Path(__file__).parent / "fixtures" / "pose_person.jpg"
 VIDEO_FPS = 10
@@ -38,4 +38,12 @@ def make_vfr_webm(path: Path, frames: int = 12, gap_s: float = 0.233) -> Path:
     entries = [f"file '{PHOTO.as_posix()}'\nduration {gap_s}" for _ in range(frames)]
     listing.write_text("\n".join(entries) + f"\nfile '{PHOTO.as_posix()}'\n", encoding="utf-8")
     _ffmpeg("-f", "concat", "-safe", "0", "-i", str(listing), "-vsync", "vfr", "-c:v", "libvpx", "-pix_fmt", "yuv420p", str(path))
+    return path
+
+
+def make_photo_video_with_audio(path: Path, tmp_path: Path, frames: int = 12) -> Path:
+    """An mp4 of the fixture photo with a short sine tone, so a take pipeline can extract its audio."""
+    silent = make_photo_video(tmp_path / "silent.mp4", frames)
+    tone = make_wav(tmp_path / "tone.wav", seconds=frames / VIDEO_FPS)
+    _ffmpeg("-i", str(silent), "-i", str(tone), "-c:v", "copy", "-c:a", "aac", "-shortest", str(path))
     return path

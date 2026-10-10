@@ -62,6 +62,12 @@ def _diagnose(session_id: str, take_id: str, run: Step | None) -> None:
 
 def _check_form(session_id: str, take_id: str, run: Step | None) -> None:
     """Video takes only; a failure here is recorded as form_status 'failed' and never fails the take."""
+    from ..form import config as form_config  # imported when needed: the form package is heavy and the step is optional
+
+    if not form_config.FORM_ENABLED:  # demo kill switch: the take keeps form_status 'none' and its notes are still reviewed
+        logger.info("Form check of take %s/%s skipped: FORM_ENABLED is False", session_id, take_id)
+        update_take(session_id, take_id, form_status="none")
+        return
     run = run or resolve_step("app.form")
     if run is None:
         return

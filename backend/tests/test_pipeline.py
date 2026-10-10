@@ -115,6 +115,17 @@ def test_failing_form_leaves_take_done(session_id, tmp_path):
     assert (take["status"], take["error"], take["form_status"]) == ("done", None, "failed")
 
 
+def test_form_kill_switch_skips_form_and_notes_are_still_diagnosed(session_id, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.form.config.FORM_ENABLED", False)
+    take_id = make_take(session_id, tmp_path, kind="video")
+    recorder = Recorder(session_id, take_id)
+    recorder.run()
+    assert [call[0] for call in recorder.calls] == ["transcribe", "diagnose"]
+    take = stored(session_id)
+    assert (take["status"], take["error"], take["form_status"]) == ("done", None, "none")
+    assert take["notes"] == [NOTE.to_dict()]
+
+
 def test_a_form_step_that_records_its_own_failure_keeps_it(session_id, tmp_path):
     take_id = make_take(session_id, tmp_path, kind="video")
     stub = Recorder(session_id, take_id)

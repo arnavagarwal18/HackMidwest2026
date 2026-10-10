@@ -140,8 +140,9 @@ def test_shoulders_raised_is_judged_against_the_baseline():
     [flag] = result["flags"]
     assert flag["rule"] == "shoulders_raised"
     assert flag["start_s"] == pytest.approx(2.0, abs=0.1)
-    assert flag["threshold"] == pytest.approx(0.75 * 0.6)
-    assert flag["severity"] == pytest.approx((0.45 - 0.4) / 0.2)
+    threshold = config.SHOULDERS_RAISED_RATIO * 0.6
+    assert flag["threshold"] == pytest.approx(threshold)
+    assert flag["severity"] == pytest.approx((threshold - 0.4) / config.SEVERITY_SPANS["shoulders_raised"])
 
 
 def test_few_baseline_frames_use_the_defaults_and_say_so():
@@ -150,7 +151,7 @@ def test_few_baseline_frames_use_the_defaults_and_say_so():
     result = analyse(early + late, "violin", "t1")
     assert result["baseline"] == {"neck_ratio": config.DEFAULT_NECK_RATIO, "head_drop": config.DEFAULT_HEAD_DROP,
                                   "defaulted": True}
-    assert result["flags"] == []  # 0.5 is above 0.75 x the default 0.55; 0.75 x a measured 0.8 would have flagged it
+    assert result["flags"] == []  # 0.5 is above the threshold on the default 0.55; the same threshold on a measured 0.8 would have flagged it
 
 
 def test_five_baseline_frames_are_enough():

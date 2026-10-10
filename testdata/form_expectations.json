@@ -1,0 +1,22 @@
+{
+  "_about": "Expected results for the real-video form tests (backend/tests/test_form_real_video.py). Times are seconds from the start of the video.",
+  "instrument": "trumpet",
+  "max_runtime_s_for_60s_video": 45,
+  "flag_time_tolerance_s": 1.0,
+  "good_form": [
+    {"file": "trumpet_video1.mp4", "note": "ordinary practice take, not acted; expect no flags"},
+    {"file": "trumpet_video2.mp4", "note": "ordinary practice take, not acted; expect no flags"}
+  ],
+  "acted": [
+    {
+      "file": "trumpet_form_acted.mp4",
+      "note": "PENDING Xavier's recording: about 3 s of each problem, one after another. Fill in start_s and end_s from the recording, then the test runs.",
+      "problems": [
+        {"rule": "shoulders_raised", "start_s": null, "end_s": null},
+        {"rule": "slouching", "start_s": null, "end_s": null},
+        {"rule": "trumpet_head_down", "start_s": null, "end_s": null},
+        {"rule": "trumpet_elbows_pinned", "start_s": null, "end_s": null}
+      ]
+    }
+  ]
+}
