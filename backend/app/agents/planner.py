@@ -7,7 +7,7 @@ from strands import Agent, tool
 from app.agents.coach import Claim
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
-from app.agents.hooks import PLAN_SUBMIT, CheckerHook
+from app.agents.hooks import PLAN_SUBMIT, CheckerHook, TraceHook
 from app.agents.prompts import PLANNER_PROMPT
 from app.agents.trace import Trace
 
@@ -49,6 +49,6 @@ def build_planner_agent(model: Any, measurement_tools: dict[str, Callable[..., s
         model=model,
         tools=[*[tool(measurement_tools[name]) for name in PLANNER_TOOLS], submit_plan],
         system_prompt=PLANNER_PROMPT,
-        hooks=[CheckerHook(PLAN_SUBMIT, ctx, holder, trace)],
+        hooks=[TraceHook(trace, "planner"), CheckerHook(PLAN_SUBMIT, ctx, holder, trace)],
         callback_handler=None,
     )

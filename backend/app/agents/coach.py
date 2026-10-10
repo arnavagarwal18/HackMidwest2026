@@ -6,7 +6,7 @@ from strands import Agent, tool
 
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
-from app.agents.hooks import FEEDBACK_SUBMIT, CheckerHook
+from app.agents.hooks import FEEDBACK_SUBMIT, CheckerHook, TraceHook
 from app.agents.prompts import COACH_PROMPT
 from app.agents.trace import Trace
 
@@ -47,6 +47,6 @@ def build_coach_agent(model: Any, measurement_tools: list[Callable[..., str]], c
         model=model,
         tools=[*[tool(fn) for fn in measurement_tools], submit_feedback],
         system_prompt=COACH_PROMPT,
-        hooks=[CheckerHook(FEEDBACK_SUBMIT, ctx, holder, trace)],
+        hooks=[TraceHook(trace, "coach"), CheckerHook(FEEDBACK_SUBMIT, ctx, holder, trace)],
         callback_handler=None,
     )

@@ -46,7 +46,7 @@ def test_a_wrong_sentence_is_rejected_with_the_reason_then_the_fixed_one_is_acce
     assert second == {"accepted": True}
     assert holder.feedback["sentences"][0]["text"] == sentence()["text"]
     assert (holder.dropped, holder.coach_tries, model.calls) == ([], 2, 2)  # the agent stopped without another model turn
-    assert [(e["agent"], e["event"]) for e in trace.events] == [("checker", "check_fail"), ("checker", "check_pass")]
+    assert [e["event"] for e in trace.events if e["agent"] == "checker"] == ["check_fail", "check_pass"]
 
 
 def test_the_same_wrong_sentence_twice_is_dropped_and_the_rest_kept(check_ctx):

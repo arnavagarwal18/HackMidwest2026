@@ -16,6 +16,7 @@ from .score.photo_routes import router as photo_router
 from .score.routes import router as score_router
 from .takes.calibration_routes import router as calibration_router
 from .agents.routes import router as feedback_router
+from .agents.trace_routes import router as trace_router
 from .takes.routes import router as takes_router
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,7 @@ app.include_router(photo_router)
 app.include_router(calibration_router)
 app.include_router(diagnosis_router)
 app.include_router(feedback_router)
+app.include_router(trace_router)
 app.include_router(analysis_router)
 app.include_router(form_router)
 

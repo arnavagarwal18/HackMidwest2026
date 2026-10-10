@@ -9,6 +9,7 @@ from strands.tools.executors import ConcurrentToolExecutor
 from app.agents.coach import build_coach_agent
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
+from app.agents.hooks import TraceHook
 from app.agents.planner import build_planner_agent
 from app.agents.prompts import ORCHESTRATOR_PROMPT
 from app.agents.trace import Trace
@@ -22,7 +23,6 @@ def _sub_agent_tool(name: str, description: str, run_agent: Callable[[str], Awai
 
     @tool(name=name, description=description)
     async def run(brief: str) -> str:
-        trace.add("orchestrator", "tool", name, brief)
         try:
             await run_agent(brief)
         except Exception as exc:
@@ -53,5 +53,6 @@ def build_orchestrator(model: Any, measurement_tools: dict[str, Callable[..., st
         tools=[*[tool(fn) for fn in measurement_tools.values()], coach, planner],
         system_prompt=ORCHESTRATOR_PROMPT,
         tool_executor=ConcurrentToolExecutor(),  # the tool calls of one reply run at the same time
+        hooks=[TraceHook(trace, "orchestrator")],
         callback_handler=None,
     )

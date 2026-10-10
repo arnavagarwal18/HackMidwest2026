@@ -1,10 +1,13 @@
 """The CheckerHook: runs the Checker on what an agent submits and gives the agent the verdict as the tool result."""
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from strands.hooks import AfterToolCallEvent, HookProvider, HookRegistry
+from strands.hooks import (
+    AfterModelCallEvent, AfterToolCallEvent, BeforeModelCallEvent, BeforeToolCallEvent, HookProvider, HookRegistry,
+)
 
 from app.agents.checker import check_feedback, check_plan
 from app.agents.context import CheckContext
@@ -126,3 +129,72 @@ class CheckerHook(HookProvider):
 
 def _item_text(item: Any) -> str:
     return item["text"] if isinstance(item, dict) and isinstance(item.get("text"), str) else json.dumps(item, default=str)[:200]
+
+
+def _content_text(content: Any) -> str:
+    """The readable part of a message's or a tool result's content blocks: text, tool calls and tool results."""
+    parts = []
+    for block in content if isinstance(content, list) else []:
+        if not isinstance(block, dict):
+            continue
+        if "text" in block:
+            parts.append(block["text"])
+        elif "toolUse" in block:
+            parts.append(f"call {block['toolUse']['name']}({json.dumps(block['toolUse'].get('input'), default=str)})")
+        elif "toolResult" in block:
+            parts.append(f"result: {_content_text(block['toolResult'].get('content'))}")
+        elif "json" in block:
+            parts.append(json.dumps(block["json"], default=str))
+    return " ".join(parts)
+
+
+class TraceHook(HookProvider):
+    """Records every model call and tool call of one agent in the run's Trace, with the agent's name.
+
+    Register it before the CheckerHook: Strands runs after-events in reverse order, so the Checker's
+    check_pass / check_fail come first and the submit tool's tool_end shows the verdict the agent saw.
+    """
+
+    def __init__(self, trace: Trace, agent_name: str) -> None:
+        self.trace, self.agent_name = trace, agent_name
+        self._model_started: Optional[float] = None
+        self._tools_started: dict[str, float] = {}
+
+    def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
+        registry.add_callback(BeforeModelCallEvent, self.before_model_call)
+        registry.add_callback(AfterModelCallEvent, self.after_model_call)
+        registry.add_callback(BeforeToolCallEvent, self.before_tool_call)
+        registry.add_callback(AfterToolCallEvent, self.after_tool_call)
+
+    def before_model_call(self, event: BeforeModelCallEvent) -> None:
+        self._model_started = time.monotonic()
+        messages = event.agent.messages
+        self._add("model_start", "model", _content_text(messages[-1]["content"]) if messages else "")
+
+    def after_model_call(self, event: AfterModelCallEvent) -> None:
+        duration_ms = _since_ms(self._model_started)
+        if event.exception is not None:
+            self._add("model_error", "model", f"{type(event.exception).__name__}: {event.exception}", duration_ms)
+            return
+        response = event.stop_response
+        detail = f"{response.stop_reason}: {_content_text(response.message['content'])}" if response else ""
+        self._add("model_end", "model", detail, duration_ms)
+
+    def before_tool_call(self, event: BeforeToolCallEvent) -> None:
+        self._tools_started[event.tool_use["toolUseId"]] = time.monotonic()
+        self._add("tool_start", event.tool_use["name"], json.dumps(event.tool_use.get("input"), default=str))
+
+    def after_tool_call(self, event: AfterToolCallEvent) -> None:
+        duration_ms = _since_ms(self._tools_started.pop(event.tool_use["toolUseId"], None))
+        failed = event.exception is not None or event.result.get("status") == "error"
+        detail = _content_text(event.result.get("content"))
+        if event.exception is not None:
+            detail = f"{type(event.exception).__name__}: {event.exception}"
+        self._add("tool_error" if failed else "tool_end", event.tool_use["name"], detail, duration_ms)
+
+    def _add(self, event: str, name: str, detail: str, duration_ms: int = 0) -> None:
+        self.trace.add(self.agent_name, event, name, detail, duration_ms)
+
+
+def _since_ms(started: Optional[float]) -> int:
+    return round((time.monotonic() - started) * 1000) if started is not None else 0
