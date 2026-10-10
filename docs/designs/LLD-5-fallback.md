@@ -25,9 +25,9 @@ Fallbacks: AI_ENABLED false gives mode 'fallback', reason 'disabled', tier 1 sen
 ## Decisions made while building
 
 - `run_feedback(session_id, take_id, *, wait=True)`: the pipeline queues behind a running run; the POST route passes `wait=False` and gets 409 'Feedback already running.'. The pipeline, not `run_feedback`, sets status 'done', and leaves a take that `run_feedback` marked failed (storage_error) as failed.
-- `app.agents.config` (AI settings) is not on main yet: `run.ai_enabled()` imports it lazily and treats AI as off, with a warning, while it is missing. Tests patch `run.ai_enabled`.
+- `run.ai_enabled()` reads `app.agents.config.get_settings().ai_enabled`. Tests patch `run.ai_enabled`.
 - Take data is read as stored on the take: `take['diagnosis']` (LLD-3 shape) and `take['form']['flags']` (assumed LLD-4 shape). A take with no diagnosis gets no sentences and one whole-range exercise. History for the clean tempo is the session's earlier diagnosed takes on the same bars.
-- A take with no tier 1 problems gets only the whole-range exercise (the Checker wants 2 to 4, so this plan would not pass `check_plan`).
+- A take with no tier 1 problems gets two whole-range exercises (a clean run-through with max_errors 0, then the target-tempo one with max_errors 1), both citing the take's strongest problem of any tier so the plan passes `check_plan`. The brief asked for the first at 85% of target, but the Checker requires a whole-range exercise to have the take's target tempo and its start within clean tempo + 2 (or 70% of target + 2), so both use the normal start and the take's target. With no problems at all there is nothing to cite and the Checker would reject the plan.
 - The can't-tell case takes precedence over 'disabled' as the reason. Fallback sentences carry `jump.bar` of the first cited problem's first bar.
 - Exercise ids 'ex{n}' count across all the session's plans. The plan is saved before the feedback.
 - No timeout machinery yet (`TIME_LIMIT_S = 30` is for the agents); the rule plan takes milliseconds.

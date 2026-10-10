@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from app import store
+from app.agents.config import get_settings
 from app.agents.fallback import build_fallback
 from app.agents.trace import Trace
 from app.errors import AppError
@@ -38,14 +39,6 @@ def _exclusive(session_id: str, take_id: str, wait: bool):
 
 
 def ai_enabled() -> bool:
-    """AI_ENABLED from the settings loader; False (with a warning) while that loader isn't merged yet."""
-    try:
-        from app.agents.config import get_settings
-    except ModuleNotFoundError as exc:
-        if exc.name != "app.agents.config":
-            raise
-        log.warning("app.agents.config is not available yet; treating AI as disabled")
-        return False
     return get_settings().ai_enabled
 
 

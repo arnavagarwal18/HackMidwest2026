@@ -17,6 +17,7 @@ REPS_TO_PASS = 2
 TIMING_MAX_MEAN_MS = 50
 TIMING_KINDS = ("late", "early", "rushing", "dragging")
 WHOLE_RANGE_MAX_ERRORS = 1
+CLEAN_RUN_MAX_ERRORS = 0
 DEFAULT_BPM = 60
 CANT_TELL_TEXT = "I couldn't tell how that went from this recording. Play it again slowly and clearly, and I'll listen once more."
 
@@ -87,6 +88,11 @@ def _tier1_problems(diagnosis: dict) -> list[dict]:
     return sorted(problems, key=lambda p: p.get("score", 0), reverse=True)[:MAX_PROBLEM_EXERCISES]
 
 
+def _strongest_problem_ids(diagnosis: dict) -> list[str]:
+    problems = sorted(diagnosis.get("problems") or [], key=lambda p: p.get("score", 0), reverse=True)
+    return [problems[0]["id"]] if problems else []
+
+
 def _sentence(item: dict, problems: dict[str, dict]) -> dict:
     cited = [problems[i] for i in item.get("cites") or [] if i in problems]
     bars = item_bars(cited[0]) if cited else []
@@ -119,6 +125,8 @@ def build_fallback(diagnosis: dict, take: dict, history: list[dict], form_flags:
         span = (min(problem_bars), max(problem_bars)) if problem_bars else bars
         exercises.append(_exercise(f"Work on bars {span[0]} to {span[1]}", span, start, target,
                                    _problem_pass_mark(problem, form_flags), [problem["id"]]))
-    exercises.append(_exercise("Put it together", bars, start, target,
-                               _pass_mark(WHOLE_RANGE_MAX_ERRORS), [p["id"] for p in problems]))
+    cited = [p["id"] for p in problems] or _strongest_problem_ids(diagnosis)  # a plan with nothing to cite fails the Checker
+    if not problems:  # the Checker wants at least two exercises
+        exercises.append(_exercise("Clean run-through", bars, start, target, _pass_mark(CLEAN_RUN_MAX_ERRORS), cited))
+    exercises.append(_exercise("Put it together", bars, start, target, _pass_mark(WHOLE_RANGE_MAX_ERRORS), cited))
     return Fallback(tier1_sentences(diagnosis), exercises, cant_tell=False)

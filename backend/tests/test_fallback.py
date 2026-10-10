@@ -67,6 +67,19 @@ def test_rule_plan_passes_the_plan_checker(sessions_root, fixture_data):
     assert result["ok"], result["problems"]
 
 
+def test_without_tier1_problems_the_plan_has_two_whole_range_exercises_and_passes_the_checker(sessions_root, fixture_data):
+    problems = [{**p, "tier": 2} for p in fixture_data["diagnosis"]["problems"]]
+    session_id, take_id = add_diagnosed_take(fixture_data, problems=problems, tier1=[])
+    feedback, plan = saved(session_id, run.run_feedback(session_id, take_id))
+    assert feedback["sentences"] == []
+    clean_run, whole = plan["exercises"]
+    assert (clean_run["pass_mark"]["max_errors"], whole["pass_mark"]["max_errors"]) == (0, 1)
+    assert all((e["bar_from"], e["bar_to"], e["target_bpm"]) == (1, 4, 80) for e in plan["exercises"])
+    ctx = build_context(session_id, take_id, lambda s, t: {**fixture_data["diagnosis"], "problems": problems},
+                        get_form=lambda s, t: fixture_data["form"], get_earlier_takes=lambda s, t: [])
+    assert check_plan({"exercises": plan["exercises"]}, ctx)["ok"]
+
+
 def test_form_problem_gets_a_form_rule(fixture_data):
     form_problem = {"id": "p:t1:2", "kind": "form", "bars": [4], "first_time_s": 10.2, "measurement_ids": ["f:t1:0"],
                     "size": 1, "certainty": 0.7, "score": 0.5, "tier": 1, "numbers": {}}
@@ -141,7 +154,7 @@ def test_a_failing_rule_plan_still_saves_a_whole_range_plan(sessions_root, fixtu
     monkeypatch.setattr(run, "build_fallback", flaky)
     session_id, take_id = add_diagnosed_take(fixture_data)
     feedback, plan = saved(session_id, run.run_feedback(session_id, take_id))
-    assert feedback["fallback_reason"] == "model_error" and len(plan["exercises"]) == 1
+    assert feedback["fallback_reason"] == "model_error" and len(plan["exercises"]) == 2
     assert "rule bug" in caplog.text
 
 
@@ -150,7 +163,7 @@ def test_a_take_without_diagnosis_still_gets_a_whole_range_plan(sessions_root, f
     take = store.get(session_id).takes[take_id]
     store.update(session_id, "takes", {take_id: {k: v for k, v in take.items() if k != "diagnosis"}})
     feedback, plan = saved(session_id, run.run_feedback(session_id, take_id))
-    assert feedback["sentences"] == [] and len(plan["exercises"]) == 1
+    assert feedback["sentences"] == [] and len(plan["exercises"]) == 2
     assert (plan["exercises"][0]["bar_from"], plan["exercises"][0]["bar_to"]) == (1, 4)
 
 
