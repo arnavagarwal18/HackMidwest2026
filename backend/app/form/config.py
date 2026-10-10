@@ -31,6 +31,7 @@ SHOULDERS_RAISED_RATIO = 0.75  # neck_ratio below this fraction of the baseline
 SLOUCHING_TORSO_LEAN_DEG = 15  # torso_lean above this
 SLOUCHING_FALLBACK_NECK_RATIO = 0.85  # fallback when torso_lean is missing: neck_ratio below this x baseline ...
 SLOUCHING_FALLBACK_HEAD_DROP = 0.10  # ... and head_drop above baseline plus this
+SLOUCHING_FALLBACK_SPAN = 0.2  # severity span for the fallback, which is judged on neck_ratio (a ratio, not degrees)
 TRUMPET_HEAD_DOWN_DROP = 0.15  # head_drop above baseline plus this
 TRUMPET_ELBOWS_PINNED_GAP = 0.10  # elbow_gap below this
 
