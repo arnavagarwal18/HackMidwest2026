@@ -142,9 +142,9 @@ def _merged_problem(run: list[BarProblem], alignment_quality: float) -> dict:
 
 def _form_problem(flag: dict) -> dict:
     numbers = {"label": flag["label"]}
-    links = flag.get("links") or []
-    if links:
-        numbers.update(link_kind=links[0]["kind"], link_bar=links[0]["bar"])
+    linked = flag.get("linked") or []
+    if linked:
+        numbers.update(link_kind=linked[0]["kind"], link_bar=linked[0]["bar"])
     return {
         "kind": config.PROBLEM_FORM,
         "bars": list(flag["bars"]),

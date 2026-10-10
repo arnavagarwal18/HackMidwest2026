@@ -139,9 +139,9 @@ def test_form_flag_becomes_a_problem_with_its_own_sentence():
 
 
 def test_form_sentence_adds_its_first_link():
-    links = [{"kind": "late", "bar": 3}, {"kind": "notes", "bar": 4}]
+    linked = [{"kind": "late", "bar": 3, "ids": ["n:t1:3:0"]}, {"kind": "notes", "bar": 4, "ids": ["n:t1:4:0"]}]
 
-    ranking = rank("t1", timed(perfect_played(SCALE_MIDIS)), [flag(bars=(2, 3), links=links)])
+    ranking = rank("t1", timed(perfect_played(SCALE_MIDIS)), [flag(bars=(2, 3), linked=linked)])
 
     assert ranking["tier1"][0]["text"] == "Bars 2-3, 0:14: Elbow drops, at the same time as late in bar 3."
 
