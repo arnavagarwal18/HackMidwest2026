@@ -1,0 +1,61 @@
+{
+  "session_id": "s1",
+  "take_id": "t1",
+  "diagnosis": {
+    "transposition": 0,
+    "latency_ms": 40,
+    "grid": "beat",
+    "played_bpm": 76,
+    "target_bpm": 80,
+    "alignment_quality": 0.9,
+    "cant_tell": false,
+    "cant_tell_reason": null,
+    "error_rate": 0.25,
+    "notes": [
+      {"id": "n:t1:1:0", "bar": 1, "idx": 0, "expected_name": "C5", "expected_midi": 72, "expected_onset_s": 0.0, "status": "ok", "played_i": 0, "played_name": "C5", "played_midi_float": 72.03, "cents_off": 3, "timing_ms": 5, "confidence": 0.95},
+      {"id": "n:t1:1:1", "bar": 1, "idx": 1, "expected_name": "D5", "expected_midi": 74, "expected_onset_s": 0.75, "status": "ok", "played_i": 1, "played_name": "D5", "played_midi_float": 73.95, "cents_off": -5, "timing_ms": -4, "confidence": 0.95},
+      {"id": "n:t1:1:2", "bar": 1, "idx": 2, "expected_name": "E5", "expected_midi": 76, "expected_onset_s": 1.5, "status": "ok", "played_i": 2, "played_name": "E5", "played_midi_float": 76.02, "cents_off": 2, "timing_ms": 8, "confidence": 0.93},
+      {"id": "n:t1:2:0", "bar": 2, "idx": 0, "expected_name": "F5", "expected_midi": 77, "expected_onset_s": 3.0, "status": "ok", "played_i": 3, "played_name": "F5", "played_midi_float": 77.04, "cents_off": 4, "timing_ms": 10, "confidence": 0.9},
+      {"id": "n:t1:2:1", "bar": 2, "idx": 1, "expected_name": "G5", "expected_midi": 79, "expected_onset_s": 3.75, "status": "wrong", "played_i": 4, "played_name": "F#5", "played_midi_float": 78.1, "cents_off": -90, "timing_ms": 20, "confidence": 0.88},
+      {"id": "n:t1:2:2", "bar": 2, "idx": 2, "expected_name": "A5", "expected_midi": 81, "expected_onset_s": 4.5, "status": "missed", "played_i": null, "played_name": null, "played_midi_float": null, "cents_off": null, "timing_ms": null, "confidence": 0.8},
+      {"id": "n:t1:3:0", "bar": 3, "idx": 0, "expected_name": "B5", "expected_midi": 83, "expected_onset_s": 6.0, "status": "ok", "played_i": 5, "played_name": "B5", "played_midi_float": 83.05, "cents_off": 5, "timing_ms": 90, "confidence": 0.9},
+      {"id": "n:t1:3:1", "bar": 3, "idx": 1, "expected_name": "C6", "expected_midi": 84, "expected_onset_s": 6.75, "status": "ok", "played_i": 6, "played_name": "C6", "played_midi_float": 83.97, "cents_off": -3, "timing_ms": 85, "confidence": 0.9},
+      {"id": "n:t1:3:2", "bar": 3, "idx": 2, "expected_name": "D6", "expected_midi": 86, "expected_onset_s": 7.5, "status": "uncertain", "played_i": 7, "played_name": "D6", "played_midi_float": 86.2, "cents_off": 20, "timing_ms": 70, "confidence": 0.3},
+      {"id": "n:t1:4:0", "bar": 4, "idx": 0, "expected_name": "C6", "expected_midi": 84, "expected_onset_s": 9.0, "status": "ok", "played_i": 8, "played_name": "C6", "played_midi_float": 84.4, "cents_off": 40, "timing_ms": 6, "confidence": 0.9},
+      {"id": "n:t1:4:1", "bar": 4, "idx": 1, "expected_name": "B5", "expected_midi": 83, "expected_onset_s": 9.75, "status": "ok", "played_i": 9, "played_name": "B5", "played_midi_float": 83.05, "cents_off": 5, "timing_ms": 4, "confidence": 0.9},
+      {"id": "n:t1:4:2", "bar": 4, "idx": 2, "expected_name": "A5", "expected_midi": 81, "expected_onset_s": 10.5, "status": "wrong", "played_i": 10, "played_name": "B5", "played_midi_float": 83.0, "cents_off": 200, "timing_ms": 12, "confidence": 0.9}
+    ],
+    "extras": [
+      {"id": "x:t1:0", "played_i": 11, "bar": 2, "onset_s": 4.1, "played_name": "G#5", "confidence": 0.7}
+    ],
+    "bars": [
+      {"id": "b:t1:1", "bar": 1, "expected": 3, "ok": 3, "wrong": 0, "missed": 0, "extra": 0, "uncertain": 0, "mean_timing_ms": 3, "local_bpm": 80, "drift_pct": 0.5, "drift": "steady"},
+      {"id": "b:t1:2", "bar": 2, "expected": 3, "ok": 1, "wrong": 1, "missed": 1, "extra": 1, "uncertain": 0, "mean_timing_ms": 15, "local_bpm": 78, "drift_pct": -2.0, "drift": "steady"},
+      {"id": "b:t1:3", "bar": 3, "expected": 3, "ok": 2, "wrong": 0, "missed": 0, "extra": 0, "uncertain": 1, "mean_timing_ms": 87.5, "local_bpm": 72, "drift_pct": -9.0, "drift": "dragging"},
+      {"id": "b:t1:4", "bar": 4, "expected": 3, "ok": 2, "wrong": 1, "missed": 0, "extra": 0, "uncertain": 0, "mean_timing_ms": 7.3, "local_bpm": 85, "drift_pct": 6.0, "drift": "rushing"}
+    ],
+    "problems": [
+      {"id": "p:t1:0", "kind": "notes", "bars": [2, 4], "first_time_s": 3.75, "measurement_ids": ["n:t1:2:1", "n:t1:2:2", "n:t1:4:2"], "size": 3, "certainty": 0.9, "score": 0.9, "tier": 1, "numbers": {"wrong": 2, "missed": 1}},
+      {"id": "p:t1:1", "kind": "late", "bars": [3], "first_time_s": 6.0, "measurement_ids": ["n:t1:3:0", "n:t1:3:1"], "size": 2, "certainty": 0.8, "score": 0.7, "tier": 1, "numbers": {"mean_ms": 88, "count": 2}},
+      {"id": "p:t1:2", "kind": "form", "bars": [4], "first_time_s": 9.5, "measurement_ids": ["f:t1:0"], "size": 1, "certainty": 0.7, "score": 0.5, "tier": 2, "numbers": {}},
+      {"id": "p:t1:3", "kind": "dragging", "bars": [3], "first_time_s": 6.0, "measurement_ids": ["b:t1:3"], "size": 1, "certainty": 0.6, "score": 0.4, "tier": 3, "numbers": {"drift_pct": -9.0}}
+    ],
+    "tier1": [
+      {"text": "Bars 2 and 4 have wrong or missed notes.", "cites": ["p:t1:0"]},
+      {"text": "Bar 3 is late.", "cites": ["p:t1:1"]}
+    ]
+  },
+  "form": {
+    "status": "ok",
+    "tracking_quality": 0.85,
+    "instrument": "violin",
+    "flags": [
+      {"id": "f:t1:0", "rule": "elbow_height", "label": "Elbow drops", "direction": "low", "start_s": 9.5, "end_s": 11.0, "peak_s": 10.2, "bars": [4], "severity": 0.6, "confidence": 0.7}
+    ],
+    "rules_skipped": [{"rule": "bow_angle", "reason": "bow not visible"}]
+  },
+  "history": [
+    {"take_id": "t0", "error_rate": 0.03, "played_bpm": 60},
+    {"take_id": "t00", "error_rate": 0.2, "played_bpm": 72}
+  ]
+}
