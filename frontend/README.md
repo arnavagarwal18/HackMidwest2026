@@ -38,7 +38,8 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 - HTTP 4xx/5xx with `{ error: { code, message } }` -> `api.js` throws `ApiError` (`code`, `message`, `status`, `details`).
   `details` holds every other key of the body (for example `notes` on a 422 `calibration_failed`).
 - Fetch rejects (server not running) -> the banner above; inputs stay in memory.
-- Reload: `resume.js` reads the stored session id and `GET`s the session. Not confirmed -> `#/score`, confirmed -> `#/take`.
+- Reload: `resume.js` reads the stored session id and `GET`s the session. Not confirmed -> `#/score`, confirmed -> `#/take`, except that a confirmed session stays on a deep link
+  (`#/calibrate`, `#/results/...`, ...). In mock mode a deep link with no stored session starts the mock session `sess_mock1`.
   `404 session_not_found` clears localStorage, goes to `#/start` and shows "Your earlier session was not found; starting fresh."
 
 ## Mock mode
