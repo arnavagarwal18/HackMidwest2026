@@ -17,12 +17,12 @@ const INSTRUMENT_SHAPES = {
   violin: [
     { tag: 'path', attrs: { d: 'M50 54 L36 40 L30 30' } }, // left arm up to the scroll
     { tag: 'path', attrs: { d: 'M110 54 L124 66 L100 58' } }, // bow arm, elbow out to the right
-    { tag: 'ellipse', attrs: { cx: 66, cy: 36, rx: 16, ry: 5, transform: 'rotate(-25 66 36)' }, area: true }, // violin under the chin
+    { tag: 'ellipse', attrs: { cx: 62, cy: 40, rx: 16, ry: 5, transform: 'rotate(-25 66 36)' }, area: true }, // violin under the chin
   ],
   trumpet: [
-    { tag: 'path', attrs: { d: 'M50 54 L44 66 L64 44' } }, // left arm, hand at the valves
-    { tag: 'path', attrs: { d: 'M110 54 L116 66 L96 44' } }, // right arm, hand at the valves
-    { tag: 'rect', attrs: { x: 64, y: 28, width: 32, height: 12, rx: 6 }, area: true }, // trumpet at the mouth
+    { tag: 'path', attrs: { d: 'M50 54 L44 62 L66 32' } }, // left arm, hand at the valves
+    { tag: 'path', attrs: { d: 'M110 54 L116 62 L94 32' } }, // right arm, hand at the valves
+    { tag: 'rect', attrs: { x: 60, y: 22, width: 40, height: 9, rx: 4 }, area: true }, // trumpet at the mouth
   ],
 };
 
