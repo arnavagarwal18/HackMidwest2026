@@ -12,6 +12,7 @@ from .diagnosis.analysis_routes import router as analysis_router
 from .diagnosis.routes import router as diagnosis_router
 from .errors import register_error_handlers
 from .form.routes import router as form_router
+from .practice.routes import router as practice_router
 from .score.photo_routes import router as photo_router
 from .score.routes import router as score_router
 from .takes.calibration_routes import router as calibration_router
@@ -36,6 +37,7 @@ app.include_router(trace_router)
 app.include_router(chat_router)
 app.include_router(analysis_router)
 app.include_router(form_router)
+app.include_router(practice_router)
 
 
 class CreateSession(BaseModel):

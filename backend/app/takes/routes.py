@@ -3,6 +3,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
+from typing import Callable
 
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import FileResponse
@@ -68,16 +69,9 @@ def create_take(
         score_bar_count(folder / "score.json"),
     )
 
-    temp_path = folder / f"upload-{uuid.uuid4().hex}.tmp"
-    _save_upload(file, temp_path)
-    try:
-        take = add_take(
-            session_id,
-            lambda take_id: new_take_fields(take_id, request, original_file_name(take_id, content_type)),
-            lambda take: _move_into_place(temp_path, folder / take["file"]),
-        )
-    finally:
-        temp_path.unlink(missing_ok=True)
+    take = accept_upload(
+        session_id, file, lambda take_id: new_take_fields(take_id, request, original_file_name(take_id, content_type))
+    )
     start_pipeline(session_id, take["take_id"])
     return {"take_id": take["take_id"], "status": "processing"}
 
@@ -88,6 +82,36 @@ def _move_into_place(temp_path: Path, target: Path) -> None:
     except OSError:
         logger.exception("Could not move the uploaded take to %s", target)
         raise storage_error()
+
+
+def accept_upload(
+    session_id: str, file: UploadFile, make_fields: Callable[[str], dict], claim: Callable[[dict], None] | None = None
+) -> dict:
+    """Save the upload as a new take of the session and return the take; the caller starts its pipeline.
+
+    `claim(take)` runs under the take lock once the file is in place and before the take is stored: if it raises
+    (or storing fails), the file is removed and no take is stored.
+    """
+    folder = store.session_dir(session_id)
+    temp_path = folder / f"upload-{uuid.uuid4().hex}.tmp"
+    _save_upload(file, temp_path)
+    placed: list[Path] = []
+
+    def place(take: dict) -> None:
+        target = folder / take["file"]
+        _move_into_place(temp_path, target)
+        placed.append(target)
+        if claim:
+            claim(take)
+
+    try:
+        return add_take(session_id, make_fields, place)
+    except Exception:
+        for path in placed:
+            path.unlink(missing_ok=True)
+        raise
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 @router.get("/sessions/{session_id}/takes/{take_id}/media")

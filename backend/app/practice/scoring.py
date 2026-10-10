@@ -8,6 +8,7 @@ from .rules import judge_rep, step_ladder
 
 logger = logging.getLogger("app.practice")
 
+STATUS_PROCESSING = "processing"
 STATUS_SCORED = "scored"
 STATUS_NOT_COUNTED = "not_counted"
 STATUS_FAILED = "failed"
@@ -27,6 +28,12 @@ def _rep_result(take: dict, state: dict | None, status: str, reasons: list[str],
         "next_bpm": state.get("current_bpm", take.get("tempo_bpm")), "streak": state.get("streak", 0),
         "exercise_complete": state.get("complete", False),
     }
+
+
+def processing_rep_result(take: dict) -> dict:
+    """The RepResult of a rep that was just accepted: only the take, exercise, tempo and status are filled."""
+    unfilled = {"next_bpm": None, "streak": None, "exercise_complete": None}
+    return {**_rep_result(take, None, STATUS_PROCESSING, []), **unfilled}
 
 
 def _record_unchanged_ladder(session_id: str, take: dict, status: str, reasons: list[str]) -> None:

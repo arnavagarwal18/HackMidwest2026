@@ -11,6 +11,7 @@ from .take_store import update_take
 logger = logging.getLogger("app.takes.pipeline")
 
 MAX_DURATION_S = 180
+MAX_REP_DURATION_S = 60
 
 _pipeline_locks: dict[str, threading.Lock] = {}
 _registry_lock = threading.Lock()
@@ -35,14 +36,15 @@ def extract_audio(session_id: str, take_id: str) -> None:
     """Write {take_id}.wav and set duration_s; raises MediaError carrying the error code to store."""
     folder = store.session_dir(session_id)
     take = store.get(session_id).takes[take_id]
+    max_duration_s = MAX_REP_DURATION_S if take.get("purpose", "take") == "rep" else MAX_DURATION_S
     info = probe(folder / take["file"])
     if not info.has_audio:
         raise MediaError("no_audio_track", "the file has no audio stream")
-    if info.duration_s is not None and info.duration_s > MAX_DURATION_S:
+    if info.duration_s is not None and info.duration_s > max_duration_s:
         raise MediaError("too_long", f"the file is {info.duration_s:.1f} s long")
     extract_wav(folder / take["file"], folder / take["audio"])
     duration = info.duration_s if info.duration_s is not None else wav_duration_s(folder / take["audio"])
-    if duration > MAX_DURATION_S:
+    if duration > max_duration_s:
         raise MediaError("too_long", f"the file is {duration:.1f} s long")
     update_take(session_id, take_id, duration_s=round(duration, 3))
 

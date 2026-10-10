@@ -11,6 +11,7 @@ import copy
 from typing import Callable
 
 from .. import store
+from ..errors import AppError
 
 PROGRESS_KEY = "progress"
 ADDED_BY_PLAN = "plan"
@@ -53,6 +54,15 @@ def find_exercise(session_id: str, exercise_id: str) -> dict | None:
             if exercise["id"] == exercise_id:
                 return exercise
     return read_progress(session_id)["added_exercises"].get(exercise_id)
+
+
+def exercise_with_state(session_id: str, exercise_id: str) -> tuple[dict, dict]:
+    """The exercise's definition and its ExerciseState; raises 404 session_not_found or exercise_not_found."""
+    exercise = find_exercise(session_id, exercise_id)
+    state = read_progress(session_id)["exercises"].get(exercise_id)
+    if exercise is None or state is None:
+        raise AppError(404, "exercise_not_found", "We couldn't find that exercise.")
+    return exercise, state
 
 
 def needs_form_check(session_id: str, take_id: str) -> bool:
