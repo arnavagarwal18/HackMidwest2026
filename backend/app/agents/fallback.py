@@ -93,10 +93,18 @@ def _strongest_problem_ids(diagnosis: dict) -> list[str]:
     return [problems[0]["id"]] if problems else []
 
 
+def _cites(item: dict) -> list[str]:
+    """Ids a tier-1 item cites: its own `cites`, or the `problem_id` the diagnosis (LLD-3) writes."""
+    if item.get("cites"):
+        return item["cites"]
+    return [item["problem_id"]] if item.get("problem_id") else []
+
+
 def _sentence(item: dict, problems: dict[str, dict]) -> dict:
-    cited = [problems[i] for i in item.get("cites") or [] if i in problems]
+    cites = _cites(item)
+    cited = [problems[i] for i in cites if i in problems]
     bars = item_bars(cited[0]) if cited else []
-    return {"text": item["text"], "cites": item.get("cites") or [], "claims": [],
+    return {"text": item["text"], "cites": cites, "claims": [],
             "jump": {"bar": bars[0] if bars else None, "time_s": None}, "checked": True, "mode": "fallback"}
 
 

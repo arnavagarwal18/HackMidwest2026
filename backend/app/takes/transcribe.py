@@ -26,8 +26,9 @@ SPLIT_SEMITONES = 0.7
 SPLIT_MIN_FRAMES = 4  # 40 ms
 END_SILENCE_FRAMES = 8  # 80 ms
 MIN_VOICED_FRAMES = 6  # 60 ms
-ONSET_DIP_DB = 3.0  # an onset inside a note only counts if the level dipped this much just before it
+ONSET_DIP_DB = 3.0  # an onset inside a note only counts if the level dips this much around it
 ONSET_LOOKBACK_FRAMES = 10
+ONSET_LOOKAHEAD_FRAMES = 10  # librosa's backtrack can land before the dip when a decaying note is bowed again
 EDGE_LEVEL_DB = 3.0
 
 
@@ -136,10 +137,13 @@ def _running_median(midi: np.ndarray) -> np.ndarray:
     return smoothed
 
 
-def _onset_follows_dip(level_db: np.ndarray, frame: int) -> bool:
-    """True if the level at `frame` is clearly below the level just before it (a real re-articulation)."""
-    recent = level_db[max(0, frame - ONSET_LOOKBACK_FRAMES): frame + 1]
-    return recent.max() - level_db[frame] >= ONSET_DIP_DB
+def _onset_dip_frame(level_db: np.ndarray, frame: int) -> int | None:
+    """The frame where the level bottoms out around an onset, or None if it never dips ONSET_DIP_DB (not a re-articulation)."""
+    before = level_db[max(0, frame - ONSET_LOOKBACK_FRAMES): frame + 1]
+    after = level_db[frame: frame + ONSET_LOOKAHEAD_FRAMES + 1]
+    if before.max() - after.min() < ONSET_DIP_DB:
+        return None
+    return frame + int(np.argmin(after))
 
 
 def _split_into_segments(
@@ -147,6 +151,7 @@ def _split_into_segments(
 ) -> list[list[int]]:
     """Group voiced frame indices into notes using onsets, pitch jumps and silence."""
     smoothed = _running_median(midi)
+    split_frames = {dip for dip in (_onset_dip_frame(level_db, f) for f in onset_frames) if dip is not None}
     segments: list[list[int]] = []
     current: list[int] = []
     jump_run: list[int] = []  # consecutive voiced frames far from the current note's median
@@ -162,7 +167,7 @@ def _split_into_segments(
         current, jump_run = [], []
 
     for i in range(len(midi)):
-        split_pending = split_pending or (i in onset_frames and _onset_follows_dip(level_db, i))
+        split_pending = split_pending or i in split_frames
         if not voiced[i]:
             silent_frames += 1
             if silent_frames >= END_SILENCE_FRAMES:

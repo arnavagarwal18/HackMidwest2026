@@ -237,3 +237,13 @@ def test_a_broken_practice_import_does_not_stop_run_feedback(sessions_root, fixt
     session_id, take_id = add_diagnosed_take(fixture_data)
     assert run.run_feedback(session_id, take_id) == "fb1"
     assert "practice.init_plan failed" in caplog.text
+
+
+def test_tier1_sentences_from_the_diagnosis_cite_their_problem_by_problem_id(fixture_data):
+    """diagnosis.rank writes tier1 items as {problem_id, text, measurement_ids, jump}, not {cites}."""
+    diagnosis = fixture_data["diagnosis"]
+    tier1 = [{"problem_id": item["cites"][0], "text": item["text"], "measurement_ids": [], "jump": {"bar": 9, "time_s": 1.0}}
+             for item in diagnosis["tier1"]]
+    result = build_fallback({**diagnosis, "tier1": tier1}, TAKE, [], {})
+    assert [s["cites"] for s in result.sentences] == [[item["cites"][0]] for item in diagnosis["tier1"]]
+    assert result.sentences[0]["jump"]["bar"] == 2

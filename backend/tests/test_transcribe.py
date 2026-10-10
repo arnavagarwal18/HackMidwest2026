@@ -3,6 +3,7 @@ import pytest
 import soundfile as sf
 
 from app.takes.transcribe import NoNotesHeard, UnknownInstrument, transcribe
+from synth_audio import synthesize, write_wav as write_synth_wav
 
 SAMPLE_RATE = 16000
 BPM = 100
@@ -122,3 +123,13 @@ def test_to_dict_has_spec_fields(tmp_path):
     assert set(note.to_dict()) == {
         "i", "onset_s", "offset_s", "midi_float", "midi", "cents_off", "confidence", "voiced_ratio",
     }
+
+
+def test_repeated_pitch_on_a_decaying_note_is_two_notes(tmp_path):
+    """A note bowed again at the same pitch after a short gap, with the first one still fading, is two notes."""
+    beats = [{"midi": midi, "onset_beats": beat, "dur_beats": 1} for beat, midi in enumerate([60, 60, 67, 67])]
+    wav = write_synth_wav(tmp_path / "repeat.wav", synthesize(beats, NOTE_S, 1.0))
+    notes = transcribe(wav, "violin", {})
+    assert [n.midi for n in notes] == [60, 60, 67, 67]
+    for note, beat in zip(notes, range(4)):
+        assert abs(note.onset_s - (1.0 + beat * NOTE_S)) <= 0.05
