@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from app import store
-from app.takes import media_tools, pipeline
+from app.takes import media_tools, pipeline, pipeline_steps
 from tests.media_factory import make_silent_video_mp4, make_wav, make_webm_audio
 from tests.test_sessions import assert_error
 
@@ -27,6 +27,13 @@ def wait_for_pipelines():
 def settle_pipelines(sessions_root):
     yield
     wait_for_pipelines()
+
+
+@pytest.fixture(autouse=True)
+def stub_analysis(monkeypatch):
+    """These tests are about upload and audio extraction; transcription, diagnosis and form are covered elsewhere."""
+    monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [])
+    monkeypatch.setattr(pipeline, "resolve_step", lambda module_name: None)
 
 
 @pytest.fixture
@@ -55,7 +62,7 @@ def test_wav_then_webm_get_t1_then_t2(client, session_id, tmp_path):
     wait_for_pipelines()
     take = stored_take(session_id)
     assert take["file"] == "t1_upload.wav" and take["audio"] == "t1.wav"
-    assert take["purpose"] == "take" and take["status"] == "processing" and take["error"] is None
+    assert take["purpose"] == "take" and take["status"] == "done" and take["error"] is None
     assert take["duration_s"] == pytest.approx(1.0, abs=0.1)
     webm_take = stored_take(session_id, "t2")
     assert webm_take["file"] == "t2.webm" and webm_take["error"] is None and webm_take["duration_s"] > 0
