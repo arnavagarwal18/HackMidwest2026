@@ -12,3 +12,9 @@ librosa==1.0.0
 numpy==2.5.4
 soundfile==0.14.0
 imageio-ffmpeg==0.6.0
+
+
+# AI agents (TASK-9)
+strands-agents==1.59.0
+boto3==1.43.111
+python-dotenv==1.2.4
