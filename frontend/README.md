@@ -54,3 +54,41 @@ Mock mode stores its session id under a separate localStorage key. In mock mode 
 
 Shapes that LLD-5 does not pin down are guesses in the mocks (`Claim` objects, `Extra`, and the `{ feedback, plan }`
 wrapper of the feedback response); the screen coders should correct them when the back end lands.
+
+## Recording and metronome
+
+For the take setup, loop trainer and calibration screens. Import from `js/record.js` (it re-exports the error helpers and
+`getAudioContext`) and `js/metronome.js`. All timing uses the one shared `AudioContext` (`js/audio.js`), never `setTimeout`.
+Start recording from a click handler: browsers only let the audio context run after a user gesture.
+
+```js
+import { openStream, recordTake, recordClip, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
+
+try {
+  const { stream, hasVideo, cameraError } = await openStream({ video: true }); // cameraError: mic-only fallback, show as a notice
+  const take = await recordTake({ stream, tempoBpm: 80, countInBeats: 4, metronomeOn: false, maxSeconds: 180,
+    onAutoStop: (result, err) => { /* the cap was reached: result.message, or err if stopping failed */ } });
+  const result = await take.stop();   // { blob, file, mimeType, downbeat_s, duration_s, autoStopped, message }
+  await api.uploadTake(state.session_id, result.file, { kind, source: 'recorded', bar_from, bar_to,
+    tempo_bpm: 80, count_in_beats: 4, downbeat_s: result.downbeat_s });
+} catch (err) {
+  if (err.name === 'MediaAccessError') renderMediaError(root, err, { onTryAgain: start, onUpload: showFilePicker });
+  else throw err;
+}
+```
+
+| Function | What it does |
+| --- | --- |
+| `openStream({ video })` | Opens the mic (and camera). Throws `MediaAccessError { device: 'mic' or 'camera', reason: 'blocked' / 'missing' / 'busy' / 'unknown', message }`. If only the camera fails it resolves mic-only with `cameraError`. Never retries. |
+| `renderMediaError(container, error, { onTryAgain, onUpload })` | Fills `container` with the message, the help line (`Allow it in Chrome: click the camera icon in the address bar`, for blocked), a Try again button and (if `onUpload` is given) an Upload button. |
+| `recordTake({ stream, tempoBpm, countInBeats = 4, metronomeOn = false, beatsPerBar = 4, maxSeconds = 180, onAutoStop })` | Starts recording and the count-in clicks (first click 0.5 s after the start, then every 60 / tempo s, accent on beat 1). With `metronomeOn` the clicks continue until stop. Resolves a handle `{ recStart, stop() }`. Use `maxSeconds: 60` for reps. |
+| `take.stop()` | Promise of `{ blob, file, mimeType, downbeat_s, duration_s, autoStopped, message }`. `downbeat_s = 0.5 + countInBeats * 60 / tempoBpm`. `file` is a named `File` for `api.js`; keep `result` in memory so a failed upload can be retried with the same file. |
+| `recordClip({ stream, durationS, clickAfterS = null })` | Fixed-length clip (calibration: 3 s per note; 2 s with `clickAfterS: 0.5`). Resolves `{ blob, file, mimeType, click_at_s }`; `click_at_s` is the scheduled click time minus the recording start (null with no click). The click plays through the speaker for the mic to hear. |
+| `createLevelMeter(stream, onLevel)` / `renderLevelMeter(container, stream)` | Input level 0..1 once per animation frame / a ready `<meter>`. Both return `{ stop() }`. |
+| `stopStream(stream)` | Releases the mic and camera. |
+| `metronome.js`: `startMetronome({ audioCtx, tempoBpm, startTime, beatsPerBar, maxBeats })`, `scheduleClick(audioCtx, time, accent)` | The click scheduler (100 ms look-ahead). `startMetronome` returns `{ stop() }`; the loop trainer can use it directly. |
+
+Time zero of a recording is the AudioContext time just before `MediaRecorder.start()`, not the `start` event: in Chrome the
+event arrives about 60 ms after capture begins, which shifted every click by that much in the recorded file.
+
+Try it: open `/dev/record-test.html` (developers only; `?auto=loopback`, `?auto=clip`, `?auto=blocked`).

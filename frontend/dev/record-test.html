@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practice Coach - recording test page</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+  <main>
+    <h1>Recording test page (developers only)</h1>
+    <p>Exercises js/record.js and js/metronome.js. Add <code>?auto=loopback</code>, <code>?auto=clip</code> or <code>?auto=blocked</code> to run a check on load.</p>
+    <p>
+      <button type="button" id="mic-take">Record a take with the real mic (4 beats at 60 BPM, metronome on)</button>
+      <button type="button" id="stop-take" disabled>Stop</button>
+    </p>
+    <p><button type="button" id="loopback">Loopback: record the clicks directly and check the downbeat</button></p>
+    <p><button type="button" id="clip">Clip: record 2 s with one click at 0.5 s</button></p>
+    <p><button type="button" id="device">Device: open mic + camera, level meter, 3 s recording with a 2 s cap</button></p>
+    <div id="meter"></div>
+    <div id="problem"></div>
+    <pre id="result">no result yet</pre>
+  </main>
+  <script type="module" src="record-test.js"></script>
+</body>
+</html>
