@@ -269,6 +269,7 @@ def test_the_real_feedback_step_is_found_by_default(session_id, tmp_path, monkey
     from app.agents import run as feedback_run
 
     monkeypatch.setattr(feedback_run, "ai_enabled", lambda: False)
+    monkeypatch.delattr("app.diagnosis.run")  # this session has no score; the test is about the feedback step
     monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [NOTE])
     take_id = make_take(session_id, tmp_path)
     pipeline.run_take_pipeline(session_id, take_id)
