@@ -33,6 +33,7 @@ class Session:
     score_error: str | None = None
     doubtful_bars: list = field(default_factory=list)
     double_checked: bool = False
+    referee: dict | None = None  # the referee's report for the last photo scan; None if it never ran (old sessions)
     calibration: dict | None = None
     transposition: dict | None = None  # {semitones, source}; set by the first diagnosed take
     takes: dict[str, dict] = field(default_factory=dict)

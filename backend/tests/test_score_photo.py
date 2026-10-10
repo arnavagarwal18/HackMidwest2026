@@ -74,6 +74,8 @@ def test_photo_scan_goes_from_scanning_to_scanned(client, session_id, stub_homr)
     assert status(client, session_id)["score_status"] == "scanning"
 
     done = wait_until_done(client, session_id)
+    referee = done.pop("referee")  # the contract gained a referee report (LLD-8); its details are tested in test_scan_job_referee
+    assert (referee["status"], referee["reason"]) == ("skipped", "nothing_to_check")
     assert done == {
         "score_status": "scanned",
         "score_error": None,
@@ -214,6 +216,7 @@ def test_status_before_any_scan(client, session_id):
         "bars": None,
         "doubtful_bars": [],
         "double_checked": False,
+        "referee": None,
         "warnings": [],
     }
 

@@ -4,6 +4,9 @@ The reader runs in a second thread on the same cleaned photo. If homr succeeds, 
 compare.py turns its reading into doubtful_bars, double_checked and warnings. A reader that fails or times out
 never fails the scan: it just means "not double-checked". If homr fails, the scan fails whatever the reader says.
 
+Then the referee (app.score.referee) settles the doubtful bars it can; it never raises, and when it is skipped or
+fails the score and comparison come back as they were. Its report is saved as the session's `referee`.
+
 Each part writes through store.update(session_id, key, value). Status is written last so a poller never sees
 'scanned' before the other fields are in place.
 """
@@ -17,7 +20,7 @@ from pathlib import Path
 
 from app import store
 from app.errors import AppError
-from app.score import clean, homr_runner, reader_agent
+from app.score import clean, homr_runner, reader_agent, referee
 from app.score.compare import CompareResult, compare_bars
 from app.score.exceptions import ScanError
 from app.score.model import Score
@@ -50,7 +53,7 @@ def run_scan(session_id: str, photo: Path) -> None:
         cleaned = clean.clean_photo(photo, folder / clean.CLEANED_FILENAME)
         reading_future = reader.submit(_run_reader, cleaned)
         score = homr_runner.run_homr(cleaned, folder)
-        _record_success(session_id, folder, score, _await_reading(reading_future))
+        _record_success(session_id, folder, score, _await_reading(reading_future), cleaned)
     except ScanError as exc:
         logger.error("Scan of session %s failed (%s): %s", session_id, exc.code, exc)
         _record_failure(session_id, exc.code)
@@ -87,13 +90,16 @@ def _compare(score: Score, reading: Reading | None) -> CompareResult:
         return compare_bars(score, None)
 
 
-def _record_success(session_id: str, folder: Path, score: Score, reading: Reading | None) -> None:
+def _record_success(session_id: str, folder: Path, score: Score, reading: Reading | None, cleaned: Path) -> None:
     comparison = _compare(score, reading)
+    refereed = referee.run(score, reading, comparison, cleaned)  # never raises; with no reading there is nothing to referee
+    score, comparison = refereed.score, refereed.compare
     score.warnings.extend(comparison.warnings)
     score.save(folder)
     store.update(session_id, "score_error", None)
     store.update(session_id, "doubtful_bars", comparison.doubtful_bars)
     store.update(session_id, "double_checked", comparison.double_checked)
+    store.update(session_id, "referee", refereed.referee)
     store.update(session_id, "score_status", "scanned")
 
 
