@@ -7,10 +7,8 @@ diagnoses are saved diagnoses, flags are form flags, and an exercise state is
 from statistics import mean
 from typing import Any
 
-STATUS_OK = "ok"
-STATUS_WRONG = "wrong"
-STATUS_MISSED = "missed"
-TIMED_STATUSES = (STATUS_OK, STATUS_WRONG)
+from ..diagnosis.config import STATUS_MISSED, STATUS_WRONG, TIMED_STATUSES
+
 ERROR_STATUSES = (STATUS_WRONG, STATUS_MISSED)
 
 VIDEO_KIND = "video"
