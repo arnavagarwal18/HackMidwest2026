@@ -23,3 +23,8 @@ imageio-ffmpeg==0.6.0
 strands-agents==1.59.0
 boto3==1.43.111
 python-dotenv==1.2.4
+
+# form analysis (LLD-4): MediaPipe needs opencv-contrib-python; keep it at the same version as the headless build
+# homr uses, since both install the same cv2 package
+mediapipe==1.1.0
+opencv-contrib-python==4.14.0.94
