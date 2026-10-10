@@ -1,5 +1,5 @@
 // The tone page (frontend/tone.html): one big button per reference note, opened on a phone from the calibration QR code.
-// URL: tone.html?instrument=violin[&note=A4]. No app shell; errors go to the red banner.
+// URL: tone.html[?instrument=trumpet][&note=F4] (the instrument defaults to trumpet). No app shell; errors go to the red banner.
 import { getReferenceNotes } from '../api.js';
 import { reportError } from '../banner.js';
 import { button, element } from '../dom.js';
@@ -8,9 +8,11 @@ import { createTonePlayer } from './player.js';
 export const formatHz = (hz) => (Number.isInteger(hz) ? hz.toFixed(1) : String(hz));
 export const buttonLabel = (note) => `${note.name} - ${formatHz(note.hz)} Hz`;
 
+export const DEFAULT_INSTRUMENT = 'trumpet'; // the app is trumpet only
+
 export function readParams(search) {
   const params = new URLSearchParams(search);
-  return { instrument: params.get('instrument') ?? '', askedNote: params.get('note') ?? '' };
+  return { instrument: params.get('instrument') || DEFAULT_INSTRUMENT, askedNote: params.get('note') ?? '' };
 }
 
 export async function startTonePage(root, search = window.location.search) {

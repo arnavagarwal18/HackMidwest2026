@@ -13,23 +13,23 @@
     "instrument_offset_cents": 0,
     "notes": [
       {
-        "asked": "D4",
-        "hz": 293.66,
-        "heard_hz": 292.6,
+        "asked": "Bb3",
+        "hz": 233.08,
+        "heard_hz": 232.3,
         "cents": -6,
         "problem": null
       },
       {
-        "asked": "A4",
-        "hz": 440.0,
-        "heard_hz": 438.5,
+        "asked": "F4",
+        "hz": 349.23,
+        "heard_hz": 348.0,
         "cents": -6,
         "problem": null
       },
       {
-        "asked": "E5",
-        "hz": 659.26,
-        "heard_hz": 656.8,
+        "asked": "Bb4",
+        "hz": 466.16,
+        "heard_hz": 464.5,
         "cents": -6,
         "problem": null
       }

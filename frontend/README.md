@@ -148,11 +148,11 @@ Tests: `node --test frontend/tests/take.test.mjs` (logic only; no browser).
 ## Calibration screen and tone page
 
 `#/calibrate` (`js/screens/calibrate.js`, parts in `js/calibrate/`) needs a session. Flow: it reads `GET /reference-notes?instrument=`,
-shows the QR code and address of the tone page, then three rows ("Play D4 on your other device now", 3 s each, with a level meter),
+shows the QR code and address of the tone page, then three rows ("Play Bb3 on your other device now", 3 s each, with a level meter),
 the delay test (a click through the laptop speaker 0.5 s after the 2 s recording starts; `click_at_s` comes from `recordClip`),
 and three optional rows for the same notes on the instrument. **Send calibration** posts `ref_0..2`, `click`, `click_at_s` (and `inst_0..2`)
 with `api.submitCalibration`. A 422 `calibration_failed` (`err.details.notes = [{ asked, problem, cents }]`, problems `not_heard`,
-`off_pitch`, `too_noisy`) shows the red banner plus a list "A4: not heard [Retry]"; Retry records just that note again, and Send is
+`off_pitch`, `too_noisy`) shows the red banner plus a list "F4: not heard [Retry]"; Retry records just that note again, and Send is
 enabled once every failed note has a new clip. Other errors show `err.message` and keep the clips in memory. **Skip calibration** calls
 `.../calibration/skip`, stores the default profile in `state.calibration` and goes to `#/take`. A blocked mic shows `renderMediaError`.
 The mic and timers are released when the route changes.
@@ -162,10 +162,10 @@ cannot open the tone page (Wi-Fi isolation, firewall).
 
 **Address:** the back end has no `GET /lan-address` route yet (it is mocked: `mock/get_lan_address.json`). When the real call fails,
 `calibrate/address.js` falls back to this page's own address; if that is localhost the screen says the phone needs the laptop's
-Wi-Fi address instead. The tone page is the static file `frontend/tone.html`, so its URL is `<address>/tone.html?instrument=violin`
-(`StaticFiles` mount at `/`; `?note=A4` marks one note as the one being asked for).
+Wi-Fi address instead. The tone page is the static file `frontend/tone.html`, so its URL is `<address>/tone.html?instrument=trumpet`
+(`StaticFiles` mount at `/`; `?note=F4` marks one note; without `instrument` the page uses trumpet as the one being asked for).
 
-**Tone page** (`tone.html`, `js/tone/page.js` and `player.js`): standalone, no app shell. One button per note ("A4 - 440.0 Hz"), the first tap
+**Tone page** (`tone.html`, `js/tone/page.js` and `player.js`): standalone, no app shell. One button per note ("F4 - 349.23 Hz"), the first tap
 creates the AudioContext, a sine at the exact Hz plays for 4 s at gain 0.5 with 20 ms gain ramps in and out. The playing button is highlighted.
 Tapping another note stops the current one first; tapping the playing note stops it. **Hold** keeps the note going (capped at one hour)
 until tapped again.
@@ -173,6 +173,6 @@ until tapped again.
 **QR library:** `vendor/qrcode.js` (qrcode-generator, MIT) is loaded by `index.html`; `calibrate/qr.js` draws it as an SVG built from DOM nodes.
 
 Mock variants: `?mock=1` answers calibration successfully; `?mock=1&calibration=failed` answers the first POST with a 422
-`calibration_failed` (A4 not heard, E5 off pitch) and succeeds afterwards. Try the tone page at `/tone.html?mock=1&instrument=violin`.
+`calibration_failed` (F4 not heard, Bb4 off pitch) and succeeds afterwards. Try the tone page at `/tone.html?mock=1`.
 
 Tests: `node --test frontend/tests/calibrate.test.mjs frontend/tests/tone.test.mjs` (logic only, with the fake browser in `tests/fake_env.mjs`; no browser).

@@ -1,6 +1,6 @@
 {
   "session_id": "sess_mock1",
-  "instrument": "violin",
+  "instrument": "trumpet",
   "score_status": "confirmed",
   "has_calibration": true,
   "take_ids": [

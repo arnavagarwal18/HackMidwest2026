@@ -1,10 +1,10 @@
 {
   "error": {
     "code": "calibration_failed",
-    "message": "A4 wasn't heard: is your microphone on and the tone page playing A4? E5 was 42 cents off: is the tone page playing E5?"
+    "message": "F4 wasn't heard: is your microphone on and the tone page playing F4? Bb4 was 42 cents off: is the tone page playing Bb4?"
   },
   "notes": [
-    { "asked": "A4", "problem": "not_heard", "cents": null },
-    { "asked": "E5", "problem": "off_pitch", "cents": -42.0 }
+    { "asked": "F4", "problem": "not_heard", "cents": null },
+    { "asked": "Bb4", "problem": "off_pitch", "cents": -42.0 }
   ]
 }
