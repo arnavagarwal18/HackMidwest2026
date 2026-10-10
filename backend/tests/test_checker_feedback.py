@@ -246,3 +246,42 @@ def test_failing_lookup_is_logged_and_rejected(check_ctx, caplog):
     result = check_feedback(output(sentence()), check_ctx)
     assert_fails_with(result, "unknown id")
     assert "lookup failed" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("claims", None),
+        ("claims", "x"),
+        ("claims", [[1], None, 5, {"type": "count", "id": [1], "value": 1}]),
+        ("cites", None),
+        ("cites", "p:t1:1"),
+        ("cites", [["p:t1:1"]]),
+        ("cites", [{"a": 1}]),
+        ("jump", "x"),
+        ("jump", ["bar"]),
+        ("jump", {"bar": [3], "time_s": {"x": 1}}),
+        ("text", ["not text"]),
+    ],
+)
+def test_malformed_sentence_is_rejected_not_raised(check_ctx, field, value):
+    result = check_feedback(output({**sentence(), field: value}), check_ctx)
+    assert not result["ok"]
+    assert result["problems"]
+
+
+def test_non_dict_and_odd_outputs_never_raise(check_ctx):
+    for bad in ("x", 5, [], {"sentences": "x", "problem_ids": "y"}, {"sentences": [None, 3, "s"], "problem_ids": [[1]]}):
+        assert not check_feedback(bad, check_ctx)["ok"]
+
+
+def test_unexpected_failure_is_logged_and_rejected(check_ctx, caplog, monkeypatch):
+    import app.agents.checker as checker
+
+    def boom(*args):
+        raise ValueError("unexpected")
+
+    monkeypatch.setattr(checker, "_check_ids", boom)
+    result = check_feedback(output(sentence()), check_ctx)
+    assert_fails_with(result, "bad sentence")
+    assert "failed on malformed output" in caplog.text

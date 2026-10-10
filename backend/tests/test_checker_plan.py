@@ -181,3 +181,40 @@ def test_direction_word_in_exercise_needs_claim(check_ctx):
 def test_malformed_plan_is_reported_not_raised(check_ctx):
     assert not check_plan(None, check_ctx)["ok"]
     assert not check_plan(plan("nonsense", {"bar_from": "x"}), check_ctx)["ok"]
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {"pass_mark": {"max_errors": 0, "max_mean_timing_ms": None, "form_rule": ["x"]}},
+        {"pass_mark": {"max_errors": 0, "form_rule": {"a": 1}}},
+        {"pass_mark": "easy"},
+        {"pass_mark": {"max_errors": [0]}},
+        {"pass_mark": None},
+        {"problem_ids": [[1]]},
+        {"problem_ids": "p:t1:1"},
+        {"problem_ids": None},
+        {"claims": None},
+        {"claims": "x"},
+        {"claims": [None, 3, [1], {"type": "bar", "id": {"a": 1}, "value": 1}]},
+        {"text": None},
+        {"text": ["x"]},
+        {"bar_from": [1]},
+    ],
+)
+def test_malformed_exercise_is_rejected_not_raised(check_ctx, over):
+    result = check_plan(plan(exercise(**over), whole_range()), check_ctx)
+    assert not result["ok"]
+    assert all(p["index"] == 0 for p in result["problems"])
+
+
+def test_unexpected_failure_in_exercise_is_logged_and_rejected(check_ctx, caplog, monkeypatch):
+    import app.agents.plan_rules as plan_rules
+
+    def boom(*args):
+        raise ValueError("unexpected")
+
+    monkeypatch.setattr(plan_rules, "_check_bars", boom)
+    result = check_plan(plan(exercise(), whole_range()), check_ctx)
+    assert_fails_with(result, "bad exercise")
+    assert "failed on malformed output" in caplog.text

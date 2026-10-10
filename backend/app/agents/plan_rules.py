@@ -59,7 +59,7 @@ def _check_pass_mark(index: int, ex: dict, ctx: CheckContext, report: Report) ->
     if max_timing is not None and (not is_number(max_timing) or max_timing < 0):
         report.add(index, "bad pass mark: max_mean_timing_ms must be a positive number or null")
     rule = mark.get("form_rule")
-    if rule is not None and rule not in ctx.flag_rules:
+    if rule is not None and not (isinstance(rule, str) and rule in ctx.flag_rules):
         report.add(index, f"bad pass mark: form rule {rule} was not flagged in this take")
 
 
@@ -89,7 +89,7 @@ def _check_text_and_claims(index: int, ex: dict, ctx: CheckContext, report: Repo
         reason = check_claim(claim, ctx)
         if reason:
             report.add(index, reason, claim)
-    mark = ex.get("pass_mark") or {}
+    mark = ex["pass_mark"] if isinstance(ex.get("pass_mark"), dict) else {}
     own_numbers = [ex.get(k) for k in _REQUIRED_NUMBERS] + [mark.get("max_errors"), mark.get("max_mean_timing_ms")]
     cited_bars = [b for pid in ex.get("problem_ids") or [] for b in item_bars(ctx.find(pid) or {})]
     for reason in check_text(text, claims, [n for n in own_numbers if is_number(n)] + cited_bars):
@@ -100,6 +100,10 @@ def check_exercise(index: int, ex: Any, ctx: CheckContext, report: Report) -> No
     if not isinstance(ex, dict) or not all(is_number(ex.get(k)) for k in _REQUIRED_NUMBERS):
         report.add(index, "bad exercise: bar_from, bar_to, start_bpm, target_bpm, step_bpm and reps_to_pass must be numbers")
         return
+    for name in ("problem_ids", "claims"):
+        if ex.get(name) is not None and not isinstance(ex[name], list):
+            report.add(index, f"bad exercise: {name} must be a list")
+            return
     _check_bars(index, ex, ctx, report)
     _check_tempos(index, ex, ctx, report)
     _check_pass_mark(index, ex, ctx, report)

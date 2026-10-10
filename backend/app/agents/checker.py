@@ -44,7 +44,11 @@ def _check_ids(sentence: dict, ctx: CheckContext) -> list[str]:
         return ["uncited: a sentence must cite at least one measurement id"]
     claimed = [c.get("id") for c in sentence.get("claims", []) if isinstance(c, dict)]
     reasons = []
-    for item_id in dict.fromkeys([*cites, *claimed]):
+    seen = []
+    for item_id in [*cites, *claimed]:
+        if item_id in seen:
+            continue
+        seen.append(item_id)
         item = ctx.find(item_id)
         if item is None:
             reasons.append(f"unknown id: {item_id}")
@@ -57,6 +61,11 @@ def _check_sentence(index: int, sentence: Any, ctx: CheckContext, report: Report
     if not isinstance(sentence, dict) or not isinstance(sentence.get("text"), str):
         report.add(index, "bad sentence: needs text, cites, claims and jump")
         return
+    for name, expected in (("cites", list), ("claims", list), ("jump", dict)):
+        if sentence.get(name) is not None and not isinstance(sentence[name], expected):
+            report.add(index, f"bad sentence: {name} must be a {expected.__name__}")
+            return
+    sentence = {**sentence, "cites": sentence.get("cites") or [], "claims": sentence.get("claims") or [], "jump": sentence.get("jump") or {}}
     for reason in _check_ids(sentence, ctx):
         report.add(index, reason)
     if len(sentence["text"].split()) > SENTENCE_WORDS_MAX:
@@ -99,7 +108,8 @@ def check_feedback(output: Any, ctx: CheckContext) -> dict:
             if item_kind(problem_id) != "problem" or ctx.find(problem_id) is None:
                 report.add(None, f"unknown id: {problem_id} is not a problem of this take")
     for index, sentence in enumerate(sentences):
-        _check_sentence(index, sentence, ctx, report)
+        with report.guard(index, "sentence"):
+            _check_sentence(index, sentence, ctx, report)
     return report.as_result()
 
 
@@ -114,5 +124,6 @@ def check_plan(output: Any, ctx: CheckContext) -> dict:
         report.add(None, f"bad exercise count: need {EXERCISE_COUNT[0]} to {EXERCISE_COUNT[1]} exercises")
         exercises = exercises if isinstance(exercises, list) else []
     for index, exercise in enumerate(exercises):
-        check_exercise(index, exercise, ctx, report)
+        with report.guard(index, "exercise"):
+            check_exercise(index, exercise, ctx, report)
     return report.as_result()
