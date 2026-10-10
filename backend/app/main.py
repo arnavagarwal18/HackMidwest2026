@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from . import store
 from .errors import register_error_handlers
 from .score.routes import router as score_router
+from .takes.calibration_routes import router as calibration_router
 from .takes.routes import router as takes_router
 
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +21,7 @@ app = FastAPI(title="Practice Coach")
 register_error_handlers(app)
 app.include_router(takes_router)
 app.include_router(score_router)
+app.include_router(calibration_router)
 
 
 class CreateSession(BaseModel):

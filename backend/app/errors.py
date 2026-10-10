@@ -14,25 +14,26 @@ STORAGE_ERROR_MESSAGE = "The app couldn't save your work. Tell the team."
 class AppError(Exception):
     """An error the caller can act on; rendered as a JSON error body."""
 
-    def __init__(self, status: int, code: str, message: str):
+    def __init__(self, status: int, code: str, message: str, details: dict | None = None):
         super().__init__(message)
         self.status = status
         self.code = code
         self.message = message
+        self.details = details or {}  # extra top-level keys for the response body
 
 
 def storage_error() -> AppError:
     return AppError(500, "storage_error", STORAGE_ERROR_MESSAGE)
 
 
-def error_response(status: int, code: str, message: str) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
+def error_response(status: int, code: str, message: str, details: dict | None = None) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}, **(details or {})})
 
 
 async def _handle_app_error(request: Request, exc: AppError) -> JSONResponse:
     if exc.status >= 500:
         logger.error("%s %s failed: %s (%s)", request.method, request.url.path, exc.code, exc.message)
-    return error_response(exc.status, exc.code, exc.message)
+    return error_response(exc.status, exc.code, exc.message, exc.details)
 
 
 async def _handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
