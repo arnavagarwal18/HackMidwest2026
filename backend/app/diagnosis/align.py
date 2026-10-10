@@ -10,7 +10,8 @@ from .expected import ExpectedNote
 logger = logging.getLogger("app.diagnosis")
 
 Pair = tuple[int, int]  # (index into expected, index into played), both in time order
-PairAllowed = Callable[[ExpectedNote, dict], bool]
+# Extra cost of pairing a played note with an expected one; None means the pair is not allowed.
+PairPenalty = Callable[[ExpectedNote, dict], float | None]
 
 
 @dataclass
@@ -35,9 +36,10 @@ def _pair_score(expected: ExpectedNote, played: dict) -> float:
 
 
 def needleman_wunsch(
-    expected: list[ExpectedNote], played: list[dict], allowed: PairAllowed | None = None
+    expected: list[ExpectedNote], played: list[dict], pair_penalty: PairPenalty | None = None
 ) -> list[Pair]:
-    """Best global alignment; a pair is only formed where `allowed` says so (default: anywhere).
+    """Best global alignment; `pair_penalty` is taken off a pair's score, or forbids it by returning None
+    (default: pairs are allowed anywhere, at no extra cost).
 
     The table scores the notes from each position onward, and the trace-back runs forward preferring
     pairs, so equally good alignments resolve to the earliest matches.
@@ -51,9 +53,10 @@ def needleman_wunsch(
         table[n][j] = (m - j) * gap
 
     def diagonal(i: int, j: int) -> float | None:
-        if allowed is not None and not allowed(expected[i], played[j]):
+        penalty = 0.0 if pair_penalty is None else pair_penalty(expected[i], played[j])
+        if penalty is None:
             return None
-        return table[i + 1][j + 1] + _pair_score(expected[i], played[j])
+        return table[i + 1][j + 1] + _pair_score(expected[i], played[j]) - penalty
 
     for i in range(n - 1, -1, -1):
         for j in range(m - 1, -1, -1):
@@ -91,7 +94,8 @@ def fit_line(points: list[tuple[float, float]], min_points: int = config.MIN_FIT
 
 
 def align_notes(expected: list[ExpectedNote], played: list[dict]) -> Alignment:
-    """Pass 1 has no time limit; if >= 3 same-midi pairs give a fit, pass 2 limits pairs to +-1 beat of it."""
+    """Pass 1 has no time limit; if >= 3 same-midi pairs give a fit, pass 2 limits pairs to +-1 beat of it
+    and takes off each pair's score in proportion to its distance in time, so closer pairings win ties."""
     pass1 = needleman_wunsch(expected, played)
     same_midi = [
         (expected[e].onset_beats, played[p]["onset_s"])
@@ -103,11 +107,14 @@ def align_notes(expected: list[ExpectedNote], played: list[dict]) -> Alignment:
         logger.info("alignment: no usable fit from %d same-midi pairs; pass 1 stands", len(same_midi))
         return Alignment(pairs=pass1, fit=None)
 
-    def within_window(note: ExpectedNote, played_note: dict) -> bool:
+    def time_penalty(note: ExpectedNote, played_note: dict) -> float | None:
         fitted_s = fit.offset_s + note.onset_beats * fit.sec_per_beat
-        return abs(played_note["onset_s"] - fitted_s) <= config.PASS2_WINDOW_BEATS * fit.sec_per_beat
+        distance_beats = abs(played_note["onset_s"] - fitted_s) / fit.sec_per_beat
+        if distance_beats > config.PASS2_WINDOW_BEATS:
+            return None
+        return config.PASS2_TIME_PENALTY * min(1.0, distance_beats)
 
-    return Alignment(pairs=needleman_wunsch(expected, played, within_window), fit=fit)
+    return Alignment(pairs=needleman_wunsch(expected, played, time_penalty), fit=fit)
 
 
 def build_grid(

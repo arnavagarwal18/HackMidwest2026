@@ -8,6 +8,9 @@ SCORE_GAP = -1.0
 
 # Pass 2 only pairs notes whose played onset is within this many beats of the fitted time.
 PASS2_WINDOW_BEATS = 1.0
+# Pass 2 takes off this x min(1, distance in beats from the fitted time) from every pair's score, so the
+# closer pairing wins a tie.
+PASS2_TIME_PENALTY = 0.5
 # Least-squares fit of onset_s = offset_s + beat * sec_per_beat needs this many same-midi pairs.
 MIN_FIT_PAIRS = 3
 

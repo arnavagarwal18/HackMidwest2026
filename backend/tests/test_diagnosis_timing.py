@@ -1,6 +1,7 @@
 import pytest
 
 from app import store
+from app.diagnosis.problems import bar_problems
 from app.diagnosis.take_alignment import align_take
 from app.diagnosis.timing import (
     add_timing,
@@ -248,3 +249,22 @@ def test_save_clean_tempo_stores_it_under_the_bar_range(sessions_root):
 
     store._sessions.clear()  # read it back from disk
     assert store.get(session.session_id).clean_tempo == {"3-6": 100, "1-6": pytest.approx(56)}
+
+
+def test_missing_repeated_note_is_missed_and_the_played_one_pairs_with_its_own_time():
+    # Bar 2 is F F E E. The first E is not played; the second E comes on time (beat 7). It must pair with
+    # the second expected E, not the first (which would read as 663 ms late and a dragging bar).
+    score = make_score([[60, 62, 64, 65], [65, 65, 64, 64], [67, 69, 71, 72], [72, 71, 69, 67]])
+    midis = [60, 62, 64, 65, 65, 65, 64, 64, 67, 69, 71, 72, 72, 71, 69, 67]
+    played = [p for p in perfect_played(midis) if p["i"] != 6]
+
+    result = run(score, played, make_take())
+
+    by_id = {n["id"]: n for n in result["notes"]}
+    assert by_id["n:t1:2:2"]["status"] == "missed"
+    assert by_id["n:t1:2:3"]["status"] == "ok"
+    assert by_id["n:t1:2:3"]["played_i"] == 7
+    assert by_id["n:t1:2:3"]["timing_ms"] == pytest.approx(0)
+    assert [timing_flag(n["timing_ms"]) for n in result["notes"] if n["bar"] == 2] == [None] * 4
+    assert bar(result, 2)["drift_pct"] == pytest.approx(0)
+    assert {p.kind for p in bar_problems(result)} == {"notes"}
