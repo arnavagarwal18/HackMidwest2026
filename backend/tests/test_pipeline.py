@@ -190,8 +190,9 @@ def test_session_calibration_is_used(session_id, tmp_path):
     assert stored(session_id)["calibrated"] is True
 
 
-def test_video_calibration_hook_is_a_noop():
-    assert pipeline_steps.calibrate_from_video("s", "t1") == (None, 0.0)
+def test_recorded_takes_are_not_calibrated_from_their_video(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path, kind="video")
+    assert pipeline_steps.calibrate_from_video(session_id, take_id) == (None, 0.0)
 
 
 def test_missing_steps_are_skipped_with_warning(session_id, tmp_path, caplog, monkeypatch):

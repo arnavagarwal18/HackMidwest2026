@@ -4,16 +4,17 @@ import json
 import logging
 from typing import Callable
 
+import librosa
+
 from .. import store
+from .calibrate import default_profile
 from .take_store import update_take
-from .transcribe import AudioUnreadable, NoNotesHeard, transcribe
+from .transcribe import SAMPLE_RATE, AudioUnreadable, NoNotesHeard, transcribe
+from .video_calibration import SEARCH_WINDOW_S, calibrate_from_audio
 
 logger = logging.getLogger("app.takes.pipeline")
 
-DEFAULT_PROFILE = {
-    "source": "default", "calibrated": False, "pitch_offset_cents": 0, "noise_floor_db": -60,
-    "pickup_db": {"low": 0, "mid": 0, "high": 0}, "latency_ms": 0, "instrument_offset_cents": None, "notes": [],
-}
+DEFAULT_PROFILE = default_profile()
 
 Step = Callable[[str, str], None]
 
@@ -27,13 +28,27 @@ class StepFailed(Exception):
 
 
 def calibrate_from_video(session_id: str, take_id: str) -> tuple[dict | None, float]:
-    """Hook for calibrating from a video's opening seconds; returns (profile, calib_end_s). Not built yet."""
-    return None, 0.0
+    """(profile, calib_end_s) from reference notes at the start of an uploaded take; (None, 0.0) when it doesn't apply.
+
+    Skipped for recorded takes and when the session already has a live calibration. Never fails the take:
+    if the audio can't be analysed the error is logged and the take is processed uncalibrated.
+    """
+    session = store.get(session_id)
+    take = session.takes[take_id]
+    if take["source"] != "uploaded" or (session.calibration or {}).get("source") == "live":
+        return None, 0.0
+    try:
+        audio, _ = librosa.load(str(store.session_dir(session_id) / take["audio"]), sr=SAMPLE_RATE, mono=True,
+                                duration=SEARCH_WINDOW_S)
+        return calibrate_from_audio(audio, session.instrument)
+    except Exception:
+        logger.exception("Calibration from the video of take %s/%s failed; using the default profile", session_id, take_id)
+        return None, 0.0
 
 
 def calibration_profile(session_id: str, take: dict) -> tuple[dict, float]:
     """The profile to transcribe with and the seconds of the recording used for calibrating."""
-    video_profile, calib_end_s = calibrate_from_video(session_id, take["take_id"]) if take["kind"] == "video" else (None, 0.0)
+    video_profile, calib_end_s = calibrate_from_video(session_id, take["take_id"])
     profile = video_profile or store.get(session_id).calibration or DEFAULT_PROFILE
     return profile, calib_end_s
 

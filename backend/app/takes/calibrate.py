@@ -117,11 +117,13 @@ def measure_notes(clips: list[np.ndarray], instrument: str, notes: tuple[Referen
     return [measure_note(audio, instrument, note) for audio, note in zip(clips, notes)]
 
 
-def build_live_profile(measurements: list[NoteMeasurement], latency_ms: float, instrument_offset_cents: float | None) -> dict:
-    """Profile from three problem-free reference measurements (low, mid, high)."""
+def build_live_profile(
+    measurements: list[NoteMeasurement], latency_ms: float, instrument_offset_cents: float | None, source: str = "live"
+) -> dict:
+    """Profile from three problem-free reference measurements (low, mid, high); source is 'live' or 'video'."""
     low, mid, high = (m.level_db for m in measurements)
     return {
-        "source": "live", "calibrated": True,
+        "source": source, "calibrated": True,
         "pitch_offset_cents": round(float(np.mean([m.cents for m in measurements])), 2),
         "noise_floor_db": round(min(m.noise_db for m in measurements), 2),
         "pickup_db": {"low": round(low - mid, 2), "mid": 0.0, "high": round(high - mid, 2)},

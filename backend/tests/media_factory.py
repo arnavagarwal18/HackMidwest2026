@@ -26,3 +26,15 @@ def make_webm_audio(path: Path, seconds: float = 1.0) -> Path:
 def make_silent_video_mp4(path: Path, seconds: float = 1.0) -> Path:
     _ffmpeg(*_VIDEO_INPUT, "-t", str(seconds), "-an", "-pix_fmt", "yuv420p", str(path))
     return path
+
+
+_AV_CODECS = {
+    ".mp4": ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac"],
+    ".webm": ["-c:v", "libvpx", "-c:a", "libopus"],
+}
+
+
+def make_video_with_audio(path: Path, audio_wav: Path) -> Path:
+    """Mux a small test picture with the given wav into the container the path's extension names (.mp4 or .webm)."""
+    _ffmpeg(*_VIDEO_INPUT, "-i", str(audio_wav), "-shortest", *_AV_CODECS[path.suffix], str(path))
+    return path
