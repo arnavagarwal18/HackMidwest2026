@@ -12,6 +12,7 @@ from .diagnosis.routes import router as diagnosis_router
 from .errors import register_error_handlers
 from .score.routes import router as score_router
 from .takes.calibration_routes import router as calibration_router
+from .agents.routes import router as feedback_router
 from .takes.routes import router as takes_router
 
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,7 @@ app.include_router(takes_router)
 app.include_router(score_router)
 app.include_router(calibration_router)
 app.include_router(diagnosis_router)
+app.include_router(feedback_router)
 
 
 class CreateSession(BaseModel):

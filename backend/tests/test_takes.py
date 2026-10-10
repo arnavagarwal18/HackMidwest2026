@@ -33,7 +33,7 @@ def settle_pipelines(sessions_root):
 def stub_analysis(monkeypatch):
     """These tests are about upload and audio extraction; transcription, diagnosis and form are covered elsewhere."""
     monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [])
-    monkeypatch.setattr(pipeline, "resolve_step", lambda module_name: None)
+    monkeypatch.setattr(pipeline, "resolve_step", lambda module_name, attr="run": None)
 
 
 @pytest.fixture

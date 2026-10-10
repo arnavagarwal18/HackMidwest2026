@@ -37,6 +37,7 @@ class Recorder:
 
     def __init__(self, session_id, take_id="t1", fail=()):
         self.session_id, self.take_id, self.fail, self.calls = session_id, take_id, set(fail), []
+        self.feedback_calls = []
 
     def _step(self, name):
         take = stored(self.session_id, self.take_id)
@@ -55,9 +56,12 @@ class Recorder:
     def check_form(self, session_id, take_id):
         self._step("form")
 
+    def give_feedback(self, session_id, take_id):
+        self.feedback_calls.append((session_id, take_id, stored(session_id, take_id)["status"]))
+
     def run(self):
-        pipeline.run_take_pipeline(self.session_id, self.take_id, transcriber=self.transcriber,
-                                   diagnose=self.diagnose, check_form=self.check_form)
+        pipeline.run_take_pipeline(self.session_id, self.take_id, transcriber=self.transcriber, diagnose=self.diagnose,
+                                   check_form=self.check_form, give_feedback=self.give_feedback)
 
 
 def test_mic_take_goes_processing_transcribed_diagnosed_done(session_id, tmp_path):
@@ -221,3 +225,51 @@ def test_broken_import_inside_step_module_is_not_hidden(monkeypatch):
     monkeypatch.setattr(pipeline_steps.importlib, "import_module", broken_import)
     with pytest.raises(ModuleNotFoundError):
         pipeline_steps.resolve_step("app.diagnosis")
+
+
+def test_feedback_runs_after_diagnosis_and_form_for_a_take_then_the_take_is_done(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path, kind="video")
+    recorder = Recorder(session_id, take_id)
+    recorder.run()
+    assert recorder.feedback_calls == [(session_id, take_id, "diagnosed")]
+    assert [call[0] for call in recorder.calls] == ["transcribe", "diagnose", "form"]
+    assert stored(session_id, take_id)["status"] == "done"
+
+
+def test_feedback_is_skipped_for_other_purposes(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path)
+    pipeline.update_take(session_id, take_id, purpose="exercise")
+    recorder = Recorder(session_id, take_id)
+    recorder.run()
+    assert recorder.feedback_calls == []
+    assert stored(session_id, take_id)["status"] == "done"
+
+
+def test_a_failed_take_gets_no_feedback(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path)
+    recorder = Recorder(session_id, take_id, fail={"diagnose"})
+    recorder.run()
+    assert recorder.feedback_calls == []
+    assert stored(session_id, take_id)["status"] == "failed"
+
+
+def test_a_take_whose_feedback_could_not_be_saved_stays_failed(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path)
+
+    def unsavable(sid, tid):
+        pipeline.update_take(sid, tid, status="failed", error="storage_error")
+
+    pipeline.run_take_pipeline(session_id, take_id, transcriber=lambda *args: [NOTE], diagnose=lambda s, t: None, give_feedback=unsavable)
+    assert (stored(session_id, take_id)["status"], stored(session_id, take_id)["error"]) == ("failed", "storage_error")
+
+
+def test_the_real_feedback_step_is_found_by_default(session_id, tmp_path, monkeypatch):
+    from app.agents import run as feedback_run
+
+    monkeypatch.setattr(feedback_run, "ai_enabled", lambda: False)
+    monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [NOTE])
+    take_id = make_take(session_id, tmp_path)
+    pipeline.run_take_pipeline(session_id, take_id)
+    session = store.get(session_id)
+    assert session.takes[take_id]["status"] == "done"
+    assert [f["take_id"] for f in session.feedback.values()] == [take_id]

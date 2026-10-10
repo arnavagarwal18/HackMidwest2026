@@ -1,4 +1,4 @@
-"""Background take pipeline, one run at a time per session: extract audio, transcribe, diagnose, then the form check for videos."""
+"""Background take pipeline, one run at a time per session: extract audio, transcribe, diagnose, the form check for videos, then feedback."""
 import logging
 import threading
 
@@ -71,12 +71,22 @@ def _check_form(session_id: str, take_id: str, run: Step | None) -> None:
         update_take(session_id, take_id, form_status="failed")
 
 
-def run_take_pipeline(session_id: str, take_id: str, *, transcriber=None,
-                      diagnose: Step | None = None, check_form: Step | None = None) -> None:
+def _give_feedback(session_id: str, take_id: str, run: Step | None) -> None:
+    """Feedback for a practice take (not for other purposes); run_feedback handles its own failures."""
+    if store.get(session_id).takes[take_id].get("purpose", "take") != "take":
+        return
+    run = run or resolve_step("app.agents.run", "run_feedback")
+    if run:
+        run(session_id, take_id)
+
+
+def run_take_pipeline(session_id: str, take_id: str, *, transcriber=None, diagnose: Step | None = None,
+                      check_form: Step | None = None, give_feedback: Step | None = None) -> None:
     """Process one take in a background thread; never raises, failures are recorded on the take.
 
-    The keyword arguments replace the transcriber and the LLD-3 / LLD-4 steps (tests); by default the steps
-    are looked up as app.diagnosis.run and app.form.run when needed, and skipped while they don't exist.
+    The keyword arguments replace the transcriber and the LLD-3 / LLD-4 / LLD-5 steps (tests); by default the steps
+    are looked up as app.diagnosis.run, app.form.run and app.agents.run.run_feedback when needed, and skipped
+    while they don't exist.
     """
     with _lock_for(session_id):
         try:
@@ -85,7 +95,9 @@ def run_take_pipeline(session_id: str, take_id: str, *, transcriber=None,
             _diagnose(session_id, take_id, diagnose)
             if store.get(session_id).takes[take_id]["kind"] == "video":
                 _check_form(session_id, take_id, check_form)
-            update_take(session_id, take_id, status="done")
+            _give_feedback(session_id, take_id, give_feedback)
+            if store.get(session_id).takes[take_id]["status"] != "failed":  # run_feedback marks the take failed if it can't save
+                update_take(session_id, take_id, status="done")
         except (MediaError, StepFailed) as exc:
             logger.warning("Take %s/%s failed: %s (%s)", session_id, take_id, exc.code, exc)
             _fail(session_id, take_id, exc.code)

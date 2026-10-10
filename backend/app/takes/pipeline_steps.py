@@ -60,14 +60,14 @@ def transcribe_take(session_id: str, take_id: str, transcriber=None) -> None:
                 calib_end_s=calib_end_s, status="transcribed")
 
 
-def resolve_step(module_name: str) -> Step | None:
-    """Find `run` in another team's module at call time; None (with a warning) while it doesn't exist yet."""
+def resolve_step(module_name: str, attr: str = "run") -> Step | None:
+    """Find `attr` in another team's module at call time; None (with a warning) while it doesn't exist yet."""
     try:
-        run = getattr(importlib.import_module(module_name), "run", None)
+        run = getattr(importlib.import_module(module_name), attr, None)
     except ModuleNotFoundError as exc:
         if exc.name != module_name:
             raise
         run = None
     if run is None:
-        logger.warning("%s.run is not available yet; skipping that step", module_name)
+        logger.warning("%s.%s is not available yet; skipping that step", module_name, attr)
     return run
