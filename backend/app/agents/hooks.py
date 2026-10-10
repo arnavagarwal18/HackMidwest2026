@@ -6,9 +6,10 @@ from typing import Any, Callable, Optional
 
 from strands.hooks import AfterToolCallEvent, HookProvider, HookRegistry
 
-from app.agents.checker import check_feedback
+from app.agents.checker import check_feedback, check_plan
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
+from app.agents.plan_rules import EXERCISE_COUNT
 from app.agents.trace import Trace
 
 log = logging.getLogger(__name__)
@@ -23,15 +24,17 @@ class SubmitSpec:
 
     tool_name: str
     items_key: str
+    item_name: str  # what the agent calls one item: the key that names the failing item in a rejection
     check: Callable[[Any, CheckContext], dict]
+    note_check: Callable[[RunHolder, int, dict], None]
     accept: Callable[[RunHolder, dict, list[dict]], None]
+    min_items: int = 0  # fewer items than this left after dropping is a refusal, not an acceptance
 
 
-FEEDBACK_SUBMIT = SubmitSpec("submit_feedback", "sentences", check_feedback, RunHolder.accept_feedback)
-
-
-def _problem_view(problem: dict) -> dict:
-    return {"sentence": problem["index"], "claim": problem["claim"], "reason": problem["reason"]}
+FEEDBACK_SUBMIT = SubmitSpec("submit_feedback", "sentences", "sentence", check_feedback,
+                             RunHolder.note_feedback_check, RunHolder.accept_feedback)
+PLAN_SUBMIT = SubmitSpec("submit_plan", "exercises", "exercise", check_plan,
+                         RunHolder.note_plan_check, RunHolder.accept_plan, min_items=EXERCISE_COUNT[0])
 
 
 def _result_content(event: AfterToolCallEvent, verdict: dict) -> dict:
@@ -76,7 +79,7 @@ class CheckerHook(HookProvider):
         else:
             output = (event.tool_use.get("input") or {}).get("output")
             result = self.spec.check(output, self.ctx)
-        self.holder.note_check(tries, result)
+        self.spec.note_check(self.holder, tries, result)
         if result["ok"]:
             self._emit("check_pass", f"try {tries}: {result['claims_checked']} claims checked")
             self.spec.accept(self.holder, output, [])
@@ -84,12 +87,15 @@ class CheckerHook(HookProvider):
         problems = result["problems"]
         self._emit("check_fail", f"try {tries}: {len(problems)} problems, first: {problems[0]['reason']}")
         if tries < MAX_TRIES:
-            return {"accepted": False, "try": tries, "problems": [_problem_view(p) for p in problems]}, False
+            return {"accepted": False, "try": tries, "problems": [self._problem_view(p) for p in problems]}, False
         dropped = self._drop_failing(output, problems)
         if dropped is None:
             log.warning("%s refused on try %s: %s", self.spec.tool_name, tries, problems[0]["reason"])
-            return {"accepted": False, "try": tries, "final": True, "problems": [_problem_view(p) for p in problems]}, True
+            return {"accepted": False, "try": tries, "final": True, "problems": [self._problem_view(p) for p in problems]}, True
         return {"accepted": True, "dropped": len(dropped)}, True
+
+    def _problem_view(self, problem: dict) -> dict:
+        return {self.spec.item_name: problem["index"], "claim": problem["claim"], "reason": problem["reason"]}
 
     def _malformed(self, event: AfterToolCallEvent) -> dict:
         detail = " ".join(c.get("text", "") for c in event.result.get("content", []) if isinstance(c, dict)).strip()
@@ -104,8 +110,10 @@ class CheckerHook(HookProvider):
         reasons: dict[int, list[str]] = {}
         for problem in problems:
             reasons.setdefault(problem["index"], []).append(problem["reason"])
-        dropped = [{"text": _item_text(items[i]), "reasons": reasons[i]} for i in sorted(reasons)]
         kept = [item for i, item in enumerate(items) if i not in reasons]
+        if len(kept) < self.spec.min_items:
+            return None
+        dropped = [{"text": _item_text(items[i]), "reasons": reasons[i]} for i in sorted(reasons)]
         self.spec.accept(self.holder, {**output, self.spec.items_key: kept}, dropped)
         self._emit("check_fail", f"dropped {len(dropped)} items after try {MAX_TRIES}")
         return dropped

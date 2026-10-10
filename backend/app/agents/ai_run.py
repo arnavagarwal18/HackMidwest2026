@@ -1,4 +1,4 @@
-"""The AI path of run_feedback: the Orchestrator and Coach under a time limit, never raising."""
+"""The AI path of run_feedback: the Orchestrator, Coach and Planner under a time limit, never raising."""
 import asyncio
 import logging
 from dataclasses import dataclass, field
@@ -20,12 +20,17 @@ ORCHESTRATOR_REQUEST = "Feedback for take {take_id}. Read the overview first."
 
 @dataclass
 class AiFeedback:
-    """What the AI path produced. `sentences` is None when the Coach's output can't be shown; `reason` then says why."""
+    """What the AI path produced.
+
+    `sentences` is None when the Coach's output can't be shown, and `reason` then says why.
+    `exercises` is None when the Planner's output can't be used (the rule plan is used instead); each exercise has no id yet.
+    """
 
     sentences: list[dict] | None
     dropped: list[dict] = field(default_factory=list)
     check: dict = field(default_factory=dict)
     reason: str | None = None
+    exercises: list[dict] | None = None
 
 
 def new_model() -> Any:
@@ -61,8 +66,19 @@ def _failure_reason(holder: RunHolder, failure: BaseException | None) -> str:
     return "checker_rejected"
 
 
-def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Trace) -> AiFeedback:
-    """Run the agents on a diagnosed take. Anything the Coach got accepted is kept, even if a later step failed."""
+def _accepted_exercises(session_id: str, take: dict, holder: RunHolder) -> list[dict] | None:
+    if holder.plan is not None:
+        return holder.plan["exercises"]
+    log.error("No Planner plan for take %s/%s (planner tries %s, errors %s)", session_id, take["take_id"],
+              holder.planner_tries, [type(e).__name__ for e in holder.planner_errors])
+    return None
+
+
+def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Trace, cant_tell: bool = False) -> AiFeedback:
+    """Run the agents on a diagnosed take. Anything the Coach or Planner got accepted is kept, even if a later step failed.
+
+    For a take that can't be judged only the Planner runs, so there are no sentences and no failure reason.
+    """
     holder, failure = RunHolder(), None
     try:
         asyncio.run(_run(session_id, take, history, holder, trace))
@@ -70,8 +86,12 @@ def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Tra
         failure = exc
         log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
         trace.add("orchestrator", "error", type(exc).__name__, str(exc))
+    exercises = _accepted_exercises(session_id, take, holder)
+    check = holder.check_counts()
+    if cant_tell:
+        return AiFeedback(None, check=check, exercises=exercises)
     if holder.feedback is not None:
-        return AiFeedback([_shown(s) for s in holder.feedback["sentences"]], holder.dropped, holder.check_counts())
+        return AiFeedback([_shown(s) for s in holder.feedback["sentences"]], holder.dropped, check, exercises=exercises)
     reason = _failure_reason(holder, failure)
     log.error("No Coach feedback for take %s/%s: %s", session_id, take["take_id"], reason)
-    return AiFeedback(None, check=holder.check_counts(), reason=reason)
+    return AiFeedback(None, check=check, reason=reason, exercises=exercises)
