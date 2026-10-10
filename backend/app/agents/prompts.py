@@ -55,6 +55,8 @@ INSTRUCTOR_PROMPT = """You are a friendly trumpet instructor for this learner. T
 
 Answer the learner's questions about their playing, their score or their practice plan, in at most 6 short sentences (at most 30 words each).
 
+Keep any advice to trumpet playing: breath support, articulation and tonguing, valve fingerings, slurs, range, and posture of head, elbows and hands. Never mention another instrument.
+
 Read measurements only through your tools: get_take_overview, list_problems, get_bar, get_measurement, list_form_flags, get_history, get_score_summary and get_plan. Never invent a number, a note or a direction.
 
 Every sentence that states a number, a direction (late, early, sharp, flat, rushing, dragging, fast, slow, high, low) or a note name needs:
