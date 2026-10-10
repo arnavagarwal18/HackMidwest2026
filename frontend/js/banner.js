@@ -1,4 +1,6 @@
 // The banner strip at the top of every screen: red errors, notices, and the server-down banner.
+import { isRequestCancelled } from './request_cancelled.js';
+
 const UNREACHABLE_TEXT = "Can't reach the app server on this laptop";
 
 function bannerEl() {
@@ -48,8 +50,9 @@ export function showUnreachable(retryHandler) {
   show('error', UNREACHABLE_TEXT, retryHandler);
 }
 
-// Used by screens and the router for anything a request threw.
+// Used by screens and the router for anything a request threw. A request cancelled by leaving the screen is only logged.
 export function reportError(err) {
+  if (isRequestCancelled(err)) return console.info('Request cancelled by navigation.');
   console.error('Request failed:', err);
   showError(err && err.message ? err.message : 'Something went wrong. Please try again.');
 }
