@@ -9,7 +9,7 @@ export { getAudioContext } from './audio.js';
 
 export const MAX_TAKE_SECONDS = 180;
 export const COUNT_IN_LEAD_S = 0.5; // the first click comes this long after the recorder starts
-const DEVICE_ERRORS = ['NotAllowedError', 'SecurityError', 'NotFoundError', 'OverconstrainedError', 'NotReadableError'];
+const DEVICE_ERRORS = ['NotAllowedError', 'SecurityError', 'NotFoundError', 'OverconstrainedError', 'NotReadableError', 'AbortError'];
 
 async function openAudio() {
   try {
