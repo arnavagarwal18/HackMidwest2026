@@ -34,6 +34,7 @@ class Session:
     doubtful_bars: list = field(default_factory=list)
     double_checked: bool = False
     calibration: dict | None = None
+    transposition: dict | None = None  # {semitones, source}; set by the first diagnosed take
     takes: dict[str, dict] = field(default_factory=dict)
     feedback: dict[str, dict] = field(default_factory=dict)
     plans: dict[str, dict] = field(default_factory=dict)

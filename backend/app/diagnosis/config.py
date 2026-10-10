@@ -50,3 +50,17 @@ TIMING_DECIMALS = 2
 # Error rate and clean tempo (step 6)
 CLEAN_MAX_ERROR_RATE = 0.10
 CLEAN_FALLBACK_FRACTION = 0.7
+
+# Transposition (step 2)
+INSTRUMENT_DEFAULT_TRANSPOSITION = {"trumpet": -2, "violin": 0, "piano": 0}
+DETECTION_CANDIDATES = (0, -2, -3, -7, -9)
+DETECTION_MIN_GAIN = 0.15
+# Quality gains are sums of fractions; this absorbs float noise so an exact +0.15 counts.
+DETECTION_EPSILON = 1e-9
+MIN_TRANSPOSITION_SEMITONES = -12
+MAX_TRANSPOSITION_SEMITONES = 12
+
+SOURCE_FILE = "file"
+SOURCE_DEFAULT = "default"
+SOURCE_DETECTED = "detected"
+SOURCE_USER = "user"

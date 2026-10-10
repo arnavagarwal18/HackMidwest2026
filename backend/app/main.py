@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import store
+from .diagnosis.routes import router as diagnosis_router
 from .errors import register_error_handlers
 from .score.routes import router as score_router
 from .takes.calibration_routes import router as calibration_router
@@ -22,6 +23,7 @@ register_error_handlers(app)
 app.include_router(takes_router)
 app.include_router(score_router)
 app.include_router(calibration_router)
+app.include_router(diagnosis_router)
 
 
 class CreateSession(BaseModel):
