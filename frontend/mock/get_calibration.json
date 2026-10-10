@@ -1,0 +1,38 @@
+{
+  "profile": {
+    "source": "measured",
+    "calibrated": true,
+    "pitch_offset_cents": -6,
+    "noise_floor_db": -52.3,
+    "pickup_db": {
+      "low": -31.0,
+      "mid": -27.5,
+      "high": -29.2
+    },
+    "latency_ms": 84,
+    "instrument_offset_cents": 0,
+    "notes": [
+      {
+        "asked": "D4",
+        "hz": 293.66,
+        "heard_hz": 292.6,
+        "cents": -6,
+        "problem": null
+      },
+      {
+        "asked": "A4",
+        "hz": 440.0,
+        "heard_hz": 438.5,
+        "cents": -6,
+        "problem": null
+      },
+      {
+        "asked": "E5",
+        "hz": 659.26,
+        "heard_hz": 656.8,
+        "cents": -6,
+        "problem": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "score_status": "scanned",
+  "bars": 16,
+  "doubtful_bars": [
+    {
+      "bar": 7,
+      "homr_text": "C5 quarter, D5 quarter, rest",
+      "reader_text": "C5 quarter, D5 half"
+    }
+  ],
+  "double_checked": true,
+  "warnings": [
+    "Bar 7 was read two different ways; please check it."
+  ]
+}

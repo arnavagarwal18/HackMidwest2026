@@ -1,0 +1,16 @@
+{
+  "profile": {
+    "source": "default",
+    "calibrated": false,
+    "pitch_offset_cents": 0,
+    "noise_floor_db": -60.0,
+    "pickup_db": {
+      "low": -30.0,
+      "mid": -30.0,
+      "high": -30.0
+    },
+    "latency_ms": 100,
+    "instrument_offset_cents": 0,
+    "notes": []
+  }
+}

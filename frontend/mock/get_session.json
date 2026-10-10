@@ -1,0 +1,10 @@
+{
+  "session_id": "sess_mock1",
+  "instrument": "violin",
+  "score_status": "confirmed",
+  "has_calibration": true,
+  "take_ids": [
+    "take_1",
+    "take_2"
+  ]
+}

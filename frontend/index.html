@@ -1,5 +1,31 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Practice Coach</title></head>
-<body><h1>Practice Coach</h1><p>The app is starting up.</p></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practice Coach</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header>
+    <strong>Practice Coach</strong>
+    <nav>
+      <a href="#/start">Start</a>
+      <a href="#/score">Score</a>
+      <a href="#/calibrate">Calibrate</a>
+      <a href="#/take">Take</a>
+      <a href="#/results/take_1">Results</a>
+      <a href="#/exercise/ex_1">Exercise</a>
+      <a href="#/progress">Progress</a>
+      <a href="#/trace/fb_1">Trace</a>
+    </nav>
+  </header>
+  <div id="banner" role="alert" hidden></div>
+  <main id="screen"></main>
+  <noscript>This app needs JavaScript.</noscript>
+  <script type="module">
+    import { start } from './js/router.js';
+    start();
+  </script>
+</body>
 </html>
