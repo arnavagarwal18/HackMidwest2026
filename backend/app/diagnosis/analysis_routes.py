@@ -56,6 +56,7 @@ def build_analysis(session_id: str, take_id: str) -> dict:
         "tempo": _tempo(diagnosis, session, take) if diagnosis else None,
         "notes": diagnosis.get("notes", []),
         "extras": diagnosis.get("extras", []),
+        "outside_count": diagnosis.get("outside_count", 0),
         "bars": diagnosis.get("bars", []),
         "problems": diagnosis.get("problems", []),
         "tier1": diagnosis.get("tier1", []),

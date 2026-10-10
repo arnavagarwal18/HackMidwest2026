@@ -60,6 +60,19 @@ def _extra(take_id: str, played: dict, bar: int) -> dict:
     }
 
 
+def _outside_window(
+    expected: list[ExpectedNote], played: list[dict], pairs: list[Pair], beat_s: float
+) -> tuple[float, float] | None:
+    """(earliest, latest) played onset still counted as inside the chosen bars; None with no pairs."""
+    if not pairs:
+        return None
+    margin_s = config.OUTSIDE_MARGIN_BEATS * beat_s
+    first_onset = min(played[p]["onset_s"] for _, p in pairs)
+    last_expected, last_played = max(pairs, key=lambda pair: played[pair[1]]["onset_s"])
+    last_end = played[last_played]["onset_s"] + expected[last_expected].dur_beats * beat_s
+    return first_onset - margin_s, last_end + margin_s
+
+
 def cant_tell_reason(expected_count: int, pair_count: int, quality: float) -> str | None:
     if expected_count < config.MIN_EXPECTED_NOTES:
         return config.CANT_TELL_TOO_SHORT
@@ -77,25 +90,37 @@ def mark_alignment(
     pairs: list[Pair],
     grid: dict,
     bar_starts: list[tuple[int, float]],
+    beat_s: float,
 ) -> dict:
-    """Returns notes, extras, alignment_quality, cant_tell and cant_tell_reason."""
+    """Returns notes, extras, outside_count, alignment_quality, cant_tell and cant_tell_reason.
+
+    `beat_s` is seconds per beat (the step 3 fit's, else from the target tempo). An unpaired played note
+    far before the first pair or after the last pair's end is outside the range: counted, never an Extra.
+    """
     partner = {e: played[p] for e, p in pairs}
     paired_played = {p for _, p in pairs}
     notes = [
         _note_result(note, grid["offset_s"] + note.onset_beats * grid["sec_per_beat"], partner.get(index))
         for index, note in enumerate(expected)
     ]
-    extras = [
-        _extra(take_id, note, _bar_at(bar_starts, (note["onset_s"] - grid["offset_s"]) / grid["sec_per_beat"]))
-        for index, note in enumerate(played)
-        if index not in paired_played and note["confidence"] >= config.CONFIDENCE_THRESHOLD
-    ]
+    window = _outside_window(expected, played, pairs, beat_s)
+    extras = []
+    outside_count = 0
+    for index, note in enumerate(played):
+        if index in paired_played:
+            continue
+        if window and not window[0] <= note["onset_s"] <= window[1]:
+            outside_count += 1
+        elif note["confidence"] >= config.CONFIDENCE_THRESHOLD:
+            beat = (note["onset_s"] - grid["offset_s"]) / grid["sec_per_beat"]
+            extras.append(_extra(take_id, note, _bar_at(bar_starts, beat)))
     ok_count = sum(1 for note in notes if note["status"] == config.STATUS_OK)
     quality = ok_count / len(expected) if expected else 0.0
     reason = cant_tell_reason(len(expected), len(pairs), quality)
     return {
         "notes": notes,
         "extras": extras,
+        "outside_count": outside_count,
         "alignment_quality": quality,
         "cant_tell": reason is not None,
         "cant_tell_reason": reason,

@@ -18,6 +18,8 @@ MIN_FIT_PAIRS = 3
 OK_TOLERANCE_SEMITONES = 0.5
 CONFIDENCE_THRESHOLD = 0.5
 CENTS_PER_SEMITONE = 100
+# An unpaired played note this many beats before the first pair, or after the last pair's end, is outside the range.
+OUTSIDE_MARGIN_BEATS = 1.0
 
 # "Can't tell" verdicts
 MIN_EXPECTED_NOTES = 3

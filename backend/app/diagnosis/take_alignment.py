@@ -23,7 +23,7 @@ def _check_inputs(played: list[dict], take: dict) -> None:
 def align_take(score: dict, played: list[dict], take: dict, transposition_semitones: int) -> dict:
     """Line a take's played notes up with the score's notes and mark each expected note.
 
-    Returns {notes, extras, grid, fit, alignment_quality, cant_tell, cant_tell_reason}; `fit` is
+    Returns {notes, extras, outside_count, grid, fit, alignment_quality, cant_tell, cant_tell_reason}; `fit` is
     {offset_s, sec_per_beat} or None. Raises DiagnosisInputError for unusable input.
     """
     _check_inputs(played, take)
@@ -39,6 +39,7 @@ def align_take(score: dict, played: list[dict], take: dict, transposition_semito
         take.get("downbeat_s"),
         take["tempo_bpm"],
     )
+    beat_s = alignment.fit.sec_per_beat if alignment.fit is not None else 60.0 / take["tempo_bpm"]
     marked = mark_alignment(
         take["take_id"],
         expected,
@@ -46,6 +47,7 @@ def align_take(score: dict, played: list[dict], take: dict, transposition_semito
         alignment.pairs,
         grid,
         bar_start_beats(score, take["bar_from"], take["bar_to"]),
+        beat_s,
     )
     fit = None
     if alignment.fit is not None:

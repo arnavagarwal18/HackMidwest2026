@@ -18,7 +18,7 @@ from tests.test_sessions import assert_error
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
 ANALYSIS_KEYS = {
     "status", "error", "form_status", "calibrated", "transposition", "alignment_quality", "cant_tell",
-    "cant_tell_reason", "tempo", "notes", "extras", "bars", "problems", "tier1", "form", "media_url",
+    "cant_tell_reason", "tempo", "notes", "extras", "outside_count", "bars", "problems", "tier1", "form", "media_url",
 }
 
 
@@ -254,3 +254,15 @@ def test_pipeline_keeps_the_no_score_failure(client, sessions_root, tmp_path):
     body = analysis(client, session_id, take_id).json()
     assert body["status"] == "failed"
     assert body["error"]["code"] == "no_score"
+
+
+def test_analysis_reports_outside_notes_and_defaults_to_zero_for_old_diagnoses(client, sessions_root):
+    trailing = [played_note(16 + n, 1.0 + (20 + n) * 0.5, 70 + n) for n in range(10)]
+    session_id, take_id = diagnosed_session(perfect_played(SCALE_MIDIS) + trailing)
+
+    body = analysis(client, session_id, take_id).json()
+
+    assert (body["outside_count"], body["extras"], body["problems"]) == (10, [], [])
+    old = {key: value for key, value in diagnosis.get(session_id, take_id).items() if key != "outside_count"}
+    update_take(session_id, take_id, diagnosis=old)
+    assert analysis(client, session_id, take_id).json()["outside_count"] == 0

@@ -5,7 +5,9 @@ import pytest
 from app.errors import AppError
 from app.diagnosis.errors import DiagnosisInputError
 from app.diagnosis.expected import build_expected_notes
+from app.diagnosis.rank import rank
 from app.diagnosis.take_alignment import align_take
+from app.diagnosis.timing import add_timing
 from diagnosis_samples import (
     SCALE_BARS,
     make_scale_score,
@@ -165,15 +167,16 @@ def test_metronome_grid_starts_at_the_downbeat_whatever_the_latency():
 
 def test_pass_two_rejects_pairs_far_from_the_fitted_time():
     # The last played note comes 3 beats later than it should: pass 2 won't pair it with the last
-    # expected note, so that one is missed and the late note is an Extra in the last bar.
+    # expected note, so that one is missed. It is also more than a beat past the last paired note's end,
+    # so it counts as outside the range, not as an Extra.
     played = perfect_played(SCALE_MIDIS)
     played[15] = played_note(15, 1.0 + 18 * 0.5, 60)
 
     result = align_take(make_scale_score(), played, make_take(), 0)
 
     assert result["notes"][15]["status"] == "missed"
-    assert [extra["played_i"] for extra in result["extras"]] == [15]
-    assert result["extras"][0]["bar"] == 4
+    assert result["extras"] == []
+    assert result["outside_count"] == 1
 
 
 def test_played_notes_are_lined_up_in_time_order():
@@ -259,3 +262,38 @@ def test_missing_played_field_raises_readable_error():
 def test_missing_take_field_raises_readable_error():
     with pytest.raises(DiagnosisInputError, match="take is missing"):
         align_take(make_scale_score(), [], {"take_id": "t1"}, 0)
+
+
+def two_bar_played_with_outside_notes() -> list[dict]:
+    """8 correct notes from 4.0 s (0.5 s a beat), 3 notes from 3 beats before them, 10 from 2 beats after the last ends."""
+    offset_s, beat_s = 4.0, 0.5
+    before = [(-3 + 0.5 * n, 70 + n) for n in range(3)]
+    on_grid = [(beat, midi) for beat, midi in enumerate(SCALE_MIDIS[:8])]
+    after = [(10 + 0.5 * n, 70 + n) for n in range(10)]
+    spec = sorted(before + on_grid + after)
+    return [played_note(i, offset_s + beat * beat_s, midi) for i, (beat, midi) in enumerate(spec)]
+
+
+def test_notes_far_outside_the_chosen_bars_are_counted_not_extras():
+    take = make_take(bar_to=2, downbeat_s=4.0)
+
+    result = align_take(make_scale_score(), two_bar_played_with_outside_notes(), take, 0)
+    timed = add_timing(result, two_bar_played_with_outside_notes(), take)
+
+    assert statuses(result) == ["ok"] * 8
+    assert result["extras"] == []
+    assert result["outside_count"] == 13
+    assert timed["error_rate"] == 0
+    assert [bar["extra"] for bar in timed["bars"]] == [0, 0]
+    problems = rank("t1", timed, [])["problems"]
+    assert [problem for problem in problems if problem["kind"] == "notes"] == []
+
+
+def test_a_single_unmatched_note_between_matched_notes_is_still_an_extra():
+    spec = [(0, 60), (1, 62), (2, 64), (2.5, 50), (3, 65), (4, 67), (5, 69), (6, 71), (7, 72)]
+    played = [played_note(i, 1.0 + beat * 0.5, midi) for i, (beat, midi) in enumerate(spec)]
+
+    result = align_take(make_scale_score(), played, make_take(bar_to=2), 0)
+
+    assert [extra["id"] for extra in result["extras"]] == ["x:t1:3"]
+    assert result["outside_count"] == 0
