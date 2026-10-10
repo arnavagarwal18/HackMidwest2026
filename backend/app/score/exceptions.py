@@ -7,3 +7,7 @@ class BadScoreFile(Exception):
 
 class NotConfirmed(Exception):
     """The session's score has not been confirmed by the user yet."""
+
+
+class BuiltinNotFound(Exception):
+    """No built-in piece has the requested piece_id."""

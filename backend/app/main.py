@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from . import store
 from .errors import register_error_handlers
+from .score.routes import router as score_router
 from .takes.routes import router as takes_router
 
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,7 @@ FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 app = FastAPI(title="Practice Coach")
 register_error_handlers(app)
 app.include_router(takes_router)
+app.include_router(score_router)
 
 
 class CreateSession(BaseModel):
