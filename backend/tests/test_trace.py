@@ -6,9 +6,11 @@ from app import store
 from app.agents import ai_run, run
 from tests.feedback_helpers import add_diagnosed_take
 from tests.fake_model import ScriptedModel, text_turn, tool_turn
+from tests.planner_helpers import TOO_FAST, run_planner, submit_plan
 from tests.test_checker_feedback import sentence
 from tests.test_coach_hook import submit, wrong_sentence
-from tests.test_run_ai import BRIEF, OVERVIEW
+from tests.test_planner_hook import CLEAN_BAR_3, CLEAN_WHOLE
+from tests.test_run_ai import ACCESS_DENIED, BRIEF, OVERVIEW
 
 
 def run_with(monkeypatch, fixture_data, *script, ai=True):
@@ -116,3 +118,23 @@ def test_an_unreadable_trace_file_is_a_logged_storage_error(client, sessions_roo
     response = client.get(f"/sessions/{session_id}/feedback/{feedback_id}/trace")
     assert response.status_code == 500 and response.json()["error"]["code"] == "storage_error"
     assert "trace" in caplog.text
+
+
+def test_the_planner_traces_its_model_and_tool_calls_with_the_checker_verdicts(fixture_data, check_ctx):
+    *_, trace = run_planner(fixture_data, check_ctx, [submit_plan(TOO_FAST, CLEAN_WHOLE), submit_plan(CLEAN_BAR_3, CLEAN_WHOLE)])
+    assert kinds(trace.events) == [
+        ("planner", "model_start", "model"), ("planner", "model_end", "model"),
+        ("planner", "tool_start", "submit_plan"), ("checker", "check_fail", "submit_plan"), ("planner", "tool_end", "submit_plan"),
+        ("planner", "model_start", "model"), ("planner", "model_end", "model"),
+        ("planner", "tool_start", "submit_plan"), ("checker", "check_pass", "submit_plan"), ("planner", "tool_end", "submit_plan"),
+    ]
+
+
+def test_a_planner_run_inside_a_feedback_run_has_planner_events_in_the_trace_file(sessions_root, fixture_data, monkeypatch):
+    planner_turn = tool_turn("planner", {"brief": "Plan a slower retake of take t1."})
+    monkeypatch.setattr(run, "ai_enabled", lambda: True)
+    monkeypatch.setattr(ai_run, "new_model", lambda: ScriptedModel([OVERVIEW, planner_turn, ACCESS_DENIED, text_turn()]))
+    session_id, take_id = add_diagnosed_take(fixture_data, cant_tell=True)
+    events = events_of(session_id, run.run_feedback(session_id, take_id))
+    assert ("orchestrator", "tool_start", "planner") in kinds(events)
+    assert ("planner", "model_start", "model") in kinds(events) and ("planner", "model_error", "model") in kinds(events)

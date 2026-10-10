@@ -12,7 +12,7 @@ def test_a_valid_plan_is_accepted_and_stored(fixture_data, check_ctx):
     assert verdicts(agent) == [{"accepted": True}]
     assert holder.plan == {"exercises": [CLEAN_BAR_3, CLEAN_WHOLE]}
     assert (holder.planner_tries, holder.plan_dropped, model.calls) == (1, [], 1)  # the agent stopped without another model turn
-    assert [(e["agent"], e["event"], e["name"]) for e in trace.events] == [("checker", "check_pass", "submit_plan")]
+    assert [(e["agent"], e["event"], e["name"]) for e in trace.events if e["agent"] == "checker"] == [("checker", "check_pass", "submit_plan")]
 
 
 def test_a_start_too_fast_is_rejected_with_the_reason_then_the_fixed_plan_is_accepted(fixture_data, check_ctx):
@@ -42,7 +42,7 @@ def test_fewer_than_two_exercises_left_after_dropping_is_refused_and_nothing_is_
     final = verdicts(agent)[1]
     assert (final["accepted"], final["final"]) == (False, True)
     assert (holder.plan, holder.plan_dropped, holder.planner_tries) == (None, [], 2)
-    assert trace.events[-1]["event"] == "check_fail"
+    assert [e["event"] for e in trace.events if e["agent"] == "checker"][-1] == "check_fail"
 
 
 def test_a_malformed_plan_is_refused_with_the_schema_error(fixture_data, check_ctx):
