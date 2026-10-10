@@ -31,3 +31,23 @@ There are none on 3250d86, so there are no played/expected pairs to classify as 
 ## Run 4: why it is weak
 Inference from reading the file, not verified by a fix: the owner's file is a 5-bar arrangement (written E D C | E D C | C C C C | D D D D | E D C, quarters), while the video plays a 4-bar version (bar 3 is eight eighths, bar 4 is D C Bb). The score and the performance have different note counts, so alignment drops, the played tempo reads 114 vs 83, and the notes are wrong or missed (bar 1: expected D4 heard C4; bar 3 A#3 missed; bar 4 C4 heard C#4; bar 5 D4 missed). This is probably a mismatch between file and video, not a bug.
 Runs 3 and 4 `form_status: failed` (same video): the log shows only "Tracked 21 of 134 frames"; I did not find the reason.
+
+## Ode to Joy (lipslur.com, 2026-10-10, main 693bd32)
+Source (not committed): `Trumpet 11 - Beethoven's 9th - Ode to Joy - lipslur.com (1080p).mp4` (43.5 s). Score `testdata/ode_to_joy/score.musicxml` (written from the app's own transcription of the audio; see `testdata/ode_to_joy/README.md`). Server `AI_ENABLED=false`; feedback mode `fallback` (reason `disabled`).
+Command: `python backend/scripts/e2e_real.py testdata/ode_to_joy/score.musicxml "<Downloads>\Hacksmidwest Training Data\Trumpet 11 - Beethoven's 9th - Ode to Joy - lipslur.com (1080p).mp4" --bars 1-16 --bpm 100` (ran twice; the same numbers both times).
+
+| Measure | Value |
+|---|---|
+| Alignment quality | 0.774 (target >= 0.8: not met) |
+| Notes | 62 expected: 48 ok, 0 wrong, 14 missed |
+| Extras / outside | 0 / 0 |
+| Tempo | played 100.06 BPM vs score 100 (`clean_bpm` 70.04, exactly 70% of played; I did not check what it is for) |
+| Tuning offset | none reported: `calibrated: false`, no offset field in the analysis. Per-note `cents_off` is -8 to +7 (the player is in tune, so nothing to correct) |
+| Form analysis | ran, `form_status: done`; tracks returned (`tracking_quality` is null) |
+| Transposition | -2 semitones, source `file` |
+
+Tier-1 sentences: "Bars 8-16, 0:19: right elbow pinned to the body, at the same time as notes in bar 8." (bar 8) | "Bars 4-7, 0:11: right elbow pinned to the body, at the same time as notes in bar 4." (bar 4) | "Bars 1-9: 10 missed." (bar 1). Other problems: "Bars 13-16: 4 missed" and bar 8 rushing (5.9%), both tier 2.
+
+False "wrong" notes: none (0 wrong; every heard pitch is in tune and the timing errors are under 60 ms).
+False "missed" notes (all 14): each is the second note of a same-pitch pair (bars 1 n2, 2 n1, 3 n2, 4 n1 and n3, 5 n2, 6 n1, 7 n2, 8 n3, 9 n2, 13 n2, 14 n1, 15 n2, 16 n3: B B, D D, G G, A A, and the tied-style B. then B). The player slurs, so the transcription gives one long note (e.g. 2.23-3.26 s for B B), and the scorer then reports the second note as missed. Guess (not verified): the transcriber only splits a repeated pitch when the level dips 3 dB (`ONSET_DIP_DB`), and this player's soft tonguing doesn't dip that much. This is also why alignment is 0.77 and why the "10 missed" tier-1 sentence is mostly false.
+Form flags (not verified): "right elbow pinned to the body" covers bars 4-16 in two long spans, which looks like a camera-angle or pose-tracking artefact rather than a real fault; I did not look at the video frames.

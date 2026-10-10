@@ -1,0 +1,4 @@
+Source (not committed): `Trumpet 11 - Beethoven's 9th - Ode to Joy - lipslur.com (1080p).mp4`, 43.5 s, has audio. Take it from `C:\Users\Xavier Sorto\Downloads\Hacksmidwest Training Data\`.
+Found with the app's own transcriber (concert pitch): Ode to Joy in G major, 4/4, 16 bars, quarter = 100 (0.60 s per beat), no repeats and no audible count-in (digital silence for the first ~2.2 s, first note at 2.23 s, last note held to about 40.6 s).
+Form: A (bars 1-4) A' (bars 5-8, ends A. G G instead of B. A A) B (bars 9-12, A A B G | A B8 C8 B G | A B8 C8 B A | G A D) A' (bars 13-16, as 5-8). Same-pitch neighbours (B B, D D, G G ...) sound as one long note.
+`score.musicxml` is Trumpet in Bb (written A major, 3 sharps, `transpose -2`), written pitch = concert + 2 semitones (concert B4 C5 D5 = written C#5 D5 E5), quarter = 100.
