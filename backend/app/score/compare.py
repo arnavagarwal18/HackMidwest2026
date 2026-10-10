@@ -13,7 +13,7 @@ Choices made here:
 - doubtful_bars come in bar order.
 """
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from app.score.model import Score
 from app.score.note_text import homr_bar_keys, read_note_key, write_out
@@ -30,6 +30,7 @@ class DoubtfulBar(TypedDict):
     bar: int
     homr_text: str
     reader_text: str | None
+    referee_note: NotRequired[str | None]  # set by the referee: why it did not settle this bar
 
 
 @dataclass

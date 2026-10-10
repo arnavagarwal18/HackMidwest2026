@@ -38,6 +38,7 @@ class Score:
     written_transpose_semitones: int | None
     bars: list[Bar]
     warnings: list[str] = field(default_factory=list)
+    key_fifths: int | None = None  # sharps (positive) or flats (negative) in the key signature; None = unknown
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -66,6 +67,7 @@ class Score:
                     for b in data["bars"]
                 ],
                 warnings=list(data["warnings"]),
+                key_fifths=data.get("key_fifths"),
             )
         except (KeyError, TypeError, IndexError, ValueError) as exc:
             raise ValueError(f"Invalid score data: {exc!r}") from exc

@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from music21 import converter, instrument, meter, stream, tempo
+from music21 import converter, instrument, key, meter, stream, tempo
 
 from app.score.bars import RawEvent, build_bars, round_to_16th, synthesize_spans
 from app.score.exceptions import BadScoreFile, NoNotes
@@ -54,6 +54,7 @@ def parse_score_file(path: str | Path) -> Score:
         written_transpose_semitones=_written_transpose(part),
         bars=build_bars(events, spans, fill_rests=is_midi),
         warnings=warnings,
+        key_fifths=_first_key_fifths(parsed),
     )
 
 
@@ -109,6 +110,12 @@ def _first_time_signature(parsed: stream.Stream) -> tuple[int, int]:
     for signature in parsed.flatten().getElementsByClass(meter.TimeSignature):
         return signature.numerator, signature.denominator
     return DEFAULT_TIME_SIGNATURE
+
+
+def _first_key_fifths(parsed: stream.Stream) -> int | None:
+    for signature in parsed.flatten().getElementsByClass(key.KeySignature):
+        return int(signature.sharps)
+    return None
 
 
 def _first_tempo(parsed: stream.Stream) -> float:

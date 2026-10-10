@@ -105,3 +105,11 @@ def test_garbage_midi_raises_bad_score_file(tmp_path):
     path.write_bytes(b"not a midi file")
     with pytest.raises(BadScoreFile):
         parse_score_file(path)
+
+
+def test_key_signature_is_read_as_fifths(tmp_path):
+    source = (FIXTURES / "trumpet_transpose.musicxml").read_text(encoding="utf-8")
+    assert "<fifths>" in source
+    keyed = tmp_path / "keyed.musicxml"
+    keyed.write_text(source.replace("<fifths>0</fifths>", "<fifths>2</fifths>"), encoding="utf-8")
+    assert parse_score_file(keyed).key_fifths == 2
