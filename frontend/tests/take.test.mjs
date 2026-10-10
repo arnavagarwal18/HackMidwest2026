@@ -2,12 +2,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-globalThis.window = { location: { search: '', hash: '' }, localStorage: { getItem: () => null, setItem() {}, removeItem() {} } };
+import { FakeNode, installFakeBrowser } from './fake_env.mjs';
+
+const env = installFakeBrowser({ search: '' }); // not mock mode, so tests below can stub fetch
+env.restore(); // real timers: the setup tests below measure real intervals
+const makeSvgNode = document.createElementNS;
+document.createElementNS = (ns, tag) => Object.assign(makeSvgNode(ns, tag), { dataset: {} }); // the camera guide sets data-attributes
 
 const { initialSetup, validateSetup, takeFields, kindOfFile } = await import('../js/take/setup.js');
 const { describeCameraCheck, IN_FRAME_TEXT } = await import('../js/take/camera_status.js');
 const { createCameraChecker, CHECK_INTERVAL_MS } = await import('../js/take/camera_checker.js');
 const { uploadTake } = await import('../js/api.js');
+const { state } = await import('../js/state.js');
+const { render } = await import('../js/screens/take.js');
 
 const SCORE = { bars: 16, tempo_bpm: 96, time_signature: [3, 4] };
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -162,4 +169,153 @@ test('a 422 bad_request throws the server message so the screen can show it', as
     uploadTake('sess_1', file, takeFields({ ...initialSetup(SCORE), bar_to: 40 }, { kind: 'mic', source: 'uploaded' })),
     (err) => err.name === 'ApiError' && err.code === 'bad_request' && err.status === 422 && /16 bars/.test(err.message),
   );
+});
+
+// ---- The screen: leaving it while the recorder starts, while a stop or an upload is running ----
+
+// Counts the running setInterval (metronome) and long setTimeout (180 s cap) timers, so a test can see they were stopped.
+function trackTimers() {
+  const { setInterval: realSetInterval, clearInterval: realClearInterval, setTimeout: realSetTimeout, clearTimeout: realClearTimeout } = globalThis;
+  const running = new Set();
+  globalThis.setInterval = (...args) => { const id = realSetInterval(...args); running.add(id); return id; };
+  globalThis.clearInterval = (id) => { running.delete(id); realClearInterval(id); };
+  globalThis.clearTimeout = (id) => { running.delete(id); realClearTimeout(id); };
+  globalThis.setTimeout = (fn, ms, ...args) => {
+    const id = realSetTimeout(fn, ms, ...args);
+    if (ms >= 100_000) running.add(id);
+    return id;
+  };
+  return {
+    get running() { return running.size; },
+    restore() {
+      running.forEach((id) => { realClearInterval(id); realClearTimeout(id); });
+      Object.assign(globalThis, { setInterval: realSetInterval, clearInterval: realClearInterval, setTimeout: realSetTimeout, clearTimeout: realClearTimeout });
+    },
+  };
+}
+
+// Makes every MediaRecorder wait for release() before it reports that it started.
+function holdRecorderStart() {
+  const Real = globalThis.MediaRecorder;
+  const recorders = [];
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  globalThis.MediaRecorder = class extends Real {
+    constructor(...args) { super(...args); recorders.push(this); }
+    start() { this.state = 'recording'; gate.then(() => this.emit('start')); }
+  };
+  return { recorders, release, restore: () => { globalThis.MediaRecorder = Real; } };
+}
+
+function recordFetchCalls(answer) {
+  const calls = [];
+  globalThis.fetch = (url, options) => new Promise((resolve) => calls.push({ url, options, answer: () => resolve({ ok: true, status: 202, json: async () => answer }) }));
+  return calls;
+}
+
+async function openTakeScreen() {
+  Object.assign(state, { session_id: 'sess_1', instrument: 'trumpet', score: { status: 'confirmed', ...SCORE }, current_take_id: null });
+  window.location.hash = '#/take';
+  env.banner.hidden = true;
+  const root = new FakeNode('main');
+  await render(root);
+  root.find((node) => node.tagName === 'input' && node.attrs.type === 'number').forEach((input) => { input.valueAsNumber = Number(input.value); });
+  return root;
+}
+
+async function untilTrue(condition) {
+  for (let i = 0; i < 100 && !condition(); i += 1) await wait(2);
+  assert.ok(condition(), 'timed out waiting');
+}
+
+// Runs a test body with fake timers tracking, silenced console.error/warn (kept in `logged`) and a clean screen afterwards.
+function screenTest(name, body) {
+  test(name, async () => {
+    const timers = trackTimers();
+    const logged = [];
+    const real = { error: console.error, warn: console.warn, info: console.info };
+    console.error = (...args) => logged.push(args);
+    console.warn = (...args) => logged.push(args);
+    console.info = (...args) => logged.push(args);
+    try {
+      await body({ timers, logged });
+    } finally {
+      env.leave();
+      Object.assign(console, real);
+      timers.restore();
+    }
+  });
+}
+
+screenTest('leaving while the recorder starts stops the recorder and the metronome', async ({ timers }) => {
+  const held = holdRecorderStart();
+  try {
+    const root = await openTakeScreen();
+    const clicked = root.button('Record').click();
+    await untilTrue(() => held.recorders.length === 1);
+    env.leave();
+    held.release();
+    await clicked;
+    assert.equal(held.recorders[0].state, 'inactive', 'the recorder must be stopped');
+    await untilTrue(() => timers.running === 0); // the metronome and the 180 s cap are cleared once the stop finishes
+    assert.equal(env.banner.hidden, true, 'nothing is shown on the screen the learner moved to');
+  } finally {
+    held.restore();
+  }
+});
+
+screenTest('a failing level meter stops the recorder and tells the learner to try again', async ({ timers, logged }) => {
+  const analyserOf = window.AudioContext.prototype.createAnalyser;
+  const quiet = console.error;
+  window.AudioContext.prototype.createAnalyser = () => { throw new Error('no analyser'); };
+  console.error = (...args) => { // a console that throws makes startMeter itself throw
+    logged.push(args);
+    if (String(args[0]).includes('level meter')) throw new Error('console unavailable');
+  };
+  try {
+    const root = await openTakeScreen();
+    const recorders = [];
+    const Real = globalThis.MediaRecorder;
+    globalThis.MediaRecorder = class extends Real { constructor(...a) { super(...a); recorders.push(this); } };
+    await root.button('Record').click();
+    globalThis.MediaRecorder = Real;
+    assert.equal(recorders[0].state, 'inactive', 'the recorder must be stopped');
+    await untilTrue(() => timers.running === 0); // the metronome and the 180 s cap are cleared once the stop finishes
+    assert.equal(env.banner.hidden, false);
+    assert.match(env.banner.textContent, /could not be started.*Press Record to try again/);
+    assert.equal(root.button('Record').hidden, false, 'the learner can press Record again');
+    assert.equal(root.button('Stop').hidden, true);
+  } finally {
+    window.AudioContext.prototype.createAnalyser = analyserOf;
+    console.error = quiet;
+  }
+});
+
+screenTest('an upload that finishes after leaving does not change the page', async ({ logged }) => {
+  const fetches = recordFetchCalls({ take_id: 'take_9', status: 'processing' });
+  const root = await openTakeScreen();
+  const fileInput = root.find((node) => node.tagName === 'input' && node.attrs.type === 'file')[0];
+  fileInput.files = [new File([new Uint8Array([1])], 'take.wav', { type: 'audio/wav' })];
+  const uploading = fileInput.listeners.change[0]();
+  await untilTrue(() => fetches.length === 1);
+  window.location.hash = '#/progress'; // the learner moved on while it uploaded
+  env.leave();
+  fetches[0].answer();
+  await uploading;
+  assert.equal(window.location.hash, '#/progress');
+  assert.equal(state.current_take_id, null);
+  assert.ok(logged.some((args) => /after leaving/.test(String(args[0]))), 'the late finish is logged');
+});
+
+screenTest('leaving while a stop is finishing does not fail on a closed stream or send the take', async () => {
+  const fetches = recordFetchCalls({ take_id: 'take_9' });
+  const root = await openTakeScreen();
+  await root.button('Record').click();
+  const stopping = root.button('Stop').click();
+  window.location.hash = '#/progress';
+  env.leave(); // closes the stream, so the screen has no current stream when the recording arrives
+  await stopping;
+  assert.equal(env.banner.hidden, true, 'no TypeError banner on the next screen');
+  assert.equal(fetches.length, 0, 'a take recorded after leaving is not sent');
+  assert.equal(window.location.hash, '#/progress');
 });

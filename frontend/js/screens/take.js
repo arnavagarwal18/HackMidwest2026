@@ -11,6 +11,8 @@ import { createTakeForm } from '../take/take_form.js';
 
 const STYLE_HREF = 'css/take.css';
 const RECORD_LIMIT_S = 180;
+const NO_METER = { stop() {} };
+const START_FAILED_TEXT = 'The recording could not be started, so it was stopped. Press Record to try again.';
 
 // After a reload only the score status is known, so the bar count and tempo come from the score itself.
 async function loadScoreSummary() {
@@ -120,19 +122,41 @@ export async function render(root, _params, isCurrent = () => true) {
     }
     camera.pauseChecks();
     setMode('sending'); // Stop only works once the recorder has started
+    let handle = null;
     try {
-      const handle = await recordTake({
+      handle = await recordTake({
         stream: current.stream, tempoBpm: setup.tempo_bpm, countInBeats: setup.count_in_beats, metronomeOn: setup.metronome_on,
         beatsPerBar: score.time_signature[0], maxSeconds: RECORD_LIMIT_S, onAutoStop: finishAutoStop,
       });
-      recording = { handle, meter: await startMeter() };
+      if (disposed) { // left while the recorder started: nobody is left to press Stop
+        stopHandle(handle, 'Stopping the recording that started after leaving');
+        return;
+      }
+      recording = { handle, kind: current.hasVideo ? 'video' : 'mic', meter: NO_METER }; // set first, so leaving during the meter start stops it
+      const meter = await startMeter();
+      if (disposed) {
+        meter.stop();
+        return;
+      }
+      recording.meter = meter;
       status.textContent = setup.count_in_beats ? 'Counting in, then recording. Press Stop when you finish.' : 'Recording. Press Stop when you finish.';
       setMode('recording');
     } catch (err) {
+      if (disposed) return console.error('Starting the recording failed after leaving the screen:', err);
+      if (handle) { // the recorder and metronome are running but the screen could not go on: stop them
+        stopHandle(handle, 'Stopping the recording that failed to start');
+        endRecording();
+        console.error('The recording failed to start:', err);
+        err = new Error(START_FAILED_TEXT);
+      }
       reportError(err);
       setMode('idle');
       if (current && current.hasVideo) camera.attach(current.stream);
     }
+  }
+
+  function stopHandle(handle, what) {
+    handle.stop().catch((err) => console.error(`${what} failed:`, err));
   }
 
   // The level meter is only a help: if it fails the take goes on without it.
@@ -154,10 +178,12 @@ export async function render(root, _params, isCurrent = () => true) {
   async function stopRecording() {
     setMode('sending');
     try {
+      const kind = recording.kind;
       const result = await recording.handle.stop();
-      if (!result.autoStopped) await finishRecording(result); // an auto-stop is finished by finishAutoStop
+      if (!result.autoStopped) await finishRecording(result, kind); // an auto-stop is finished by finishAutoStop
     } catch (err) {
       endRecording();
+      if (disposed) return console.error('Stopping the recording failed after leaving the screen:', err);
       reportError(err);
       setMode('idle');
     }
@@ -173,11 +199,11 @@ export async function render(root, _params, isCurrent = () => true) {
     }
     setMode('sending');
     showNotice(result.message);
-    await finishRecording(result);
+    await finishRecording(result, recording.kind);
   }
 
-  async function finishRecording(result) {
-    const kind = current.hasVideo ? 'video' : 'mic';
+  async function finishRecording(result, kind) {
+    if (disposed) return console.warn('The take was recorded after leaving the screen, so it was not sent.');
     endRecording();
     closeStream(); // the take is complete; the camera and mic are free again
     unsent = { result, kind };
@@ -191,11 +217,19 @@ export async function render(root, _params, isCurrent = () => true) {
     setMode('sending');
     try {
       const answer = await uploadTake(state.session_id, file, takeFields(setup, { kind, source, downbeatS }));
+      if (disposed) { // the learner left while it uploaded: do not pull them back to the results
+        console.warn(`Take ${answer.take_id} finished uploading after leaving the take screen.`);
+        return true;
+      }
       state.current_take_id = answer.take_id;
       state.take_setup = { ...setup };
       window.location.hash = `#/results/${encodeURIComponent(answer.take_id)}`;
       return true;
     } catch (err) {
+      if (disposed) {
+        console.error('The upload failed after leaving the take screen:', err);
+        return false;
+      }
       reportError(err); // the inputs and the recording stay as they are
       return false;
     }
@@ -225,7 +259,7 @@ export async function render(root, _params, isCurrent = () => true) {
   function dispose() {
     disposed = true;
     opening += 1;
-    if (recording) recording.handle.stop().catch((err) => console.error('Stopping the recording on leaving failed:', err));
+    if (recording) stopHandle(recording.handle, 'Stopping the recording on leaving');
     endRecording();
     closeStream();
   }
