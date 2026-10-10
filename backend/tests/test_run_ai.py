@@ -54,12 +54,12 @@ def test_a_dropped_sentence_is_listed_and_the_rest_shown(sessions_root, fixture_
     assert (feedback["check"]["coach_tries"], feedback["check"]["sentences_dropped"]) == (2, 1)
 
 
-def test_when_the_checker_drops_every_sentence_the_mode_stays_ai(sessions_root, fixture_data, monkeypatch):
+def test_when_the_checker_drops_every_sentence_the_feedback_falls_back_with_checker_rejected(sessions_root, fixture_data, monkeypatch):
     bad = submit(wrong_sentence())
     use_script(monkeypatch, OVERVIEW, BRIEF, bad, bad, text_turn())
     feedback, _ = feedback_of(fixture_data)
-    assert (feedback["mode"], feedback["sentences"]) == ("ai", [])
-    assert len(feedback["dropped"]) == 1
+    assert (feedback["mode"], feedback["fallback_reason"]) == ("fallback", "checker_rejected")
+    assert [s["mode"] for s in feedback["sentences"]] == ["fallback", "fallback"] and feedback["dropped"] == []
 
 
 def test_a_coach_that_never_gets_accepted_falls_back_with_checker_rejected(sessions_root, fixture_data, monkeypatch):

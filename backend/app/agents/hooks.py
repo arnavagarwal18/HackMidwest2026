@@ -50,7 +50,7 @@ class CheckerHook(HookProvider):
 
     A rejected first try lets the agent fix its output. On the second try, items that still fail are dropped
     and the rest accepted ({ accepted: true, dropped: n }); output that can't be repaired by dropping
-    (a bad problem list, a malformed submission) is refused for good and nothing is stored.
+    (a bad problem list, a malformed submission, every item failing) is refused for good and nothing is stored.
     """
 
     def __init__(self, spec: SubmitSpec, ctx: CheckContext, holder: RunHolder, trace: Optional[Trace] = None) -> None:
@@ -97,15 +97,17 @@ class CheckerHook(HookProvider):
         return {"ok": False, "problems": [{"index": None, "claim": None, "reason": reason}], "claims_checked": 0, "claims_failed": 0}
 
     def _drop_failing(self, output: Any, problems: list[dict]) -> Optional[list[dict]]:
-        """Accept `output` without the items that fail and return them as [{ text, reasons }]; None when dropping can't fix it."""
+        """Accept `output` without the items that fail and return them as [{ text, reasons }]; None when dropping can't fix it, which includes nothing being left."""
         items = output.get(self.spec.items_key) if isinstance(output, dict) else None
         if not isinstance(items, list) or any(not isinstance(p["index"], int) or p["index"] >= len(items) for p in problems):
             return None
         reasons: dict[int, list[str]] = {}
         for problem in problems:
             reasons.setdefault(problem["index"], []).append(problem["reason"])
-        dropped = [{"text": _item_text(items[i]), "reasons": reasons[i]} for i in sorted(reasons)]
         kept = [item for i, item in enumerate(items) if i not in reasons]
+        if not kept:
+            return None
+        dropped = [{"text": _item_text(items[i]), "reasons": reasons[i]} for i in sorted(reasons)]
         self.spec.accept(self.holder, {**output, self.spec.items_key: kept}, dropped)
         self._emit("check_fail", f"dropped {len(dropped)} items after try {MAX_TRIES}")
         return dropped
