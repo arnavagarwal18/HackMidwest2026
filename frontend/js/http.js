@@ -1,5 +1,5 @@
 // Transport layer: one fetch wrapper, error mapping and the server-down banner. Screens use api.js, not this.
-import { showUnreachable, clearBanner } from './banner.js';
+import { waitInQueue } from './retry_queue.js';
 import { API_BASE, MOCK_MODE } from './config.js';
 import { mockResponse } from './mock.js';
 
@@ -62,20 +62,18 @@ async function attempt(method, path, body) {
   return data;
 }
 
-// Server down: show the banner and wait; each Retry press repeats this request once.
+// Server down: the request joins the retry queue; each Retry press repeats it once (see retry_queue.js).
 function waitForRetry(method, path, body) {
   return new Promise((resolve, reject) => {
-    showUnreachable(async () => {
+    waitInQueue(async () => {
       try {
-        const data = await attempt(method, path, body);
-        clearBanner();
-        resolve(data);
+        resolve(await attempt(method, path, body));
       } catch (err) {
-        if (err instanceof NetworkError) return; // banner stays; user can press Retry again
-        clearBanner();
+        if (err instanceof NetworkError) return false; // banner stays; user can press Retry again
         reject(err);
       }
-    });
+      return true;
+    }, reject);
   });
 }
 
