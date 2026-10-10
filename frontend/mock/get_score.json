@@ -1,0 +1,109 @@
+{
+  "title": "Mock piece",
+  "instrument": "violin",
+  "tempo_bpm": 96,
+  "time_signature": [
+    4,
+    4
+  ],
+  "written_transpose_semitones": null,
+  "bars": [
+    {
+      "bar": 1,
+      "start_beat": 0,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 2,
+      "start_beat": 4,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 3,
+      "start_beat": 8,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 4,
+      "start_beat": 12,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 5,
+      "start_beat": 16,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 6,
+      "start_beat": 20,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 7,
+      "start_beat": 24,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 8,
+      "start_beat": 28,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 9,
+      "start_beat": 32,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 10,
+      "start_beat": 36,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 11,
+      "start_beat": 40,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 12,
+      "start_beat": 44,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 13,
+      "start_beat": 48,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 14,
+      "start_beat": 52,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 15,
+      "start_beat": 56,
+      "beats": 4,
+      "notes": []
+    },
+    {
+      "bar": 16,
+      "start_beat": 60,
+      "beats": 4,
+      "notes": []
+    }
+  ],
+  "warnings": []
+}

@@ -16,7 +16,7 @@ function freshState() {
       bar_to: null,
       tempo_bpm: null,
       kind: null,
-      count_in_beats: 4,
+      count_in_beats: null, // null until a take was sent: the take screen then defaults to one bar
       metronome_on: false,
     },
     current_take_id: null,

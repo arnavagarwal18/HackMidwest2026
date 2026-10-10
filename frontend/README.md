@@ -48,6 +48,7 @@ Open `http://127.0.0.1:8000/?mock=1`. No request reaches a real route: `mock.js`
 | `GET .../score/status` | 2 x `get_score_status_processing` | `get_score_status` | `POST .../score/photo` |
 | `GET .../takes/{take}/analysis` | 2 x `get_analysis_processing` | `get_analysis` | `POST .../takes` |
 | `GET .../exercises/{ex}/reps/{rep}` | 1 x `get_rep_processing` | `get_rep` | `POST .../exercises/{ex}/reps` |
+| `POST .../camera-check` | 3 x `post_camera_check` (not in frame) | `post_camera_check_ok` | never |
 
 Mock mode stores its session id under a separate localStorage key. In mock mode the ids `sess_gone` (answers
 `session_not_found`) and `sess_unconfirmed` (answers `score_status: none`) let you try the reload paths. The mock
@@ -116,3 +117,27 @@ Mock takes for trying each state (use them as the take id): `take_1` (video), `t
 
 Tests: `node frontend/tests/results.test.mjs` (Node 22+, Chrome). It runs one small headless Chrome (low-memory flags) and
 stops it when done.
+
+## Take setup (`#/take`)
+
+`js/screens/take.js` joins the pieces in `js/take/`:
+
+| File | Job |
+| --- | --- |
+| `setup.js` | Defaults (bars 1..N, score tempo, one bar of count-in; a saved `state.take_setup` wins field by field), `validateSetup`, `takeFields` (the POST `/takes` text fields; no `downbeat_s` for an uploaded file). |
+| `take_form.js` | The form: bar from/to, tempo (30-240), count-in (0-8), mic or video, metronome (with the headphones note). |
+| `camera_panel.js` | Live preview + guide outline + badge; owns the checker. `attach(stream)` / `pauseChecks()` / `detach()`. |
+| `camera_checker.js` | One `camera-check` about every second (never overlapping), stops on `stop()` or on the first failure. |
+| `camera_status.js` | Answer -> badge text (`In frame`, `Move back: right elbow not in view`, too small, too dark). |
+| `camera_guide.js` | The SVG outline per instrument (violin, trumpet). `CAMERA_POSITION = 'front'`: the front-vs-45-degrees question is settled by editing this one file. |
+| `frame_capture.js` | One 640 px wide JPEG from the `<video>`. |
+
+Flow: Record -> `recordTake` with the setup -> Stop (or the 180 s cap, with a notice) -> `POST /takes` -> save `state.current_take_id` and
+`state.take_setup` -> `#/results/{take_id}`. A refused upload (for example 422 `bad_request`) shows the server's message in the red banner,
+keeps the inputs and the recording, and offers "Send this take again" (the inputs can be corrected first). A server that is down shows the
+Retry banner, which keeps the recording. A blocked mic or camera shows `renderMediaError` with an upload option. Camera checks stop while
+recording and on leaving the screen; a failed check (for example 503 `form_unavailable`) hides the badge and leaves a small note, and recording
+stays allowed.
+
+After a reload `state.score.bars` is unknown, so the screen reads `GET /sessions/{id}/score?format=json` (`api.getScore`).
+Tests: `node --test frontend/tests/take.test.mjs` (logic only; no browser).

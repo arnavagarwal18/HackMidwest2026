@@ -23,6 +23,9 @@ export const uploadScoreFile = (id, file) => postForm(`${sess(id)}/score/file`, 
 export const chooseBuiltinScore = (id, pieceId) => postJson(`${sess(id)}/score/file`, { builtin: pieceId });
 export const confirmScore = (id) => postJson(`${sess(id)}/score/confirm`);
 
+// The score as JSON: { title, tempo_bpm, time_signature, bars: [...] }. Used to learn the bar count after a reload.
+export const getScore = (id) => get(`${sess(id)}/score?format=json`);
+
 // ---- Calibration (LLD-2) ----
 export const getReferenceNotes = (instrument) => get(withInstrument('/reference-notes', instrument));
 // files: { ref_0, ref_1, ref_2, click, inst_0?, inst_1?, inst_2? }; a 422 calibration_failed has err.details.notes.
