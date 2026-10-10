@@ -12,9 +12,3 @@ librosa==1.0.0
 numpy==2.5.4
 soundfile==0.14.0
 imageio-ffmpeg==0.6.0
-
-# transcription (TASK-4)
-librosa==1.0.0
-numpy==2.5.4
-soundfile==0.14.0
-imageio-ffmpeg==0.6.0

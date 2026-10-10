@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass
 import librosa
 import numpy as np
 
+from app.errors import AppError
+
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
@@ -29,22 +31,26 @@ ONSET_LOOKBACK_FRAMES = 10
 EDGE_LEVEL_DB = 3.0
 
 
-class TranscribeError(Exception):
-    """Base for transcription failures; `code` is the stable error code for callers."""
+class TranscribeError(AppError):
+    """Base for transcription failures (HTTP 422, with a stable error code for callers)."""
 
-    code = "transcribe_failed"
+    def __init__(self, code: str, message: str):
+        super().__init__(422, code, message)
 
 
 class NoNotesHeard(TranscribeError):
-    code = "no_notes_heard"
+    def __init__(self, message: str):
+        super().__init__("no_notes_heard", message)
 
 
 class UnknownInstrument(TranscribeError):
-    code = "unknown_instrument"
+    def __init__(self, message: str):
+        super().__init__("unknown_instrument", message)
 
 
 class AudioUnreadable(TranscribeError):
-    code = "audio_unreadable"
+    def __init__(self, message: str):
+        super().__init__("audio_unreadable", message)
 
 
 @dataclass
