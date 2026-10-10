@@ -1,8 +1,9 @@
-"""Run a real sheet photo and a real video take through a running server, timing every step.
+"""Run a real sheet photo (or a MusicXML score) and a real video take through a running server, timing every step.
 
     python scripts/e2e_real.py ../testdata/trumpet_video1_sheet.webp ../testdata/trumpet_video1.mp4 [--bars 1-8] [--bpm 80]
+    python scripts/e2e_real.py ../testdata/hot_cross_buns/score.musicxml take.mp4 [--bars 1-4] [--bpm 100]
 
-Follows the browser's route sequence: session, photo scan, confirm, video take, analysis, feedback, tracks,
+Follows the browser's route sequence: session, photo scan (a .xml/.musicxml/.mxl score is uploaded as a score file instead), confirm, video take, analysis, feedback, tracks,
 score status. Prints the HTTP status and seconds of each step, then the facts worth judging.
 """
 import argparse
@@ -19,6 +20,8 @@ SCAN_TIMEOUT_S = 300
 TAKE_TIMEOUT_S = 600
 POLL_S = 1.0
 PHOTO_TYPES = {".webp": "image/webp", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+SCORE_FILE_TYPES = {".xml": "application/xml", ".musicxml": "application/vnd.recordare.musicxml+xml",
+                    ".mxl": "application/vnd.recordare.musicxml"}
 VIDEO_TYPES = {".mp4": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm"}
 
 
@@ -91,6 +94,12 @@ def scan_photo(http: httpx.Client, steps: Steps, session_id: str, photo: Path) -
     return status
 
 
+def upload_score_file(http: httpx.Client, steps: Steps, session_id: str, score: Path) -> None:
+    steps.run("upload score file", lambda: http.post(
+        f"/sessions/{session_id}/score/file",
+        files={"file": (score.name, score.read_bytes(), content_type(score, SCORE_FILE_TYPES))}))
+
+
 def upload_take(http: httpx.Client, steps: Steps, session_id: str, args: argparse.Namespace, confirmed: dict) -> str:
     first, last = args.bars or (1, min(confirmed["bars"], 8))
     form = {"kind": "video", "source": "uploaded", "bar_from": first, "bar_to": last,
@@ -117,7 +126,10 @@ def report(analysis: dict, tracks: dict) -> None:
 
 def run_flow(http: httpx.Client, steps: Steps, args: argparse.Namespace) -> None:
     session_id = steps.run("create session", lambda: http.post("/sessions", json={"instrument": args.instrument})).json()["session_id"]
-    scan_photo(http, steps, session_id, args.photo)
+    if args.photo.suffix.lower() in SCORE_FILE_TYPES:
+        upload_score_file(http, steps, session_id, args.photo)
+    else:
+        scan_photo(http, steps, session_id, args.photo)
     confirmed = steps.run("confirm score", lambda: http.post(f"/sessions/{session_id}/score/confirm")).json()
     print("confirmed:", json.dumps(confirmed))
     take_id = upload_take(http, steps, session_id, args, confirmed)
