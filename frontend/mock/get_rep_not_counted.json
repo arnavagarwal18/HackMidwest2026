@@ -1,0 +1,16 @@
+{
+  "take_id": "take_2",
+  "exercise_id": "ex1",
+  "tempo_bpm": 66,
+  "status": "not_counted",
+  "passed": null,
+  "reasons": [
+    "No notes were heard in this rep. Check that your microphone is on and play closer to it."
+  ],
+  "errors": null,
+  "mean_abs_timing_ms": null,
+  "form_flag_ids": [],
+  "next_bpm": 66,
+  "streak": 1,
+  "exercise_complete": false
+}

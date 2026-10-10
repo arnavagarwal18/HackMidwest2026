@@ -1,0 +1,17 @@
+{
+  "take_id": "take_2",
+  "exercise_id": "ex1",
+  "tempo_bpm": 66,
+  "status": "scored",
+  "passed": false,
+  "reasons": [
+    "2 errors, pass mark 0",
+    "mean timing 72 ms, pass mark 60 ms"
+  ],
+  "errors": 2,
+  "mean_abs_timing_ms": 72,
+  "form_flag_ids": [],
+  "next_bpm": 66,
+  "streak": 0,
+  "exercise_complete": false
+}

@@ -1,0 +1,23 @@
+/* Loop trainer (#/exercise/:ex). */
+.exercise-card h1 { margin-top: 0; }
+.exercise-card p { margin: 0.25rem 0; }
+.streak { margin: 1rem 0 0.5rem; }
+.streak .current-tempo { font-size: 1.4rem; font-weight: 600; margin: 0 0 0.25rem; }
+.streak-dots { display: flex; gap: 0.5rem; list-style: none; margin: 0; padding: 0; font-size: 1.6rem; color: var(--muted); }
+.streak-dots .dot.filled { color: var(--accent); }
+.streak-label { margin: 0.25rem 0; }
+.ladder { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin: 0.75rem 0; padding: 0; }
+.ladder .step { padding: 0.15rem 0.6rem; border: 1px solid #d0d5dd; border-radius: 999px; color: var(--muted); }
+.ladder .step.passed { background: #d1fadf; border-color: #05603a; color: #05603a; }
+.ladder .step.current { background: var(--notice-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.trainer-status { margin-top: 1rem; padding: 0.75rem 1rem; background: #fff; border: 1px solid #e4e4e0; border-radius: 6px; }
+.trainer-status .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 0; }
+.trainer-status .stage { font-weight: 600; margin: 0 0 0.5rem; }
+.trainer-status .reasons { margin: 0.25rem 0 0.75rem; padding-left: 1.2rem; }
+.trainer-status .verdict { font-size: 3rem; font-weight: 700; margin: 0; line-height: 1.1; }
+.trainer-status .verdict.pass { color: #05603a; }
+.trainer-status .verdict.fail { color: var(--error); }
+.trainer-status .verdict.done { color: var(--accent); }
+.trainer-status.result-pass { border-color: #05603a; }
+.trainer-status.result-fail { border-color: var(--error); }
+.trainer-status .done { margin-top: 1rem; }

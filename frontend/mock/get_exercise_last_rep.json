@@ -1,0 +1,42 @@
+{
+  "exercise": {
+    "id": "ex1",
+    "title": "Bar 3 slow",
+    "text": "Play bars 3 to 4 slowly, then speed up.",
+    "bar_from": 3,
+    "bar_to": 4,
+    "start_bpm": 60,
+    "target_bpm": 96,
+    "step_bpm": 6,
+    "reps_to_pass": 3,
+    "pass_mark": {
+      "max_errors": 0,
+      "max_mean_timing_ms": 60,
+      "form_rule": null
+    },
+    "problem_ids": [
+      "p:t1:1",
+      "p:t1:2"
+    ],
+    "claims": [
+      {
+        "measurement_id": "p:t1:1",
+        "field": "kind",
+        "value": "notes"
+      }
+    ]
+  },
+  "state": {
+    "plan_id": "plan_1",
+    "current_bpm": 96,
+    "streak": 2,
+    "fails_in_row": 0,
+    "best_passed_bpm": 90,
+    "complete": false,
+    "rep_ids": [
+      "rep_0",
+      "rep_1"
+    ],
+    "added_by": "plan"
+  }
+}

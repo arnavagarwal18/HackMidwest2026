@@ -69,6 +69,17 @@ const calibrationVariant = () => new URLSearchParams(window.location.search).get
 // error_*.json files stand for a failed response; most are a 404, these have their own status.
 const ERROR_STATUS = { error_calibration_failed: 422 };
 
+// Exercise ids that change what the exercise routes answer, so the loop trainer can be tried in each state.
+// ex_fail / ex_not_counted: the rep is a FAIL / does not count. ex_complete: one pass from the target, and the rep completes it.
+// ex_done: already complete. ex_video: the pass mark has a form rule (video).
+const EXERCISE_VARIANTS = {
+  ex_fail: { get_rep: 'get_rep_fail' },
+  ex_not_counted: { get_rep: 'get_rep_not_counted' },
+  ex_complete: { get_exercise: 'get_exercise_last_rep', get_rep: 'get_rep_complete' },
+  ex_done: { get_exercise: 'get_exercise_done' },
+  ex_video: { get_exercise: 'get_exercise_video' },
+};
+
 const pollCounts = new Map(); // `${group}|${path}` -> polls answered so far
 
 function resetPolls(groups) {
@@ -95,7 +106,8 @@ export function mockFileFor(method, path) {
   if (!route) return null;
   if (route.resets) resetPolls(route.resets);
   const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1];
-  const finalFile = TAKE_VARIANTS[takeId]?.[route.file] ?? route.file;
+  const exerciseId = /\/exercises\/([^/]+)/.exec(pathOnly)?.[1];
+  const finalFile = (TAKE_VARIANTS[takeId] ?? EXERCISE_VARIANTS[exerciseId])?.[route.file] ?? route.file;
   if (route.poll) return pollFile(route, pathOnly, finalFile);
   if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
     return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);

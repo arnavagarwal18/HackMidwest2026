@@ -176,3 +176,27 @@ Mock variants: `?mock=1` answers calibration successfully; `?mock=1&calibration=
 `calibration_failed` (F4 not heard, Bb4 off pitch) and succeeds afterwards. Try the tone page at `/tone.html?mock=1`.
 
 Tests: `node --test frontend/tests/calibrate.test.mjs frontend/tests/tone.test.mjs` (logic only, with the fake browser in `tests/fake_env.mjs`; no browser).
+
+## Loop trainer (`#/exercise/:ex`)
+
+`js/screens/exercise.js` wires `js/exercise/trainer.js` to the real API and recorder; the trainer takes them as `deps`, so node
+tests can drive it. `exercise/model.js` is pure wording and ladder logic, `exercise/view.js` rebuilds the screen from one model
+object (phases: `loading`, `ready`, `recording`, `sending`, `scoring`, `result`, `not_counted`, `send_failed`, `too_long`,
+`check_failed`, `media_error`, `upload`, `complete`, `load_failed`).
+
+- Flow: GET the exercise and state (again before every rep, because the back end owns the tempo) -> Record rep (the button or
+  space) runs the count-in at `current_bpm` through `recordTake` (cap 60 s) -> space or Stop -> `POST .../reps` -> poll
+  `GET .../reps/{rep}` every 1 s -> PASS / FAIL with the reasons, the tempo change and `Next rep at N BPM - press space`.
+  When `exercise_complete` it shows Done and `Record a full take` (to `#/take`, filling the bars only if none were chosen).
+- The mic opens once and is reused. An exercise with a `form_rule` asks for the camera; if only the camera fails it records
+  the sound only (kind `mic`) and shows a notice. Mic trouble shows `renderMediaError` with an Upload option.
+- Errors never retry by themselves: a refused upload keeps the recording for `Send again`; `not_counted` / `failed` reps show the
+  back end's reasons and `Record again`; polling follows the results screen (`?poll_ms=`, `?slow_after_s=`, `?give_up_after_s=`).
+  Leaving the route stops the recording, the mic and the space listener.
+- Mock mode: the exercise id picks the variant. `ex1` passes (streak 2 of 3), `ex_fail` fails, `ex_not_counted` does not count,
+  `ex_complete` is one pass from the target and its rep completes it, `ex_done` is already complete, `ex_video` has a form rule.
+  The mock answers with fixed files, so it does not step the tempo itself; `tests/exercise_trainer.test.mjs` does that against a
+  fake back end that applies the LLD-6 rules.
+
+Tests (no browser): `node --test frontend/tests/exercise_model.test.mjs frontend/tests/exercise_trainer.test.mjs frontend/tests/exercise_mock.test.mjs`
+(`tests/fake_dom.mjs` is the small DOM stand-in they share). Not covered: real microphone/camera recording and the screen's look.
