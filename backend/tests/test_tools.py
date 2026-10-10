@@ -32,7 +32,7 @@ def test_overview(tools):
     assert overview["counts"] == {"ok": 8, "wrong": 2, "missed": 1, "uncertain": 1, "extra": 1}
     assert (overview["bar_from"], overview["bar_to"]) == (1, 4)
     assert overview["clean_bpm"] == 60
-    assert overview["instrument"] == "violin"
+    assert overview["instrument"] == "trumpet"
     assert overview["form_status"] == "ok"
     assert overview["cant_tell"] is False
     assert len(overview["tier1"]) == 2
@@ -69,7 +69,7 @@ def test_get_bar_bad_input_returns_error(tools, bad):
 
 def test_get_measurement(tools):
     assert call(tools["get_measurement"], "n:t1:2:1")["item"]["played_name"] == "F#5"
-    assert call(tools["get_measurement"], "f:t1:0")["item"]["rule"] == "elbow_height"
+    assert call(tools["get_measurement"], "f:t1:0")["item"]["rule"] == "trumpet_head_down"
 
 
 @pytest.mark.parametrize("bad", ["n:t1:99:0", "nonsense", "", None, 7])
@@ -80,7 +80,7 @@ def test_get_measurement_unknown_id_returns_error(tools, bad):
 def test_form_flags(tools):
     result = call(tools["list_form_flags"])
     assert [f["id"] for f in result["flags"]] == ["f:t1:0"]
-    assert result["rules_skipped"][0]["rule"] == "bow_angle"
+    assert result["rules_skipped"][0]["rule"] == "trumpet_elbows_pinned"
 
 
 def test_history(tools):

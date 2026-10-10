@@ -13,8 +13,8 @@ from tests.planner_helpers import BAR_3, TOO_FAST, WHOLE_RANGE, submit_plan
 from tests.test_checker_feedback import LATE_TEXT, sentence
 from tests.test_coach_hook import submit
 
-COACH_BRIEF = ("coach", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, violin."})
-PLANNER_BRIEF = ("planner", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, violin."})
+COACH_BRIEF = ("coach", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, trumpet."})
+PLANNER_BRIEF = ("planner", {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, trumpet."})
 BOTH_TOOLS = [tool_turn("get_take_overview", {}), tools_turn(COACH_BRIEF, PLANNER_BRIEF), text_turn()]
 ONLY_PLANNER = [tool_turn("get_take_overview", {}), tool_turn(*PLANNER_BRIEF), text_turn()]
 ACCESS_DENIED = ClientError({"Error": {"Code": "AccessDeniedException", "Message": "not allowed"}}, "ConverseStream")

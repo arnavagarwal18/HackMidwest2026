@@ -120,9 +120,9 @@ def test_stray_number_in_text_fails(check_ctx):
 
 def test_time_in_text_matches_jump_time(check_ctx):
     good = sentence(
-        text="Your elbow drops around 0:10.",
+        text="Your head drops around 0:10.",
         cites=["f:t1:0"],
-        claims=[claim("form", "f:t1:0", "elbow_height", time_s=10.2), claim("direction", "f:t1:0", "low")],
+        claims=[claim("form", "f:t1:0", "trumpet_head_down", time_s=10.2), claim("direction", "f:t1:0", "low")],
         jump={"bar": None, "time_s": 10.2},
     )
     assert check_feedback(output(good, problem_ids=("p:t1:2",)), check_ctx)["ok"]
@@ -130,9 +130,9 @@ def test_time_in_text_matches_jump_time(check_ctx):
 
 def test_form_time_outside_flag_fails(check_ctx):
     bad = sentence(
-        text="Your elbow drops around 0:20.",
+        text="Your head drops around 0:20.",
         cites=["f:t1:0"],
-        claims=[claim("form", "f:t1:0", "elbow_height", time_s=20)],
+        claims=[claim("form", "f:t1:0", "trumpet_head_down", time_s=20)],
         jump={"bar": None, "time_s": None},
     )
     assert_fails_with(check_feedback(output(bad, problem_ids=("p:t1:2",)), check_ctx), "form mismatch")

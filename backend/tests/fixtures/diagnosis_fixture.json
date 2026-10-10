@@ -48,11 +48,11 @@
   "form": {
     "status": "ok",
     "tracking_quality": 0.85,
-    "instrument": "violin",
+    "instrument": "trumpet",
     "flags": [
-      {"id": "f:t1:0", "rule": "elbow_height", "label": "Elbow drops", "direction": "low", "start_s": 9.5, "end_s": 11.0, "peak_s": 10.2, "bars": [4], "severity": 0.6, "confidence": 0.7}
+      {"id": "f:t1:0", "rule": "trumpet_head_down", "label": "Head drops", "direction": "low", "start_s": 9.5, "end_s": 11.0, "peak_s": 10.2, "bars": [4], "severity": 0.6, "confidence": 0.7}
     ],
-    "rules_skipped": [{"rule": "bow_angle", "reason": "bow not visible"}]
+    "rules_skipped": [{"rule": "trumpet_elbows_pinned", "reason": "elbows not visible"}]
   },
   "history": [
     {"take_id": "t0", "error_rate": 0.03, "played_bpm": 60},

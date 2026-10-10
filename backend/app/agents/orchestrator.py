@@ -40,12 +40,12 @@ def _sub_agent_tool(name: str, description: str, run_agent: Callable[[str], Awai
 def build_orchestrator(model: Any, measurement_tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace) -> Agent:
     coach = _sub_agent_tool(
         "coach",
-        "Run the Coach on a brief naming the take, its tier 1 problem ids, the bars, the instrument and any form flags. Returns the accepted feedback as JSON.",
+        "Run the Coach on a brief naming the take, its tier 1 problem ids, the bars, that the learner plays trumpet, and any form flags. Returns the accepted feedback as JSON.",
         lambda brief: build_coach_agent(model, list(measurement_tools.values()), ctx, holder, trace).invoke_async(brief),
         lambda: holder.feedback, holder.errors, trace)
     planner = _sub_agent_tool(
         "planner",
-        "Run the Planner on a brief naming the take, its tier 1 problem ids, the bars and the instrument. Returns the accepted practice exercises as JSON.",
+        "Run the Planner on a brief naming the take, its tier 1 problem ids, the bars and that the learner plays trumpet. Returns the accepted practice exercises as JSON.",
         lambda brief: build_planner_agent(model, measurement_tools, ctx, holder, trace).invoke_async(brief),
         lambda: holder.plan, holder.planner_errors, trace)
     return Agent(
