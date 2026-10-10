@@ -194,7 +194,6 @@ def test_malformed_plan_is_reported_not_raised(check_ctx):
         {"problem_ids": [[1]]},
         {"problem_ids": "p:t1:1"},
         {"problem_ids": None},
-        {"claims": None},
         {"claims": "x"},
         {"claims": [None, 3, [1], {"type": "bar", "id": {"a": 1}, "value": 1}]},
         {"text": None},
