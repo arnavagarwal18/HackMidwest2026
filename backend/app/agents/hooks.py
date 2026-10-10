@@ -9,9 +9,10 @@ from strands.hooks import (
     AfterModelCallEvent, AfterToolCallEvent, BeforeModelCallEvent, BeforeToolCallEvent, HookProvider, HookRegistry,
 )
 
+from app.agents.chat_checker import check_reply
 from app.agents.checker import check_feedback, check_plan
 from app.agents.context import CheckContext
-from app.agents.holder import RunHolder
+from app.agents.holder import ReplyHolder, RunHolder
 from app.agents.plan_rules import EXERCISE_COUNT
 from app.agents.trace import Trace
 
@@ -29,15 +30,18 @@ class SubmitSpec:
     items_key: str
     item_name: str  # what the agent calls one item: the key that names the failing item in a rejection
     check: Callable[[Any, CheckContext], dict]
-    note_check: Callable[[RunHolder, int, dict], None]
-    accept: Callable[[RunHolder, dict, list[dict]], None]
+    note_check: Callable[[Any, int, dict], None]  # called with the holder
+    accept: Callable[[Any, dict, list[dict]], None]  # called with the holder
     min_items: int = 1  # fewer items than this left after dropping is a refusal, not an acceptance
+    input_key: Optional[str] = "output"  # the tool argument holding the output; None when the arguments are the output
 
 
 FEEDBACK_SUBMIT = SubmitSpec("submit_feedback", "sentences", "sentence", check_feedback,
                              RunHolder.note_feedback_check, RunHolder.accept_feedback)
 PLAN_SUBMIT = SubmitSpec("submit_plan", "exercises", "exercise", check_plan,
                          RunHolder.note_plan_check, RunHolder.accept_plan, min_items=EXERCISE_COUNT[0])
+CHAT_SUBMIT = SubmitSpec("submit_reply", "sentences", "sentence", check_reply,
+                         ReplyHolder.note_check, ReplyHolder.accept, input_key=None)
 
 
 def _result_content(event: AfterToolCallEvent, verdict: dict) -> dict:
@@ -80,7 +84,8 @@ class CheckerHook(HookProvider):
         if event.result.get("status") == "error":
             output, result = None, self._malformed(event)
         else:
-            output = (event.tool_use.get("input") or {}).get("output")
+            tool_input = event.tool_use.get("input") or {}
+            output = tool_input if self.spec.input_key is None else tool_input.get(self.spec.input_key)
             result = self.spec.check(output, self.ctx)
         self.spec.note_check(self.holder, tries, result)
         if result["ok"]:

@@ -15,6 +15,7 @@ from .form.routes import router as form_router
 from .score.photo_routes import router as photo_router
 from .score.routes import router as score_router
 from .takes.calibration_routes import router as calibration_router
+from .agents.chat_routes import router as chat_router
 from .agents.routes import router as feedback_router
 from .agents.trace_routes import router as trace_router
 from .takes.routes import router as takes_router
@@ -32,6 +33,7 @@ app.include_router(calibration_router)
 app.include_router(diagnosis_router)
 app.include_router(feedback_router)
 app.include_router(trace_router)
+app.include_router(chat_router)
 app.include_router(analysis_router)
 app.include_router(form_router)
 

@@ -1,0 +1,81 @@
+"""The Instructor agent: answers a learner's chat message about one take and finishes by calling submit_reply."""
+import json
+import logging
+from typing import Any, Callable
+
+from strands import Agent, tool
+
+from app import store
+from app.agents.coach import CoachSentence
+from app.agents.context import CheckContext
+from app.agents.holder import ReplyHolder
+from app.agents.hooks import CHAT_SUBMIT, CheckerHook, TraceHook
+from app.agents.prompts import INSTRUCTOR_PROMPT
+from app.agents.tools import fit_json
+from app.agents.trace import Trace
+from app.score.api import get_score
+from app.score.exceptions import NotConfirmed
+
+log = logging.getLogger(__name__)
+
+HISTORY_TURNS = 10
+
+
+@tool(name=CHAT_SUBMIT.tool_name)
+def submit_reply(sentences: list[CoachSentence]) -> dict:
+    """Submit your finished reply. The result says accepted, or lists the sentences to fix before you submit again."""
+    return {"accepted": True}  # the CheckerHook replaces this with the Checker's verdict
+
+
+def _latest_plan(session: Any, take_id: str) -> dict | None:
+    plans = [p for p in session.plans.values() if p["take_id"] == take_id]
+    return max(plans, key=lambda p: int(p["id"][2:]), default=None)
+
+
+def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]]:
+    """The tools only the Instructor has: the score's summary and the take's practice plan."""
+
+    def get_score_summary() -> str:
+        """The piece's title, the instrument, how many bars it has, the bars of this take and the target tempo."""
+        title = bars = None
+        try:
+            score = get_score(session_id)
+            title, bars = score.title, len(score.bars)
+        except (NotConfirmed, OSError, ValueError):
+            log.exception("No confirmed score to summarise for session %s", session_id)
+        diagnosis = take.get("diagnosis") or {}
+        return fit_json({"title": title, "instrument": store.get(session_id).instrument, "bars": bars,
+                         "bar_from": take["bar_from"], "bar_to": take["bar_to"],
+                         "target_bpm": diagnosis.get("target_bpm", take.get("tempo_bpm"))})
+
+    def get_plan() -> str:
+        """The take's practice plan with the learner's progress on it, or null when the take has no plan."""
+        session = store.get(session_id)
+        plan = _latest_plan(session, take["take_id"])
+        progress = session.progress.get(plan["id"]) if plan else None
+        if plan is None:
+            return json.dumps(None)
+        return fit_json({**plan, **({"progress": progress} if progress else {})})
+
+    return {fn.__name__: fn for fn in (get_score_summary, get_plan)}
+
+
+def history_messages(turns: list[dict]) -> list[dict]:
+    """The last chat turns as plain text model messages, starting with a learner's message."""
+    recent = [{"role": "user" if t["role"] == "user" else "assistant", "content": [{"text": t["text"]}]}
+              for t in turns[-HISTORY_TURNS:]]
+    while recent and recent[0]["role"] != "user":
+        recent.pop(0)
+    return recent
+
+
+def build_instructor_agent(model: Any, tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: ReplyHolder,
+                           trace: Trace, history: list[dict]) -> Agent:
+    return Agent(
+        model=model,
+        tools=[*[tool(fn) for fn in tools.values()], submit_reply],
+        system_prompt=INSTRUCTOR_PROMPT,
+        messages=history,
+        hooks=[TraceHook(trace, "instructor"), CheckerHook(CHAT_SUBMIT, ctx, holder, trace)],
+        callback_handler=None,
+    )

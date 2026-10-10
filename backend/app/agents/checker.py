@@ -57,7 +57,7 @@ def _check_ids(sentence: dict, ctx: CheckContext) -> list[str]:
     return reasons
 
 
-def _check_sentence(index: int, sentence: Any, ctx: CheckContext, report: Report) -> None:
+def check_sentence(index: int, sentence: Any, ctx: CheckContext, report: Report) -> None:
     if not isinstance(sentence, dict) or not isinstance(sentence.get("text"), str):
         report.add(index, "bad sentence: needs text, cites, claims and jump")
         return
@@ -109,7 +109,7 @@ def check_feedback(output: Any, ctx: CheckContext) -> dict:
                 report.add(None, f"unknown id: {problem_id} is not a problem of this take")
     for index, sentence in enumerate(sentences):
         with report.guard(index, "sentence"):
-            _check_sentence(index, sentence, ctx, report)
+            check_sentence(index, sentence, ctx, report)
     return report.as_result()
 
 

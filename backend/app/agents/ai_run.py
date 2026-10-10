@@ -37,7 +37,7 @@ def new_model() -> Any:
     return build_agent_model(get_settings())
 
 
-def _context_and_tools(session_id: str, take: dict, history: list[dict]) -> tuple[CheckContext, dict]:
+def context_and_tools(session_id: str, take: dict, history: list[dict]) -> tuple[CheckContext, dict]:
     sources = {
         "get_diagnosis": lambda s, t: take.get("diagnosis"),
         "get_form": lambda s, t: take.get("form") or {},
@@ -47,12 +47,12 @@ def _context_and_tools(session_id: str, take: dict, history: list[dict]) -> tupl
 
 
 async def _run(session_id: str, take: dict, history: list[dict], holder: RunHolder, trace: Trace) -> None:
-    ctx, tools = _context_and_tools(session_id, take, history)
+    ctx, tools = context_and_tools(session_id, take, history)
     orchestrator = build_orchestrator(new_model(), tools, ctx, holder, trace)
     await asyncio.wait_for(orchestrator.invoke_async(ORCHESTRATOR_REQUEST.format(take_id=take["take_id"])), TIME_LIMIT_S)
 
 
-def _shown(sentence: dict) -> dict:
+def shown_sentence(sentence: dict) -> dict:
     jump = sentence.get("jump") or {}
     return {"text": sentence["text"], "cites": sentence["cites"], "claims": sentence.get("claims") or [],
             "jump": {"bar": jump.get("bar"), "time_s": jump.get("time_s")}, "checked": True, "mode": "ai"}
@@ -91,7 +91,7 @@ def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Tra
     if cant_tell:
         return AiFeedback(None, check=check, exercises=exercises)
     if holder.feedback is not None:
-        return AiFeedback([_shown(s) for s in holder.feedback["sentences"]], holder.dropped, check, exercises=exercises)
+        return AiFeedback([shown_sentence(s) for s in holder.feedback["sentences"]], holder.dropped, check, exercises=exercises)
     reason = _failure_reason(holder, failure)
     log.error("No Coach feedback for take %s/%s: %s", session_id, take["take_id"], reason)
     return AiFeedback(None, check=check, reason=reason, exercises=exercises)

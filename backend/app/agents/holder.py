@@ -44,3 +44,24 @@ class RunHolder:
                 "claims_checked": self.claims_checked + self.plan_claims_checked,
                 "claims_failed": self.claims_failed + self.plan_claims_failed,
                 "sentences_dropped": len(self.dropped)}
+
+
+@dataclass
+class ReplyHolder:
+    """Filled in by the CheckerHook while the Instructor answers one chat message."""
+
+    reply: dict | None = None  # the accepted { sentences }
+    dropped: list[dict] = field(default_factory=list)  # [{ text, reasons }] for sentences the Checker removed
+    tries: int = 0
+    claims_checked: int = 0
+    claims_failed: int = 0
+
+    def note_check(self, tries: int, result: dict) -> None:
+        """Record the latest Checker result for the Instructor's submit number `tries`."""
+        self.tries = tries
+        self.claims_checked = result["claims_checked"]
+        self.claims_failed = result["claims_failed"]
+
+    def accept(self, output: dict, dropped: list[dict]) -> None:
+        self.reply = output
+        self.dropped = dropped

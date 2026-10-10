@@ -58,7 +58,7 @@ def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bo
     return ai, "cant_tell" if cant_tell else ai.reason
 
 
-def _earlier_takes(takes: dict[str, dict], take: dict) -> list[dict]:
+def earlier_takes(takes: dict[str, dict], take: dict) -> list[dict]:
     """Earlier diagnosed takes on the same bars, in the shape the Checker's history uses."""
     return [
         {"take_id": t["take_id"], "error_rate": t["diagnosis"].get("error_rate"), "played_bpm": t["diagnosis"].get("played_bpm")}
@@ -84,7 +84,7 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
         diagnosis = {}
     flags = {f["id"]: f for f in (take.get("form") or {}).get("flags") or []}
     try:
-        history = _earlier_takes(session.takes, take)
+        history = earlier_takes(session.takes, take)
         fallback = build_fallback(diagnosis, take, history, flags)
         ai, reason = _ai_feedback(session_id, take, history, fallback.cant_tell, trace)
     except Exception:

@@ -6,7 +6,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-AGENTS = ("orchestrator", "coach", "planner", "checker", "referee")
+AGENTS = ("orchestrator", "coach", "planner", "instructor", "checker", "referee")
 DETAIL_MAX_CHARS = 500
 
 
