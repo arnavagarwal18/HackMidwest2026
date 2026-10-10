@@ -1,14 +1,27 @@
-import { getBuiltins, getLanAddress } from '../api.js';
-import { renderPlaceholder } from './placeholder.js';
+// Start: pick an instrument, open a session, go to the score screen.
+import { createSession } from '../api.js';
+import { clearSession, setSession } from '../state.js';
+import { button, el, loadScoreStyles, runGuarded } from '../score/ui.js';
 
-// Placeholder: the real screen replaces this body. render(root, params) is called by router.js.
+const INSTRUMENTS = [
+  { id: 'violin', label: 'Violin' },
+  { id: 'trumpet', label: 'Trumpet' },
+];
+
 export function render(root) {
-  return renderPlaceholder(root, {
-    title: 'Start',
-    description: 'Pick an instrument and begin a session.',
-    calls: [
-      { label: 'GET /builtins', run: () => getBuiltins('violin') },
-      { label: 'GET /lan-address', run: () => getLanAddress() },
-    ],
-  });
+  loadScoreStyles();
+  const choices = INSTRUMENTS.map(({ id, label }) => button(label, () => startSession(id, choices), 'instrument-choice'));
+  root.append(
+    el('h1', { text: 'What are you playing?' }),
+    el('p', { text: 'Pick your instrument to begin a practice session.', className: 'muted' }),
+    el('p', { className: 'instrument-choices', children: choices }),
+  );
+}
+
+async function startSession(instrument, controls) {
+  const session = await runGuarded(controls, () => createSession(instrument));
+  if (!session) return;
+  clearSession();
+  setSession(session.session_id, session.instrument);
+  window.location.hash = '#/score';
 }

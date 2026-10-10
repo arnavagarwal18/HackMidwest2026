@@ -1,0 +1,18 @@
+// File tab: upload a MusicXML or MIDI file.
+import { uploadScoreFile } from '../api.js';
+import { button, el, runGuarded } from './ui.js';
+
+export const SCORE_FILE_TYPES = '.musicxml,.xml,.mxl,.mid,.midi';
+
+export function createFileTab({ submit }) {
+  const input = el('input', { attrs: { type: 'file', accept: SCORE_FILE_TYPES } });
+  const upload = button('Use this file', () => runGuarded([upload], () => submit((sessionId) => uploadScoreFile(sessionId, input.files[0]), 'file')), 'primary');
+  upload.disabled = true;
+  input.addEventListener('change', () => { upload.disabled = input.files.length === 0; });
+  return el('div', {
+    children: [
+      el('p', { text: 'MusicXML (.musicxml, .xml, .mxl) or MIDI (.mid, .midi), up to 5 MB.', className: 'muted' }),
+      el('p', { children: [input, ' ', upload] }),
+    ],
+  });
+}
