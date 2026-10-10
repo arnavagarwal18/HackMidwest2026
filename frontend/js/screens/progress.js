@@ -75,7 +75,8 @@ export function renderProgress(root, progress) {
   root.append(list);
 }
 
-export async function render(root) {
+export async function render(root, _params, isCurrent = () => true) {
   const progress = await getProgress(state.session_id ?? 'no-session');
+  if (!isCurrent()) return; // the learner already moved to another screen
   renderProgress(root, progress);
 }

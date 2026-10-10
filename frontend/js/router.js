@@ -49,7 +49,8 @@ async function renderCurrent() {
   try {
     const screen = await import(`./screens/${match.screen}.js`);
     if (token !== renderToken) return; // the user already moved on
-    await screen.render(root, match.params);
+    // isCurrent() lets a screen drop the rest of its render when the learner moved on while it waited for the server.
+    await screen.render(root, match.params, () => token === renderToken);
   } catch (err) {
     if (token !== renderToken) return;
     reportError(err);

@@ -25,7 +25,7 @@ function loadTakeStyles() {
   document.head.append(el('link', { attrs: { rel: 'stylesheet', href: STYLE_HREF } }));
 }
 
-export async function render(root) {
+export async function render(root, _params, isCurrent = () => true) {
   if (!state.session_id) {
     window.location.hash = '#/start';
     return;
@@ -35,6 +35,7 @@ export async function render(root) {
     return;
   }
   const score = await loadScoreSummary();
+  if (!isCurrent()) return; // left while the score loaded: open no camera and register no listener
   loadScoreStyles();
   loadTakeStyles();
 

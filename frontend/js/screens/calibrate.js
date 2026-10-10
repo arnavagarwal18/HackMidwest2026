@@ -20,7 +20,7 @@ function loadStyles() {
   document.head.append(element('link', '', '', { rel: 'stylesheet', href: STYLE_HREF }));
 }
 
-export async function render(root) {
+export async function render(root, _params, isCurrent = () => true) {
   if (!state.session_id) {
     window.location.hash = '#/start';
     return;
@@ -29,6 +29,7 @@ export async function render(root) {
   loadStyles();
   const notes = await getReferenceNotes(state.instrument);
   const { base, note: addressNote } = await findBaseAddress();
+  if (!isCurrent()) return; // left while the notes loaded: register no listener
   const clips = createClipStore();
   let disposed = false;
   let busy = false;

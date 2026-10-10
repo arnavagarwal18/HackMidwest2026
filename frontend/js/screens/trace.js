@@ -68,7 +68,8 @@ export function renderTrace(root, trace) {
   root.append(...groupByAgent(trace.events).map(agentGroup));
 }
 
-export async function render(root, { fb }) {
+export async function render(root, { fb }, isCurrent = () => true) {
   const trace = await getTrace(state.session_id ?? 'no-session', fb);
+  if (!isCurrent()) return; // the learner already moved to another screen
   renderTrace(root, trace);
 }

@@ -56,7 +56,11 @@ export async function launchChrome() {
   });
   const stop = () => { // ends this Chrome (we started it, by its child handle) and removes its profile
     chrome.kill();
-    rmSync(profile, { recursive: true, force: true });
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); // Chrome may still be writing as it exits
+    } catch (err) { // a leftover temp folder must not hide the test results
+      console.warn(`Could not remove the Chrome profile ${profile} (${err.code}); delete it by hand.`);
+    }
   };
   return { stop, browserWsUrl: wsUrl };
 }

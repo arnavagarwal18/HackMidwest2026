@@ -101,8 +101,8 @@ await test('a mic take shows an audio player and jumps in it', async (open) => {
 
 await test('fallback mode says the AI coach is unavailable', async (open) => {
   const page = await open('take_fallback');
-  await page.waitFor(`document.querySelector('.fallback-notice')`);
-  assert.deepEqual(await text(page, '.fallback-notice'), ['AI coach unavailable; showing measured results.']);
+  await page.waitFor(`document.querySelector('.results .fallback-notice')`); // the chat panel has its own notice
+  assert.deepEqual(await text(page, '.results .fallback-notice'), ['AI coach unavailable; showing measured results.']);
   assert.equal(await count(page, '.tier1 .sentence'), 2);
   assert.equal(await count(page, '.coach'), 0, 'fallback sentences repeat tier 1 and are not shown twice');
   assert.equal(await count(page, '.exercise'), 1);
