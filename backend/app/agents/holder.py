@@ -1,0 +1,28 @@
+"""What one feedback run's agents hand back: accepted outputs, what the Checker dropped, and the check counts."""
+from dataclasses import dataclass, field
+
+
+@dataclass
+class RunHolder:
+    """Filled in by the CheckerHook and the Orchestrator's agent tools while a run is in progress."""
+
+    feedback: dict | None = None  # the accepted CoachOutput { sentences, problem_ids }
+    dropped: list[dict] = field(default_factory=list)  # [{ text, reasons }] for sentences the Checker removed
+    coach_tries: int = 0
+    claims_checked: int = 0
+    claims_failed: int = 0
+    errors: list[Exception] = field(default_factory=list)  # exceptions raised inside an agent tool
+
+    def note_check(self, tries: int, result: dict) -> None:
+        """Record the latest Checker result for the Coach's submit number `tries`."""
+        self.coach_tries = tries
+        self.claims_checked = result["claims_checked"]
+        self.claims_failed = result["claims_failed"]
+
+    def accept_feedback(self, output: dict, dropped: list[dict]) -> None:
+        self.feedback = output
+        self.dropped = dropped
+
+    def check_counts(self) -> dict:
+        return {"coach_tries": self.coach_tries, "claims_checked": self.claims_checked,
+                "claims_failed": self.claims_failed, "sentences_dropped": len(self.dropped)}

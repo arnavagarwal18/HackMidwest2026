@@ -3,7 +3,7 @@ import json
 import pytest
 
 from app import store
-from app.agents import run
+from app.agents import ai_run, run
 from app.agents.checker import check_plan
 from app.agents.context import build_context
 from app.agents.fallback import CANT_TELL_TEXT, build_fallback
@@ -125,12 +125,16 @@ def test_cant_tell_take_gives_the_message_and_one_retake_exercise(sessions_root,
     assert exercise["pass_mark"]["max_errors"] == 1
 
 
-def test_enabled_ai_without_an_orchestrator_falls_back_with_model_error(sessions_root, fixture_data, monkeypatch, caplog):
+def test_enabled_ai_that_cannot_build_its_model_falls_back_with_model_error(sessions_root, fixture_data, monkeypatch, caplog):
+    def no_model():
+        raise RuntimeError("no model configured")
+
     monkeypatch.setattr(run, "ai_enabled", lambda: True)
+    monkeypatch.setattr(ai_run, "new_model", no_model)
     session_id, take_id = add_diagnosed_take(fixture_data)
     feedback, _ = saved(session_id, run.run_feedback(session_id, take_id))
     assert (feedback["mode"], feedback["fallback_reason"]) == ("fallback", "model_error")
-    assert "Orchestrator isn't built yet" in caplog.text
+    assert "no model configured" in caplog.text
 
 
 def test_unreadable_ai_settings_fall_back_with_model_error(sessions_root, fixture_data, monkeypatch):
