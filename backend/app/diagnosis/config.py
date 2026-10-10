@@ -64,3 +64,21 @@ SOURCE_FILE = "file"
 SOURCE_DEFAULT = "default"
 SOURCE_DETECTED = "detected"
 SOURCE_USER = "user"
+
+# Problems, tiers and sentences (steps 7-8)
+PROBLEM_NOTES = "notes"
+PROBLEM_FORM = "form"
+MIN_TIMED_NOTES_FOR_TIMING_PROBLEM = 2
+TIMING_SIZE_FULL_MS = 200
+DRIFT_SIZE_FULL_PCT = 20
+MULTI_BAR_BONUS = 0.25
+TIER1_MAX = 3
+TIER1_MIN_CERTAINTY = 0.6
+TIER1_MIN_SCORE = 0.15
+TIER2_MAX = 7
+RANK_DECIMALS = 4
+
+# Take errors the analysis route explains
+ERROR_NO_SCORE = "no_score"
+ERROR_DIAGNOSIS_FAILED = "diagnosis_failed"
+ERROR_STORAGE = "storage_error"

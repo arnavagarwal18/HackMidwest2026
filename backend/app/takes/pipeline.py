@@ -54,6 +54,9 @@ def _diagnose(session_id: str, take_id: str, run: Step | None) -> None:
     except Exception:
         logger.exception("Diagnosis of take %s/%s failed", session_id, take_id)
         raise StepFailed("diagnosis_failed")
+    recorded = store.get(session_id).takes[take_id]
+    if recorded["status"] == "failed":  # diagnosis.run records its own failures (no_score, storage_error, ...)
+        raise StepFailed(recorded["error"])
     update_take(session_id, take_id, status="diagnosed")
 
 

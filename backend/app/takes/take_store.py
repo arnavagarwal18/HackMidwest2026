@@ -3,6 +3,7 @@ import threading
 from typing import Any, Callable
 
 from .. import store
+from ..errors import AppError
 
 _takes_lock = threading.Lock()
 
@@ -22,3 +23,11 @@ def update_take(session_id: str, take_id: str, **changes: Any) -> None:
     with _takes_lock:
         takes = store.get(session_id).takes
         store.update(session_id, "takes", {**takes, take_id: {**takes[take_id], **changes}})
+
+
+def get_take(session_id: str, take_id: str) -> dict:
+    """The stored take; raises 404 session_not_found or take_not_found."""
+    take = store.get(session_id).takes.get(take_id)
+    if take is None:
+        raise AppError(404, "take_not_found", "We couldn't find that take.")
+    return take

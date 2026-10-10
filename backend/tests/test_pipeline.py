@@ -196,6 +196,7 @@ def test_recorded_takes_are_not_calibrated_from_their_video(session_id, tmp_path
 
 
 def test_missing_steps_are_skipped_with_warning(session_id, tmp_path, caplog, monkeypatch):
+    monkeypatch.delattr("app.diagnosis.run")  # app.diagnosis.run exists now; this test is about a step that doesn't
     monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [NOTE])
     take_id = make_take(session_id, tmp_path, kind="video")
     pipeline.run_take_pipeline(session_id, take_id)
