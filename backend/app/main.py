@@ -1,0 +1,43 @@
+"""FastAPI app: session routes, shared error handling, static frontend at /."""
+import logging
+from pathlib import Path
+from typing import Literal
+
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from . import store
+from .errors import register_error_handlers
+
+logging.basicConfig(level=logging.INFO)
+
+FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+
+app = FastAPI(title="Practice Coach")
+register_error_handlers(app)
+
+
+class CreateSession(BaseModel):
+    instrument: Literal["violin", "trumpet"]
+
+
+@app.post("/sessions", status_code=201)
+def create_session(body: CreateSession) -> dict:
+    session = store.create(body.instrument)
+    return {"session_id": session.session_id, "instrument": session.instrument}
+
+
+@app.get("/sessions/{session_id}")
+def get_session(session_id: str) -> dict:
+    session = store.get(session_id)
+    return {
+        "session_id": session.session_id,
+        "instrument": session.instrument,
+        "score_status": session.score_status,
+        "has_calibration": session.calibration is not None,
+        "take_ids": list(session.takes),
+    }
+
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
