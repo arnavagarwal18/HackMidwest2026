@@ -11,3 +11,15 @@ class NotConfirmed(Exception):
 
 class BuiltinNotFound(Exception):
     """No built-in piece has the requested piece_id."""
+
+
+class NoNotes(BadScoreFile):
+    """The file was read but holds no notes."""
+
+
+class ScanError(Exception):
+    """A photo scan failed; `code` is the score_error value the front end sees."""
+
+    def __init__(self, code: str, detail: str):
+        super().__init__(detail)
+        self.code = code

@@ -51,6 +51,16 @@ def ingest_builtin(folder: Path, piece_id: str) -> Score:
     return score
 
 
+def ingest_musicxml_file(folder: Path, path: Path) -> Score:
+    """Parse a MusicXML file on disk (such as homr's output) and save it as the session's scanned score.
+
+    Raises NoNotes or BadScoreFile (nothing saved) if it can't be used, OSError if it can't be read or saved.
+    """
+    score = parse_score_file(path)
+    _save_files(folder, score, path.read_bytes(), source=None)
+    return score
+
+
 def _export_musicxml(path: Path, temp: Path) -> bytes:
     target = temp / "export.musicxml"
     converter.parse(str(path)).write("musicxml", fp=str(target))

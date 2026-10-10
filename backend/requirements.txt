@@ -7,6 +7,11 @@ python-multipart==0.0.32
 # score parsing (TASK-3)
 music21==9.3.0
 
+# photo scanning (TASK-3): homr reads the cleaned photo
+homr==0.7.0
+opencv-python-headless==4.14.0.94
+pillow==12.3.0
+
 # transcription (TASK-4)
 librosa==1.0.0
 numpy==2.5.4

@@ -7,7 +7,7 @@ from pathlib import Path
 from music21 import converter, instrument, meter, stream, tempo
 
 from app.score.bars import RawEvent, build_bars, round_to_16th, synthesize_spans
-from app.score.exceptions import BadScoreFile
+from app.score.exceptions import BadScoreFile, NoNotes
 from app.score.model import Score
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def parse_score_file(path: str | Path) -> Score:
     parts_with_notes = [part for part in _parts(parsed) if len(part.flatten().notes) > 0]
     if not parts_with_notes:
         logger.error("Score file %s contains no notes", path)
-        raise BadScoreFile(f"{path.name} contains no notes.")
+        raise NoNotes(f"{path.name} contains no notes.")
 
     warnings: list[str] = []
     if len(parts_with_notes) > 1:
