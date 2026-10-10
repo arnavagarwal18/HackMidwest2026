@@ -1,0 +1,21 @@
+{
+  "status": "failed",
+  "error": {
+    "code": "no_audio",
+    "message": "There was no sound in that recording. Check the microphone and record again."
+  },
+  "form_status": "none",
+  "calibrated": true,
+  "transposition": null,
+  "alignment_quality": null,
+  "cant_tell": false,
+  "cant_tell_reason": null,
+  "tempo": null,
+  "notes": [],
+  "extras": [],
+  "bars": [],
+  "problems": [],
+  "tier1": [],
+  "form": [],
+  "media_url": "/sessions/sess_mock1/takes/take_1/media"
+}

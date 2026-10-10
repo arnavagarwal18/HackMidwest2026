@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "wrong_state",
+    "message": "Feedback not ready."
+  }
+}

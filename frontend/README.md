@@ -11,6 +11,7 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 | `css/app.css` | All styles. |
 | `js/router.js` | Hash router. Maps `#/start`, `#/score`, `#/calibrate`, `#/take`, `#/results/:take`, `#/exercise/:ex`, `#/progress`, `#/trace/:fb` to `js/screens/<name>.js` and calls its `render(root, params)`. |
 | `js/screens/*.js` | One module per screen, each exporting `render(root, params)`. Today they are placeholders (`placeholder.js` prints the saved response of each call the real screen will make). `chat.js` is the Instructor panel; `results.js` renders it beside the results. |
+| `js/results/*.js` | The results screen's parts (see "Results screen" below). `js/dom.js` has the small DOM helpers they share. |
 | `js/api.js` | One named function per back-end route (see the file). Screens call these, never `fetch`. |
 | `js/http.js` | Transport behind `api.js`: fetch, JSON, `ApiError`, the server-down Retry flow. |
 | `js/mock.js` | Mock mode: route table mapping method + path to `mock/*.json`. |
@@ -92,3 +93,26 @@ Time zero of a recording is the AudioContext time just before `MediaRecorder.sta
 event arrives about 60 ms after capture begins, which shifted every click by that much in the recorded file.
 
 Try it: open `/dev/record-test.html` (developers only; `?auto=loopback`, `?auto=clip`, `?auto=blocked`).
+
+## Results screen (`#/results/:take`)
+
+`js/screens/results.js` polls the analysis (`results/polling.js`: every 1 s, 'Still working' after 90 s, stops at 300 s with
+Check again / Record again; shorten for tests with `?poll_ms=100&slow_after_s=1&give_up_after_s=3`), then `results/view.js`
+renders the finished take. `results/load.js` is the only place that knows the shape of `GET .../feedback` (the back end
+sends `{...feedback, plan}`; an older mock wrapped it as `{feedback, plan}`; both are accepted).
+
+For the overlay and chat coders:
+
+- **Video container:** `#results-media` > `.video-stage` (position: relative) > `<video>`; put the overlay canvas in `.video-stage`.
+  Beside it is an empty `#form-flag-slot` for the form flag list. `view.js`'s `renderDone` returns `{ index, jumper, player, barList, ... }`.
+- **Jumping:** `jumper.jumpTo(place)` moves the media and highlights the bar row. Form flags: `jumpTo(resolveId(flag.id, index))`
+  seeks to `peak_s` exactly (sentences start 1 s early).
+- **Reusable rendering** (`results/sentences.js`): `renderSentence`, `renderSentenceList`, `renderChip`; they take a jump context
+  `{ index, jumper }` where `index = buildMeasurementIndex(analysis)` (`results/measurements.js`) and `jumper = createJumper({ player, barList })`.
+- The analysis has no `kind`; a take counts as video when `state.take_setup.kind === 'video'` or `form_status !== 'none'`.
+
+Mock takes for trying each state (use them as the take id): `take_1` (video), `take_mic`, `take_fallback`, `take_failed`,
+`take_cant_tell`, `take_stuck` (never finishes). Mock mode records each request in `mockRequestLog` (`js/mock.js`).
+
+Tests: `node frontend/tests/results.test.mjs` (Node 22+, Chrome). It runs one small headless Chrome (low-memory flags) and
+stops it when done.

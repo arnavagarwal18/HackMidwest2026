@@ -1,12 +1,15 @@
 // Mock mode (?mock=1): answers requests from frontend/mock/*.json instead of the back end.
 //
 // Each route below maps method + path pattern to one saved response, frontend/mock/<file>.json.
-// Polled routes (poll) answer with <processingFile> for their first `polls` requests, then with
+// Polled routes (poll) answer with <processingFile> (one file, or a list: one per poll) for their first `polls` requests, then with
 // the final file, so screens can test their polling. A POST that starts the work (resets) restarts
 // the count for that group. The mock only reads static files; nothing reaches a real route.
 const MOCK_DELAY_MS = 150;
 
-export const MOCK_MEDIA_URL = 'mock/take_media.wav';
+export const MOCK_MEDIA_URL = 'mock/take_media_long.wav'; // 12 s, so a jump to a few seconds in has somewhere to land
+
+// Requests the mock has answered, oldest first: { method, path, body } (body only when it is JSON). Tests read this.
+export const mockRequestLog = [];
 
 const ROUTES = [
   { method: 'POST', pattern: '/sessions', file: 'post_sessions' },
@@ -21,13 +24,14 @@ const ROUTES = [
   { method: 'POST', pattern: '/sessions/:id/calibration', file: 'post_calibration' },
   { method: 'POST', pattern: '/sessions/:id/calibration/skip', file: 'post_calibration_skip' },
   { method: 'GET', pattern: '/sessions/:id/calibration', file: 'get_calibration' },
-  { method: 'POST', pattern: '/sessions/:id/takes', file: 'post_takes', resets: 'analysis' },
+  { method: 'POST', pattern: '/sessions/:id/takes', file: 'post_takes', resets: ['analysis', 'feedback'] },
   { method: 'GET', pattern: '/sessions/:id/takes/:take/analysis', file: 'get_analysis',
-    poll: { group: 'analysis', processingFile: 'get_analysis_processing', polls: 2 } },
-  { method: 'POST', pattern: '/sessions/:id/transposition', file: 'post_transposition' },
+    poll: { group: 'analysis', processingFile: ['get_analysis_processing', 'get_analysis_transcribed'] } },
+  { method: 'POST', pattern: '/sessions/:id/transposition', file: 'post_transposition', resets: ['analysis', 'feedback'] },
   { method: 'GET', pattern: '/sessions/:id/takes/:take/tracks', file: 'get_tracks' },
   { method: 'POST', pattern: '/sessions/:id/camera-check', file: 'post_camera_check' },
-  { method: 'GET', pattern: '/sessions/:id/takes/:take/feedback', file: 'get_feedback' },
+  { method: 'GET', pattern: '/sessions/:id/takes/:take/feedback', file: 'get_feedback',
+    poll: { group: 'feedback', processingFile: 'error_feedback_not_ready' } },
   { method: 'POST', pattern: '/sessions/:id/takes/:take/feedback', file: 'post_feedback' },
   { method: 'GET', pattern: '/sessions/:id/feedback/:fb/trace', file: 'get_trace' },
   { method: 'GET', pattern: '/sessions/:id/chat', file: 'get_chat' },
@@ -46,18 +50,32 @@ const SESSION_VARIANTS = {
   sess_unconfirmed: 'get_session_unconfirmed',
 };
 
+// Take ids that change what a route answers, so a screen can be tried in each state: { takeId: { routeFile: variantFile } }.
+const TAKE_VARIANTS = {
+  take_mic: { get_analysis: 'get_analysis_mic' }, // a mic take: no form check
+  take_failed: { get_analysis: 'get_analysis_failed' },
+  take_cant_tell: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' },
+  take_fallback: { get_feedback: 'get_feedback_fallback' },
+  take_stuck: { get_analysis: 'get_analysis_transcribed' }, // never finishes
+};
+
 const pollCounts = new Map(); // `${group}|${path}` -> polls answered so far
 
-function resetPolls(group) {
-  [...pollCounts.keys()].filter((key) => key.startsWith(`${group}|`)).forEach((key) => pollCounts.delete(key));
+function resetPolls(groups) {
+  [].concat(groups).forEach((group) => {
+    [...pollCounts.keys()].filter((key) => key.startsWith(`${group}|`)).forEach((key) => pollCounts.delete(key));
+  });
 }
 
-function pollFile(route, pathOnly) {
+// The first answers are the processing files in order (one per poll), then finalFile.
+function pollFile(route, pathOnly, finalFile) {
+  const processing = [].concat(route.poll.processingFile);
+  const polls = route.poll.polls ?? processing.length;
   const key = `${route.poll.group}|${pathOnly}`;
   const seen = pollCounts.get(key) ?? 0;
-  if (seen >= route.poll.polls) return route.file;
+  if (seen >= polls) return finalFile;
   pollCounts.set(key, seen + 1);
-  return route.poll.processingFile;
+  return processing[Math.min(seen, processing.length - 1)];
 }
 
 // Picks the mock file for this request (advancing poll counters), or null when no route matches.
@@ -66,13 +84,16 @@ export function mockFileFor(method, path) {
   const route = ROUTES.find((r) => r.method === method && r.regex.test(pathOnly));
   if (!route) return null;
   if (route.resets) resetPolls(route.resets);
-  if (route.poll) return pollFile(route, pathOnly);
+  const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1];
+  const finalFile = TAKE_VARIANTS[takeId]?.[route.file] ?? route.file;
+  if (route.poll) return pollFile(route, pathOnly, finalFile);
   if (route.file === 'get_session') return SESSION_VARIANTS[pathOnly.split('/')[2]] ?? route.file;
-  return route.file;
+  return finalFile;
 }
 
 // Returns the same { ok, status, body } shape as a real response, or null when no mock exists.
-export async function mockResponse(method, path) {
+export async function mockResponse(method, path, requestBody) {
+  mockRequestLog.push({ method, path, body: requestBody instanceof FormData ? undefined : requestBody });
   const file = mockFileFor(method, path);
   if (!file) return null;
   await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
@@ -82,5 +103,6 @@ export async function mockResponse(method, path) {
     return null;
   }
   const body = await res.json();
-  return { ok: !body.error, status: body.error ? 404 : 200, body };
+  const isError = file.startsWith('error_'); // error_*.json files stand for a failed (non-2xx) response
+  return { ok: !isError, status: isError ? 404 : 200, body };
 }

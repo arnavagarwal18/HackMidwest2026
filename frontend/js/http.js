@@ -23,7 +23,7 @@ function buildOptions(method, body) {
 
 async function rawResponse(method, path, body) {
   if (MOCK_MODE) {
-    const mocked = await mockResponse(method, path);
+    const mocked = await mockResponse(method, path, body);
     if (!mocked) {
       throw new ApiError('mock_missing', `No mock response for ${method} ${path}.`, 0);
     }
@@ -47,7 +47,7 @@ async function rawResponse(method, path, body) {
 
 async function attempt(method, path, body) {
   const { ok, status, body: data } = await rawResponse(method, path, body);
-  if (data && data.error) {
+  if (!ok && data && data.error) { // a 2xx body may carry error: {...} as data (a failed analysis); only failures are errors
     const { error, ...rest } = data; // e.g. calibration_failed sends its notes beside error
     const { code, message, ...errorExtras } = error;
     throw new ApiError(code || 'error', message || 'The app server reported an error.', status, { ...errorExtras, ...rest });

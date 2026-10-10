@@ -1,0 +1,64 @@
+{
+  "id": "fb_1",
+  "take_id": "take_1",
+  "created_at": "2026-10-10T20:00:00Z",
+  "mode": "fallback",
+  "fallback_reason": "cant_tell",
+  "cant_tell": true,
+  "tier1": [],
+  "sentences": [
+    {
+      "text": "I couldn't tell how that went from this recording. Play it again slowly and clearly, and I'll listen once more.",
+      "cites": [],
+      "claims": [],
+      "jump": {
+        "bar": null,
+        "time_s": null
+      },
+      "checked": true,
+      "mode": "fallback"
+    }
+  ],
+  "dropped": [],
+  "plan_id": "plan_1",
+  "check": {
+    "coach_tries": 1,
+    "planner_tries": 1,
+    "claims_checked": 4,
+    "claims_failed": 1,
+    "sentences_dropped": 1
+  },
+  "duration_ms": 4200,
+  "plan": {
+    "id": "plan_1",
+    "take_id": "take_1",
+    "feedback_id": "fb_1",
+    "mode": "fallback",
+    "exercises": [
+      {
+        "id": "ex1",
+        "title": "Play it again, slowly",
+        "text": "Play bars 3 to 4 slowly and clearly.",
+        "bar_from": 3,
+        "bar_to": 4,
+        "start_bpm": 60,
+        "target_bpm": 96,
+        "step_bpm": 6,
+        "reps_to_pass": 3,
+        "pass_mark": {
+          "max_errors": 0,
+          "max_mean_timing_ms": 60,
+          "form_rule": null
+        },
+        "problem_ids": [],
+        "claims": [
+          {
+            "measurement_id": "p:t1:1",
+            "field": "kind",
+            "value": "notes"
+          }
+        ]
+      }
+    ]
+  }
+}
