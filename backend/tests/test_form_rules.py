@@ -15,10 +15,12 @@ BREAKING = [
     ("violin_wrist_collapsed", "violin", {"wrist_bend": 50.0}, "left"),
     ("shoulders_raised", "violin", {"neck_ratio": 0.3}, "both"),
     ("slouching", "violin", {"torso_lean": 30.0}, None),
+    ("shoulders_raised", "trumpet", {"neck_ratio": 0.3}, "both"),
+    ("slouching", "trumpet", {"torso_lean": 30.0}, None),
     ("trumpet_head_down", "trumpet", {"head_drop": 0.2}, None),
     ("trumpet_elbows_pinned", "trumpet", {"elbow_gap_left": 0.05}, "left"),
 ]
-RULE_CASES = pytest.mark.parametrize("rule, instrument, bad, side", BREAKING, ids=[b[0] for b in BREAKING])
+RULE_CASES = pytest.mark.parametrize("rule, instrument, bad, side", BREAKING, ids=[f"{b[1]}-{b[0]}" for b in BREAKING])
 
 
 def run(instrument: str, *segments, take_id: str = "t1") -> dict:
@@ -255,3 +257,10 @@ def test_analyse_gives_the_same_flags_at_1280x720_as_at_720x720():
 def test_bad_video_size_is_refused_with_a_clear_message(width, height):
     with pytest.raises(ValueError, match="width and height must both be positive"):
         analyse(timeline((1.0, {})), "violin", "t1", width=width, height=height)
+
+
+def test_trumpet_neck_fallback_flags_slouching_when_hips_are_hidden():
+    hidden = {"hip_visibility": 0.2}
+    result = run_all("trumpet", (2.0, hidden), (2.0, {**hidden, "neck_ratio": 0.45, "head_drop": 0.2}))
+    assert {"rule": "slouching", "reason": "not_visible"} in result["rules_skipped"]
+    assert [f["rule"] for f in result["flags"]] == ["slouching", "trumpet_head_down"]
