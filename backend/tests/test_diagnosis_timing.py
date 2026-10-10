@@ -43,23 +43,28 @@ def test_late_notes_in_bar_three():
     assert result["error_rate"] == pytest.approx(4 / 16)
 
 
-def test_timing_subtracts_the_calibration_latency():
-    # Step 5 on its own: a grid that already sits at the played time, notes heard 100 ms after it.
-    notes = [
-        {"id": "n:t1:1:0", "bar": 1, "status": "ok", "played_i": 0, "expected_onset_s": 1.0, "timing_ms": None},
-        {"id": "n:t1:1:1", "bar": 1, "status": "ok", "played_i": 1, "expected_onset_s": 1.5, "timing_ms": None},
-    ]
-    grid = {"kind": "fitted", "offset_s": 1.0, "sec_per_beat": 0.5}
-    result = {"notes": notes, "extras": [], "grid": grid, "fit": None}
-    played = [played_note(0, 1.1, 60), played_note(1, 1.6, 62)]
-    take = make_take(bar_from=1, bar_to=1, latency_s=0.1)
+def test_latency_is_taken_off_the_timing_on_a_metronome_grid():
+    # Bar 3 is 100 ms late; the calibration says every note is heard 100 ms after it was played.
+    played = perfect_played(SCALE_MIDIS)
+    for index in range(8, 12):
+        played[index]["onset_s"] += 0.1
 
-    timed = add_timing(result, played, take)
+    result = run(make_scale_score(), played, make_take(latency_s=0.1))
 
-    assert [n["timing_ms"] for n in timed["notes"]] == [pytest.approx(0), pytest.approx(0)]
-    assert timed["latency_ms"] == pytest.approx(100)
-    uncalibrated = add_timing(result, played, make_take(bar_from=1, bar_to=1))
-    assert uncalibrated["notes"][0]["timing_ms"] == pytest.approx(100)
+    assert result["grid"]["offset_s"] == pytest.approx(1.0)
+    assert result["latency_ms"] == pytest.approx(100)
+    assert [n["timing_ms"] for n in result["notes"] if n["bar"] == 3] == [pytest.approx(0)] * 4
+    assert [n["timing_ms"] for n in result["notes"] if n["bar"] != 3] == [pytest.approx(-100)] * 12
+    assert "late" not in [timing_flag(n["timing_ms"]) for n in result["notes"]]
+
+
+def test_a_take_delayed_only_by_the_latency_is_on_time():
+    played = perfect_played(SCALE_MIDIS, offset_s=1.1)
+
+    result = run(make_scale_score(), played, make_take(latency_s=0.1))
+
+    assert all(n["timing_ms"] == pytest.approx(0) for n in result["notes"])
+    assert result["error_rate"] == 0
 
 
 def test_rushing_bars_five_and_six():
@@ -87,6 +92,16 @@ def test_fitted_grid_for_an_upload_take():
     assert result["played_bpm"] == pytest.approx(90, abs=0.1)
     assert all(abs(n["timing_ms"]) < 1 for n in result["notes"])
     assert result["error_rate"] == 0
+
+
+def test_fitted_grid_does_not_subtract_latency_again():
+    played = perfect_played(SCALE_MIDIS, offset_s=2.3, sec_per_beat=60 / 90)
+
+    result = run(make_scale_score(), played, make_take(downbeat_s=None, tempo_bpm=80, latency_s=0.1))
+
+    assert result["grid"]["kind"] == "fitted"
+    assert all(abs(n["timing_ms"]) < 1 for n in result["notes"])
+    assert result["latency_ms"] == pytest.approx(100)
 
 
 def test_steady_bar_on_target():

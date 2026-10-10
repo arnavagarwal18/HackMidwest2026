@@ -115,7 +115,6 @@ def build_grid(
     played: list[dict],
     alignment: Alignment,
     downbeat_s: float | None,
-    latency_s: float,
     target_bpm: float,
 ) -> dict:
     """Metronome grid when the downbeat is known; otherwise the fitted one.
@@ -127,7 +126,7 @@ def build_grid(
     if downbeat_s is not None:
         return {
             "kind": config.GRID_METRONOME,
-            "offset_s": downbeat_s - latency_s,
+            "offset_s": downbeat_s,
             "sec_per_beat": target_sec_per_beat,
         }
     if alignment.fit is not None:

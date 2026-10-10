@@ -24,7 +24,7 @@ Take bars bar_from..bar_to; walk in order; skip rests; merge tied notes into one
 
 ## Step 3: line-up
 
-Two passes of Needleman-Wunsch alignment over expected notes and played notes, both in time order. Scores: same midi +2; within 1 semitone -0.5; other substitution -1; gap (missed or extra) -1. Pass 1 has no time limit. From pass 1's pairs with the same midi, fit played onset_s = offset_s + beat x sec_per_beat by least squares (needs >= 3 pairs, else pass 1 stands). Pass 2 repeats the alignment allowing a pair only when the played onset is within +-1 beat of the fitted time. Grid: if downbeat_s is not null, kind 'metronome' with offset_s = downbeat_s - latency_s and sec_per_beat = 60 / target_bpm, else kind 'fitted' using the fit. expected_onset_s comes from the grid.
+Two passes of Needleman-Wunsch alignment over expected notes and played notes, both in time order. Scores: same midi +2; within 1 semitone -0.5; other substitution -1; gap (missed or extra) -1. Pass 1 has no time limit. From pass 1's pairs with the same midi, fit played onset_s = offset_s + beat x sec_per_beat by least squares (needs >= 3 pairs, else pass 1 stands). Pass 2 repeats the alignment allowing a pair only when the played onset is within +-1 beat of the fitted time. Grid: if downbeat_s is not null, kind 'metronome' with offset_s = downbeat_s and sec_per_beat = 60 / target_bpm, else kind 'fitted' using the fit. expected_onset_s comes from the grid.
 
 ## Step 4: marking
 

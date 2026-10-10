@@ -157,10 +157,10 @@ def test_fitted_grid_without_enough_pairs_falls_back_to_target_tempo():
     assert result["grid"]["offset_s"] == pytest.approx(2.0)
 
 
-def test_metronome_grid_subtracts_latency():
+def test_metronome_grid_starts_at_the_downbeat_whatever_the_latency():
     result = align_take(make_scale_score(), perfect_played(SCALE_MIDIS), make_take(latency_s=0.12), 0)
 
-    assert result["grid"]["offset_s"] == pytest.approx(0.88)
+    assert result["grid"]["offset_s"] == pytest.approx(1.0)
 
 
 def test_pass_two_rejects_pairs_far_from_the_fitted_time():

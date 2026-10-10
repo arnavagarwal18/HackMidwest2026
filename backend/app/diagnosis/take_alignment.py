@@ -37,7 +37,6 @@ def align_take(score: dict, played: list[dict], take: dict, transposition_semito
         played_in_order,
         alignment,
         take.get("downbeat_s"),
-        take.get("latency_s") or 0.0,
         take["tempo_bpm"],
     )
     marked = mark_alignment(

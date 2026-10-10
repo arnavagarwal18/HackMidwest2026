@@ -53,7 +53,12 @@ def _round(value: float | None) -> float | None:
 def _time_notes(
     notes: list[dict], onset_by_i: dict[int, float], grid: dict, latency_s: float
 ) -> tuple[list[dict], dict[int, list[tuple[float, float]]]]:
-    """Notes with timing_ms filled in, and per bar the (expected beat, played onset) of its ok notes."""
+    """Notes with timing_ms filled in, and per bar the (expected beat, played onset) of its ok notes.
+
+    Only a metronome grid leaves the calibration latency in the played onsets; a fitted grid already
+    contains it, so no latency is subtracted there.
+    """
+    latency_s = latency_s if grid["kind"] == config.GRID_METRONOME else 0.0
     timed = []
     ok_points: dict[int, list[tuple[float, float]]] = {}
     for note in notes:
