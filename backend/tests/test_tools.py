@@ -106,7 +106,7 @@ def test_failing_data_access_returns_error_and_logs(caplog):
         raise RuntimeError("disk gone")
 
     tools = make_tools("s1", "t1", get_diagnosis=broken)
-    assert call(tools["get_bar"], 1)["error"] == "get_bar failed (RuntimeError)"  # the message stays out of what the model and trace see
+    assert call(tools["get_bar"], 1)["error"] == "_bar failed (RuntimeError)"  # the message stays out of what the model and trace see
     assert "disk gone" in caplog.text
 
 
