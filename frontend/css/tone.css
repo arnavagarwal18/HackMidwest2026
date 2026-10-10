@@ -6,3 +6,8 @@
 .tone-note.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
 .tone-hold { padding: 0.9rem 1rem; font-size: 1.1rem; touch-action: manipulation; }
 .tone-hold[aria-pressed="true"] { background: var(--notice-bg); color: var(--accent); font-weight: 600; }
+/* Stop stays on screen at the bottom, so silence is always one tap away. */
+.tone-stop {
+  position: sticky; bottom: 1rem; padding: 1.5rem 1rem; font-size: 1.75rem; font-weight: 700;
+  background: #b3261e; color: #fff; border-color: #b3261e; touch-action: manipulation;
+}

@@ -1,8 +1,9 @@
-// The tone page (frontend/tone.html): one big button per reference note, opened on a phone from the calibration QR code.
+// The tone page (frontend/tone.html): one big button per reference note, a Hold toggle and an always-visible Stop button, opened on a phone from the calibration QR code.
 // URL: tone.html[?instrument=trumpet][&note=F4] (the instrument defaults to trumpet). No app shell; errors go to the red banner.
 import { getReferenceNotes } from '../api.js';
 import { reportError } from '../banner.js';
 import { button, element } from '../dom.js';
+import { stopWhenLeaving } from './lifecycle.js';
 import { createTonePlayer } from './player.js';
 
 export const formatHz = (hz) => (Number.isInteger(hz) ? hz.toFixed(1) : String(hz));
@@ -32,7 +33,9 @@ export async function startTonePage(root, search = window.location.search) {
       el.classList.toggle('playing', name === playing);
       el.setAttribute('aria-pressed', String(name === playing));
     }),
+    onError: reportError,
   });
+  stopWhenLeaving(player);
 
   async function guarded(action) {
     try {
@@ -43,7 +46,7 @@ export async function startTonePage(root, search = window.location.search) {
   }
   const toggleHold = () => guarded(async () => {
     const hold = !player.isHolding();
-    await player.setHold(hold);
+    player.setHold(hold);
     holdButton.textContent = `Hold: ${hold ? 'on' : 'off'}`;
     holdButton.setAttribute('aria-pressed', String(hold));
   });
@@ -57,5 +60,5 @@ export async function startTonePage(root, search = window.location.search) {
     noteButtons.set(note.name, noteButton);
     root.append(noteButton);
   });
-  root.append(holdButton);
+  root.append(holdButton, button('Stop', () => guarded(() => player.stop()), 'tone-stop'));
 }

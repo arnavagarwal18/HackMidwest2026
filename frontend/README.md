@@ -198,10 +198,11 @@ cannot open the tone page (Wi-Fi isolation, firewall).
 Wi-Fi address instead. The tone page is the static file `frontend/tone.html`, so its URL is `<address>/tone.html?instrument=trumpet`
 (`StaticFiles` mount at `/`; `?note=F4` marks one note; without `instrument` the page uses trumpet as the one being asked for).
 
-**Tone page** (`tone.html`, `js/tone/page.js` and `player.js`): standalone, no app shell. One button per note ("F4 - 349.23 Hz"), the first tap
-creates the AudioContext, a sine at the exact Hz plays for 4 s at gain 0.5 with 20 ms gain ramps in and out. The playing button is highlighted.
-Tapping another note stops the current one first; tapping the playing note stops it. **Hold** keeps the note going (capped at one hour)
-until tapped again.
+**Tone page** (`tone.html`, `js/tone/page.js`, `player.js`, `lifecycle.js`): standalone, no app shell. One button per note ("F4 - 349.23 Hz"), the first tap
+creates the AudioContext, a sine at the exact Hz plays at gain 0.5 with 20 ms gain ramps. The playing button is highlighted.
+Tapping another note stops the current one first; tapping the playing note stops it. A big **Stop** button stays on screen: it sets gain to 0,
+stops the source and suspends the AudioContext. The tone stops by itself after 10 s (a wall-clock timer, not the audio clock) unless **Hold** is on;
+Hold keeps it until Stop or a tap on the note (turning Hold off starts a fresh 10 s). `pagehide` and the page turning hidden (phone locked, app switched) also stop it.
 
 **QR library:** `vendor/qrcode.js` (qrcode-generator, MIT) is loaded by `index.html`; `calibrate/qr.js` draws it as an SVG built from DOM nodes.
 

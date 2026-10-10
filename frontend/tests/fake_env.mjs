@@ -49,13 +49,15 @@ export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000'
   const head = new FakeNode('head');
   let grantMic = () => {};
   const micAnswer = holdMic ? new Promise((resolve) => { grantMic = resolve; }) : null; // the permission prompt, until grantMic()
-  const env = { grantMic: () => grantMic(), banner, head, handlers, streams: [], clipsStarted: 0, clickTimes: [] };
+  const env = { grantMic: () => grantMic(), banner, head, handlers, streams: [], documentListeners: {}, clipsStarted: 0, clickTimes: [] };
 
   globalThis.document = {
     createElement: (tag) => new FakeNode(tag),
     createElementNS: (ns, tag) => new FakeNode(tag),
     getElementById: (id) => (id === 'banner' ? banner : null),
     querySelector: () => null,
+    visibilityState: 'visible',
+    addEventListener: (type, handler) => (env.documentListeners[type] ??= []).push(handler),
     head,
   };
   globalThis.window = {
@@ -64,7 +66,8 @@ export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000'
     addEventListener: (type, handler) => type === 'hashchange' && handlers.push(handler),
     AudioContext: class {
       constructor() { this.currentTime = 100.1; this.state = 'running'; this.destination = {}; env.audioContext = this; }
-      async resume() {}
+      async resume() { this.state = 'running'; }
+      async suspend() { this.state = 'suspended'; }
       createOscillator() { const osc = { frequency: {}, connect: (n) => n, start: (t) => env.clickTimes.push(t), stop() {} }; return osc; }
       createGain() { return { gain: { value: 0.5, setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} }, connect: (n) => n, disconnect() {} }; }
       createAnalyser() { return { fftSize: 0, getFloatTimeDomainData() {} }; }
