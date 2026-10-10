@@ -7,7 +7,7 @@ from statistics import mean
 from . import config
 from .episodes import Sample, find_episodes
 from .measures import (ELBOW_ANGLE, ELBOW_GAP_LEFT, ELBOW_GAP_RIGHT, HEAD_DROP, NECK_RATIO, TORSO_LEAN, WRIST_BEND,
-                       Baseline, Reading, compute_baseline, frame_measures)
+                       Baseline, Reading, aspect_ratio, compute_baseline, frame_measures)
 
 logger = logging.getLogger("app.form")
 
@@ -126,16 +126,19 @@ def _active_rules(instrument: str, readings: list[Readings], baseline: Baseline)
     return active, skipped
 
 
-def analyse(frames: list[dict], instrument: str, take_id: str) -> dict:
+def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None = None,
+            height: int | None = None) -> dict:
     """Judge a take's frames against the posture rules: { baseline, rules_skipped, flags }.
 
     Each frame is { t, pose, left_hand, right_hand }. A rule whose measure is missing in too many frames is listed in
     rules_skipped and never flagged; the slouching torso rule then falls back to the neck and head measures.
+    `width` and `height` are the video's pixel size, used so normalised x and y share one scale; None means square.
     """
     _check_instrument(instrument)
+    aspect = aspect_ratio(width, height)
     frames = sorted(frames, key=lambda f: f["t"])
     times = [f["t"] for f in frames]
-    readings = [frame_measures(f) for f in frames]
+    readings = [frame_measures(f, aspect) for f in frames]
     baseline = compute_baseline(frames, readings)
     active, skipped = _active_rules(instrument, readings, baseline)
     for name in skipped:

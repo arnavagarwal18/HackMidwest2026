@@ -157,10 +157,28 @@ MEASURE_SPECS = {
 }
 
 
-def frame_measures(frame: dict) -> dict[str, Reading]:
-    """Every measure for one tracks-file frame; a measure is missing (value None) unless all its landmarks are visible."""
-    pose = frame.get("pose")
-    hands = {"left_hand": frame.get("left_hand"), "right_hand": frame.get("right_hand")}
+def aspect_ratio(width: int | None, height: int | None) -> float:
+    """Factor that turns normalised x into the same scale as normalised y; None for both means square pixels."""
+    if width is None and height is None:
+        return 1.0
+    if not width or not height or width <= 0 or height <= 0:
+        raise ValueError(f"video width and height must both be positive numbers, got width={width!r} height={height!r}")
+    return width / height
+
+
+def _scale_x(points, aspect: float):
+    if not points or aspect == 1.0:
+        return points
+    return [[point[0] * aspect, *point[1:]] for point in points]
+
+
+def frame_measures(frame: dict, aspect: float = 1.0) -> dict[str, Reading]:
+    """Every measure for one tracks-file frame; a measure is missing (value None) unless all its landmarks are visible.
+
+    `aspect` is width / height of the video: x is scaled by it so angles and distance ratios are not distorted.
+    """
+    pose = _scale_x(frame.get("pose"), aspect)
+    hands = {"left_hand": _scale_x(frame.get("left_hand"), aspect), "right_hand": _scale_x(frame.get("right_hand"), aspect)}
     readings = {}
     for name, spec in MEASURE_SPECS.items():
         value = spec.compute(pose, hands) if _all_visible(pose, spec.landmarks) else None

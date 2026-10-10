@@ -223,3 +223,35 @@ def test_relaxed_player_has_no_flags_on_either_instrument():
 def test_unknown_instrument_is_refused_with_a_clear_message():
     with pytest.raises(ValueError, match="unknown instrument 'cello'"):
         analyse(timeline((1.0, RELAXED)), "cello", "t1")
+
+
+def _as_wide_video(frame: dict, width: int, height: int) -> dict:
+    """The same physical pose, as the normalised coordinates a width x height video would give (x shrinks by height / width)."""
+    squeeze = height / width
+    squeeze_x = lambda points: None if points is None else [[p[0] * squeeze, *p[1:]] for p in points]  # noqa: E731
+    return {**frame, "pose": squeeze_x(frame["pose"]), "left_hand": squeeze_x(frame["left_hand"])}
+
+
+def test_measures_do_not_depend_on_the_video_aspect_ratio():
+    square = make_frame(0.0, elbow_angle=30.0, neck_ratio=0.6, torso_lean=12.0, elbow_gap_left=0.3, wrist_bend=25.0)
+    wide = _as_wide_video(square, 1280, 720)
+    expected = {n: r.value for n, r in frame_measures(square).items()}
+    assert {n: r.value for n, r in frame_measures(wide, 1280 / 720).items()} == pytest.approx(expected)
+    assert frame_measures(wide)["elbow_angle"].value != pytest.approx(expected["elbow_angle"], abs=1.0)  # unscaled is distorted
+
+
+def test_analyse_gives_the_same_flags_at_1280x720_as_at_720x720():
+    frames = timeline((RELAXED_S, {}), (2.0, {"elbow_angle": 10.0, "torso_lean": 30.0}))
+    square = analyse(frames, "violin", "t1", width=720, height=720)
+    wide = analyse([_as_wide_video(f, 1280, 720) for f in frames], "violin", "t1", width=1280, height=720)
+    assert [f["rule"] for f in wide["flags"]] == ["violin_elbow_low", "slouching"]
+    for wide_flag, square_flag in zip(wide["flags"], square["flags"]):
+        for field in ("start_s", "end_s", "value", "threshold", "severity", "confidence"):
+            assert wide_flag[field] == pytest.approx(square_flag[field])
+    assert len(wide["flags"]) == len(square["flags"])
+
+
+@pytest.mark.parametrize("width, height", [(1280, None), (None, 720), (0, 720), (1280, -1)])
+def test_bad_video_size_is_refused_with_a_clear_message(width, height):
+    with pytest.raises(ValueError, match="width and height must both be positive"):
+        analyse(timeline((1.0, {})), "violin", "t1", width=width, height=height)
