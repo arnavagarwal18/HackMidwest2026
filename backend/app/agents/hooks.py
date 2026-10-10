@@ -123,7 +123,8 @@ class CheckerHook(HookProvider):
             return None
         dropped = [{"text": _item_text(items[i]), "reasons": reasons[i]} for i in sorted(reasons)]
         self.spec.accept(self.holder, {**output, self.spec.items_key: kept}, dropped)
-        self._emit("check_fail", f"dropped {len(dropped)} items after try {MAX_TRIES}")
+        for item in dropped:
+            self._emit("dropped", f"after try {MAX_TRIES}: {item['text']} ({'; '.join(item['reasons'])})")
         return dropped
 
     def _emit(self, event: str, detail: str) -> None:
@@ -134,6 +135,9 @@ class CheckerHook(HookProvider):
 
 def _item_text(item: Any) -> str:
     return item["text"] if isinstance(item, dict) and isinstance(item.get("text"), str) else json.dumps(item, default=str)[:200]
+
+
+ERROR_RESULT_TEXT = "the tool returned an error"  # an error result's own text is the exception's message, which could hold credentials
 
 
 def _content_text(content: Any) -> str:
@@ -147,7 +151,8 @@ def _content_text(content: Any) -> str:
         elif "toolUse" in block:
             parts.append(f"call {block['toolUse']['name']}({json.dumps(block['toolUse'].get('input'), default=str)})")
         elif "toolResult" in block:
-            parts.append(f"result: {_content_text(block['toolResult'].get('content'))}")
+            result = block["toolResult"]
+            parts.append(ERROR_RESULT_TEXT if result.get("status") == "error" else f"result: {_content_text(result.get('content'))}")
         elif "json" in block:
             parts.append(json.dumps(block["json"], default=str))
     return " ".join(parts)
@@ -179,7 +184,7 @@ class TraceHook(HookProvider):
     def after_model_call(self, event: AfterModelCallEvent) -> None:
         duration_ms = _since_ms(self._model_started)
         if event.exception is not None:
-            self._add("model_error", "model", f"{type(event.exception).__name__}: {event.exception}", duration_ms)
+            self._add("model_error", "model", type(event.exception).__name__, duration_ms)
             return
         response = event.stop_response
         detail = f"{response.stop_reason}: {_content_text(response.message['content'])}" if response else ""
@@ -193,8 +198,8 @@ class TraceHook(HookProvider):
         duration_ms = _since_ms(self._tools_started.pop(event.tool_use["toolUseId"], None))
         failed = event.exception is not None or event.result.get("status") == "error"
         detail = _content_text(event.result.get("content"))
-        if event.exception is not None:
-            detail = f"{type(event.exception).__name__}: {event.exception}"
+        if failed:
+            detail = type(event.exception).__name__ if event.exception is not None else ERROR_RESULT_TEXT
         self._add("tool_error" if failed else "tool_end", event.tool_use["name"], detail, duration_ms)
 
     def _add(self, event: str, name: str, detail: str, duration_ms: int = 0) -> None:

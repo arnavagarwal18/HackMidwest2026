@@ -74,6 +74,14 @@ def _exercise_fields(exercise: dict) -> dict:
     return {**kept, "claims": exercise.get("claims") or []}
 
 
+def _fallback_detail(ai: AiFeedback | None, planned: list[dict] | None, exercise_count: int) -> str:
+    """Why the rule output is used: the class of any error (never its message, which could hold credentials) and whether the plan is the rule plan."""
+    parts = [f"error: {ai.error_class}"] if ai and ai.error_class else []
+    if not planned:
+        parts.append(f"rule plan with {exercise_count} exercises")
+    return "; ".join(parts)
+
+
 def _build_records(session_id: str, take_id: str, trace: Trace, started: float) -> tuple[dict, dict]:
     """The numbered Feedback and Plan records for a take, not yet saved."""
     session = store.get(session_id)
@@ -95,8 +103,8 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
     first_exercise = 1 + sum(len(p["exercises"]) for p in session.plans.values())
     planned = ai.exercises if ai else None
     exercises = [{"id": f"ex{first_exercise + i}", **_exercise_fields(ex)} for i, ex in enumerate(planned or fallback.exercises)]
-    if not planned:
-        trace.add("orchestrator", "fallback", reason or "plan", f"rule plan with {len(exercises)} exercises")
+    if reason or not planned:
+        trace.add("orchestrator", "fallback", reason or "plan", _fallback_detail(ai, planned, len(exercises)))
     feedback = {
         "id": feedback_id, "take_id": take_id, "created_at": datetime.now(timezone.utc).isoformat(),
         "mode": "fallback" if reason else "ai", "fallback_reason": reason, "cant_tell": fallback.cant_tell,

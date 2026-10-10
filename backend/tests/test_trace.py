@@ -112,11 +112,11 @@ def test_a_feedback_without_a_trace_file_is_404_trace_missing(client, sessions_r
 
 
 @pytest.mark.parametrize("content", ["not json", '{"events": []}'], ids=["unparseable", "not_a_list"])
-def test_an_unreadable_trace_file_is_a_logged_storage_error(client, sessions_root, fixture_data, monkeypatch, caplog, content):
+def test_an_unreadable_trace_file_is_a_logged_404_trace_missing(client, sessions_root, fixture_data, monkeypatch, caplog, content):
     session_id, feedback_id = run_with(monkeypatch, fixture_data, ai=False)
     (store.session_dir(session_id) / f"{feedback_id}_trace.json").write_text(content)
     response = client.get(f"/sessions/{session_id}/feedback/{feedback_id}/trace")
-    assert response.status_code == 500 and response.json()["error"]["code"] == "storage_error"
+    assert response.status_code == 404 and response.json()["error"]["code"] == "trace_missing"
     assert "trace" in caplog.text
 
 

@@ -5,24 +5,28 @@ import logging
 from fastapi import APIRouter
 
 from app import store
-from app.errors import AppError, storage_error
+from app.errors import AppError
 
 log = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _trace_missing() -> AppError:
+    return AppError(404, "trace_missing", "This feedback has no trace.")
+
+
 def _read_events(session_id: str, feedback_id: str) -> list[dict]:
     path = store.session_dir(session_id) / f"{feedback_id}_trace.json"
     if not path.is_file():
-        raise AppError(404, "trace_missing", "This feedback has no trace.")
+        raise _trace_missing()
     try:
         events = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         log.exception("Could not read the trace %s", path)
-        raise storage_error()
+        raise _trace_missing()
     if not isinstance(events, list):
         log.error("The trace %s is not a list of events", path)
-        raise storage_error()
+        raise _trace_missing()
     return events
 
 

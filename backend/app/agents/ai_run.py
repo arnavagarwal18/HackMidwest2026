@@ -31,6 +31,7 @@ class AiFeedback:
     check: dict = field(default_factory=dict)
     reason: str | None = None
     exercises: list[dict] | None = None
+    error_class: str | None = None  # the class (never the message) of the error that stopped the run or an agent in it
 
 
 def new_model() -> Any:
@@ -66,6 +67,11 @@ def _failure_reason(holder: RunHolder, failure: BaseException | None) -> str:
     return "checker_rejected"
 
 
+def _error_class(holder: RunHolder, failure: BaseException | None) -> str | None:
+    errors = [failure] if failure is not None else [*holder.errors, *holder.planner_errors]
+    return type(errors[0]).__name__ if errors else None
+
+
 def _accepted_exercises(session_id: str, take: dict, holder: RunHolder) -> list[dict] | None:
     if holder.plan is not None:
         return holder.plan["exercises"]
@@ -85,13 +91,12 @@ def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Tra
     except Exception as exc:
         failure = exc
         log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
-        trace.add("orchestrator", "error", type(exc).__name__, str(exc))
     exercises = _accepted_exercises(session_id, take, holder)
-    check = holder.check_counts()
+    check, error_class = holder.check_counts(), _error_class(holder, failure)
     if cant_tell:
-        return AiFeedback(None, check=check, exercises=exercises)
+        return AiFeedback(None, check=check, exercises=exercises, error_class=error_class)
     if holder.feedback is not None:
-        return AiFeedback([shown_sentence(s) for s in holder.feedback["sentences"]], holder.dropped, check, exercises=exercises)
+        return AiFeedback([shown_sentence(s) for s in holder.feedback["sentences"]], holder.dropped, check, exercises=exercises, error_class=error_class)
     reason = _failure_reason(holder, failure)
     log.error("No Coach feedback for take %s/%s: %s", session_id, take["take_id"], reason)
-    return AiFeedback(None, check=check, reason=reason, exercises=exercises)
+    return AiFeedback(None, check=check, reason=reason, exercises=exercises, error_class=error_class)
