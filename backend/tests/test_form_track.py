@@ -9,7 +9,7 @@ from app.form import config, track
 from app.form.errors import FormUnavailable, VideoUnreadable
 from app.form.hand_sides import assign_hands
 from app.form.tracker import Tracker, track_image
-from tests.form_helpers import PHOTO, add_form_take, make_photo_video
+from tests.form_helpers import PHOTO, add_form_take, make_photo_video, make_vfr_webm
 
 POSE_POINTS = 25
 HAND_POINTS = 21
@@ -119,3 +119,49 @@ def test_a_missing_model_is_form_unavailable(monkeypatch, tmp_path):
     with pytest.raises(FormUnavailable) as caught:
         Tracker(with_hands=False, video=False)
     assert caught.value.code == "form_unavailable"
+
+
+def test_a_variable_frame_rate_webm_is_tracked_by_its_own_timestamps(tmp_path):
+    video = make_vfr_webm(tmp_path / "browser.webm", frames=12, gap_s=0.233)
+    result = track.track_video(video, with_hands=False)
+    times = [frame["t"] for frame in result.frames]
+    assert len(times) >= 12 and times[-1] == pytest.approx(2.8, abs=0.15)  # ffmpeg adds a closing frame; index / 30 fps would end near 0.4 s
+    assert times == sorted(set(times))
+    assert result.tracking_quality > 0.8
+
+
+REAL_VIDEO_CAPTURE = cv2.VideoCapture  # the monkeypatch below replaces cv2.VideoCapture itself
+
+
+class BogusFpsCapture:
+    """A cv2.VideoCapture whose frame rate is wrong, as some containers report."""
+
+    def __init__(self, path, reported_fps):
+        self._capture = REAL_VIDEO_CAPTURE(path)
+        self._reported_fps = reported_fps
+
+    def get(self, prop):
+        return self._reported_fps if prop == cv2.CAP_PROP_FPS else self._capture.get(prop)
+
+    def __getattr__(self, name):
+        return getattr(self._capture, name)
+
+
+@pytest.mark.parametrize("reported_fps", [0.0, 1000.0, float("nan")])
+def test_a_bogus_frame_rate_does_not_reject_the_video(tmp_path, monkeypatch, reported_fps):
+    video = make_photo_video(tmp_path / "bogus.mp4", frames=20)
+    monkeypatch.setattr(track.cv2, "VideoCapture", lambda path: BogusFpsCapture(path, reported_fps))
+    result = track.track_video(video, with_hands=False)
+    assert result.frames_total == 20 and result.tracking_quality > 0.8
+
+
+def test_without_usable_timestamps_frame_times_come_from_the_fallback_rate(tmp_path, monkeypatch):
+    video = make_photo_video(tmp_path / "plain.mp4", frames=30)
+
+    class NoStampCapture(BogusFpsCapture):
+        def get(self, prop):
+            return 0.0 if prop == cv2.CAP_PROP_POS_MSEC else super().get(prop)
+
+    monkeypatch.setattr(track.cv2, "VideoCapture", lambda path: NoStampCapture(path, 0.0))
+    result = track.track_video(video, with_hands=False)
+    assert [frame["t"] for frame in result.frames] == pytest.approx([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], abs=0.04)

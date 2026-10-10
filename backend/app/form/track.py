@@ -18,6 +18,8 @@ from .tracker import Tracker, downscale
 
 logger = logging.getLogger("app.form.track")
 
+SLOT_TOLERANCE = 1e-6  # keeps 0.1 s * 10 fps in slot 1 despite float error
+
 
 @dataclass
 class TrackResult:
@@ -48,46 +50,76 @@ def tracks_path(session_id: str, take_id: str) -> Path:
 
 
 def _open_video(video_path: Path) -> tuple[cv2.VideoCapture, float]:
+    """The opened video and the frame rate to use when its frames carry no timestamps (the reported rate if sane)."""
     capture = cv2.VideoCapture(str(video_path))
-    native_fps = capture.get(cv2.CAP_PROP_FPS) if capture.isOpened() else 0
-    if not 0 < native_fps <= config.MAX_NATIVE_FPS:
+    if not capture.isOpened():
         capture.release()
-        raise VideoUnreadable(f"{video_path.name} can't be opened or reports frame rate {native_fps}")
-    return capture, native_fps
+        raise VideoUnreadable(f"{video_path.name} can't be opened")
+    reported_fps = capture.get(cv2.CAP_PROP_FPS)
+    return capture, reported_fps if 0 < reported_fps <= config.MAX_NATIVE_FPS else config.FALLBACK_NATIVE_FPS
+
+
+def _frame_time(capture: cv2.VideoCapture, index: int, fallback_fps: float, previous: float) -> float | None:
+    """Video seconds of the frame just grabbed: its own timestamp, else index / fallback_fps.
+
+    Browser recordings have variable frame rates, so the timestamp is the truth. None if neither grows past `previous`.
+    """
+    stamp_ms = capture.get(cv2.CAP_PROP_POS_MSEC)
+    for seconds in (stamp_ms / 1000 if stamp_ms == stamp_ms else None, index / fallback_fps):  # stamp_ms == stamp_ms drops NaN
+        if seconds is not None and seconds > previous:
+            return seconds
+    return None
+
+
+def _sample_slot(seconds: float) -> int:
+    """Which 1 / FPS-second slot of the video this time falls in; the first frame of each slot is tracked."""
+    return int(seconds * config.FPS + SLOT_TOLERANCE)
+
+
+def _sampled_fps(frames: list[dict]) -> float:
+    if len(frames) < 2:
+        return float(config.FPS)
+    return round((len(frames) - 1) / (frames[-1]["t"] - frames[0]["t"]), 2)
 
 
 def track_video(video_path: Path, with_hands: bool, time_limit_s: float = config.TIME_LIMIT_S,
                 clock: Callable[[], float] = time.monotonic) -> TrackResult:
-    """Track every round(native_fps / FPS)-th frame of the video, stopping early once time_limit_s of wall time has passed.
+    """Track one frame per 1 / FPS seconds of video time, stopping early once time_limit_s of wall time has passed.
 
     Raises VideoUnreadable if the video can't be opened or has no frames, FormUnavailable if MediaPipe can't load.
     """
-    capture, native_fps = _open_video(video_path)
-    step = max(1, round(native_fps / config.FPS))
-    result = TrackResult(fps=native_fps / step, width=0, height=0)
+    capture, fallback_fps = _open_video(video_path)
+    result = TrackResult(fps=float(config.FPS), width=0, height=0)
     started = clock()
-    index = 0
+    index, previous_time, previous_slot, previous_stamp_ms = 0, -1.0, -1, -1
     try:
         with Tracker(with_hands, video=True) as tracker:
             while capture.grab():
-                if index % step == 0:
-                    if clock() - started > time_limit_s:
-                        result.warning = f"partial: first {round(index / native_fps)} s checked"
-                        logger.warning("Tracking %s hit the %s s limit after %d frames", video_path.name, time_limit_s, result.frames_total)
-                        break
-                    ok, bgr = capture.retrieve()
-                    if not ok:
-                        break
-                    bgr = downscale(bgr)
-                    result.height, result.width = bgr.shape[:2]
-                    seconds = index / native_fps
-                    frame = tracker.track(bgr, round(seconds * 1000))
-                    result.frames.append({"t": round(seconds, 3), **frame})
+                seconds = _frame_time(capture, index, fallback_fps, previous_time)
                 index += 1
+                if seconds is None:
+                    continue
+                previous_time = seconds
+                if _sample_slot(seconds) == previous_slot:
+                    continue
+                if clock() - started > time_limit_s:
+                    result.warning = f"partial: first {round(seconds)} s checked"
+                    logger.warning("Tracking %s hit the %s s limit after %d frames", video_path.name, time_limit_s, result.frames_total)
+                    break
+                ok, bgr = capture.retrieve()
+                if not ok:
+                    break
+                previous_slot = _sample_slot(seconds)
+                bgr = downscale(bgr)
+                result.height, result.width = bgr.shape[:2]
+                previous_stamp_ms = max(round(seconds * 1000), previous_stamp_ms + 1)  # MediaPipe needs strictly growing timestamps
+                frame = tracker.track(bgr, previous_stamp_ms)
+                result.frames.append({"t": round(seconds, 3), **frame})
     finally:
         capture.release()
     if not result.frames:
         raise VideoUnreadable(f"{video_path.name} has no readable frames")
+    result.fps = _sampled_fps(result.frames)
     return result
 
 
