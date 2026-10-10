@@ -100,3 +100,17 @@ def test_other_progress_keys_are_preserved(session_id):
     save_plan(session_id, "pl1", exercise("ex1"))
     init_plan(session_id, "pl1")
     assert progress(session_id)["other"] == 1
+
+
+def test_concurrent_progress_updates_are_not_lost(session_id):
+    import threading
+
+    from app.practice.progress import update_progress
+
+    def bump(progress):
+        progress["reps"]["count"] = progress["reps"].get("count", 0) + 1
+
+    threads = [threading.Thread(target=update_progress, args=(session_id, bump)) for _ in range(40)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert progress(session_id)["reps"]["count"] == 40

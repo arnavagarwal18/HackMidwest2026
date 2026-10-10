@@ -1,14 +1,13 @@
 """Practice progress stored in session.progress, and the exercise definitions it needs.
 
 session.progress = {exercises: {ex_id: ExerciseState}, reps: {take_id: RepResult}, before_take, after_take,
-added_exercises: {ex_id: exercise}}. Every write goes through `update_progress`, which serialises read-modify-write
-cycles and saves with store.update.
+added_exercises: {ex_id: exercise}}. Every write goes through `update_progress`, which does its read-modify-write inside
+store.modify, under the store's per-session lock.
 
 `added_exercises` holds the definitions of exercises this module added itself ('Put it together', added_by 'practice'):
 they are in no plan, so `find_exercise` (what GET exercise should use) looks in the plans first and then here.
 """
 import copy
-import threading
 from typing import Callable
 
 from .. import store
@@ -16,8 +15,6 @@ from .. import store
 PROGRESS_KEY = "progress"
 ADDED_BY_PLAN = "plan"
 ADDED_BY_PRACTICE = "practice"
-
-_progress_lock = threading.Lock()
 
 
 def _with_defaults(progress: dict) -> dict:
@@ -35,15 +32,17 @@ def read_progress(session_id: str) -> dict:
 
 
 def update_progress(session_id: str, mutate: Callable[[dict], None]) -> dict:
-    """Run mutate(progress) on a copy and save it, under one lock; returns the saved progress.
+    """Run mutate(progress) on a copy and save it with store.modify, so the read-modify-write holds the session lock.
 
     Keys other modules keep in session.progress are preserved. If mutate raises, nothing is saved.
+    `mutate` runs under that lock, so it must not call the store.
     """
-    with _progress_lock:
-        progress = read_progress(session_id)
+    def change(current: dict) -> dict:
+        progress = _with_defaults(current)
         mutate(progress)
-        store.update(session_id, PROGRESS_KEY, progress)
         return progress
+
+    return store.modify(session_id, PROGRESS_KEY, change).progress
 
 
 def find_exercise(session_id: str, exercise_id: str) -> dict | None:

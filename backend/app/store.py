@@ -7,7 +7,7 @@ import uuid
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .errors import AppError, storage_error
 
@@ -109,17 +109,25 @@ def get(session_id: str) -> Session:
     return session
 
 
-def update(session_id: str, key: str, value: Any) -> Session:
-    """Set one session field under the per-session lock and save to disk."""
+def modify(session_id: str, key: str, change: Callable[[Any], Any]) -> Session:
+    """Read-modify-write one session field under the per-session lock: set it to change(current value), then save.
+
+    `change` runs while the lock is held, so it must not call back into the store.
+    """
     if key not in _UPDATABLE_FIELDS:
         raise ValueError(f"Session field '{key}' can't be updated")
     session = get(session_id)
     with _lock_for(session_id):
         previous = getattr(session, key)
-        setattr(session, key, value)
+        setattr(session, key, change(previous))
         try:
             _save(session)
         except AppError:
             setattr(session, key, previous)
             raise
     return session
+
+
+def update(session_id: str, key: str, value: Any) -> Session:
+    """Set one session field under the per-session lock and save to disk."""
+    return modify(session_id, key, lambda _: value)
