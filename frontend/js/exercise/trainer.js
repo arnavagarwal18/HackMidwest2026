@@ -30,7 +30,15 @@ export function createTrainer(root, options, deps) {
   const isActive = () => alive && host.isConnected;
   const paint = () => { if (alive) renderTrainer(host, model, handlers); };
   const setPhase = (phase) => { model.phase = phase; paint(); };
-  const fail = (err, phase) => { reportError(err); if (alive) setPhase(phase); };
+  const releaseStream = () => {
+    if (stream) deps.stopStream(stream);
+    stream = null;
+  };
+  const fail = (err, phase) => {
+    if (!alive) { console.error('A request failed after leaving the exercise screen:', err); return; }
+    reportError(err);
+    setPhase(phase);
+  };
 
   async function readExercise() {
     const loaded = await deps.getExercise(sessionId, ex);
@@ -63,13 +71,19 @@ export function createTrainer(root, options, deps) {
     model.slow = false;
     try {
       await readExercise(); // the back end owns the tempo: read it again before every rep
-      if (model.xstate.complete) { if (alive) setPhase('complete'); return; }
+      if (!alive) return;
+      if (model.xstate.complete) { setPhase('complete'); return; }
       await openRecorderStream();
+      if (!alive) { releaseStream(); return; }
       take = await deps.recordTake({
         stream, tempoBpm: model.xstate.current_bpm, countInBeats: options.countInBeats, metronomeOn: options.metronomeOn,
         beatsPerBar: options.beatsPerBar, maxSeconds: REP_MAX_SECONDS, onAutoStop: handleAutoStop,
       });
-      if (!alive) { take.stop().catch((err) => console.error('Stopping the recording after leaving failed:', err)); return; }
+      if (!alive) {
+        take.stop().catch((err) => console.error('Stopping the recording after leaving failed:', err));
+        releaseStream();
+        return;
+      }
       pending = null;
       setPhase('recording');
     } catch (err) {
@@ -187,8 +201,7 @@ export function createTrainer(root, options, deps) {
     window.removeEventListener('hashchange', destroy);
     if (take) take.stop().catch((err) => console.error('Stopping the recording after leaving failed:', err));
     take = null;
-    if (stream) deps.stopStream(stream);
-    stream = null;
+    releaseStream();
   }
 
   document.addEventListener('keydown', onKeyDown);

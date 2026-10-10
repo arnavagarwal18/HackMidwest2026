@@ -351,3 +351,58 @@ test('when the exercise cannot be loaded the red banner shows the message and Tr
   assert.ok(root.button('Record rep'));
   trainer.destroy();
 });
+
+test('leaving while the microphone prompt is open releases the stream once it arrives', async () => {
+  let grant;
+  const t = await setup({
+    tweak: (deps) => ({ ...deps, openStream: () => new Promise((resolve) => { grant = () => resolve({ stream: { id: 's' }, hasVideo: false, cameraError: null }); }) }),
+  });
+  await t.press(); // asks for the microphone; the prompt is still open
+  t.dom.window.dispatch('hashchange'); // the learner leaves the route
+  grant();
+  await settle();
+  assert.equal(t.rec.log.stopped, 1);
+  assert.equal(t.rec.log.takes.length, 0);
+});
+
+test('leaving while the exercise is being read never opens the microphone', async () => {
+  let release;
+  const t = await setup({
+    tweak: (deps) => {
+      let reads = 0;
+      return { ...deps, getExercise: (...args) => { reads += 1; return reads === 1 ? deps.getExercise(...args) : new Promise((resolve) => { release = () => resolve(deps.getExercise(...args)); }); } };
+    },
+  });
+  await t.press(); // the second read hangs
+  t.dom.window.dispatch('hashchange');
+  release();
+  await settle();
+  assert.equal(t.rec.log.opened, 0);
+  assert.equal(t.rec.log.takes.length, 0);
+});
+
+test('leaving while the recorder starts stops the recording and the stream', async () => {
+  let finish;
+  const t = await setup({
+    tweak: (deps) => ({ ...deps, recordTake: (options) => new Promise((resolve) => { finish = async () => resolve(await deps.recordTake(options)); }) }),
+  });
+  await t.press();
+  await settle();
+  t.dom.window.dispatch('hashchange');
+  await finish();
+  await settle();
+  assert.equal(t.rec.log.stops, 1);
+  assert.equal(t.rec.log.stopped, 1);
+});
+
+test('a request that fails after leaving is logged, not shown in the next screen banner', async () => {
+  let refuse;
+  const t = await setup({
+    tweak: (deps) => ({ ...deps, uploadRep: () => new Promise((_, reject) => { refuse = () => reject(new Error('Too late.')); }) }),
+  });
+  await t.playRep();
+  t.dom.window.dispatch('hashchange');
+  refuse();
+  await settle();
+  assert.equal(t.dom.banner.textContent, '');
+});
