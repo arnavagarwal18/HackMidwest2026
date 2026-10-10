@@ -115,6 +115,15 @@ def test_failing_form_leaves_take_done(session_id, tmp_path):
     assert (take["status"], take["error"], take["form_status"]) == ("done", None, "failed")
 
 
+def test_a_form_step_that_records_its_own_failure_keeps_it(session_id, tmp_path):
+    take_id = make_take(session_id, tmp_path, kind="video")
+    stub = Recorder(session_id, take_id)
+    stub.check_form = lambda s, t: pipeline.update_take(s, t, form_status="failed")  # like app.form.run, which never raises
+    stub.run()
+    take = stored(session_id)
+    assert (take["status"], take["form_status"]) == ("done", "failed")
+
+
 def test_mic_take_never_runs_form(session_id, tmp_path):
     take_id = make_take(session_id, tmp_path)
     recorder = Recorder(session_id, take_id)
@@ -197,6 +206,7 @@ def test_recorded_takes_are_not_calibrated_from_their_video(session_id, tmp_path
 
 def test_missing_steps_are_skipped_with_warning(session_id, tmp_path, caplog, monkeypatch):
     monkeypatch.delattr("app.diagnosis.run")  # app.diagnosis.run exists now; this test is about a step that doesn't
+    monkeypatch.delattr("app.form.run")  # likewise app.form.run
     monkeypatch.setattr(pipeline_steps, "transcribe", lambda *args: [NOTE])
     take_id = make_take(session_id, tmp_path, kind="video")
     pipeline.run_take_pipeline(session_id, take_id)

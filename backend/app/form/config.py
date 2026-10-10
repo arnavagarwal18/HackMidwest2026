@@ -67,3 +67,7 @@ COORDINATE_DECIMALS = 4  # precision kept when saving landmarks
 CAMERA_CHECK_MAX_BYTES = 2 * 1024 * 1024  # one JPEG frame from the live camera
 CAMERA_MIN_SHOULDER_WIDTH = 0.15  # shoulders narrower than this share of the image width: too small
 CAMERA_MIN_BRIGHTNESS = 40  # mean brightness (0-255) below this: too dark
+
+# Bars and links (LLD-4 change 4)
+LINK_MIN_TIMING_NOTES = 2  # a bar is linked as late / early when at least this many of its notes are
+FORM_FILE_SUFFIX = "_form.json"

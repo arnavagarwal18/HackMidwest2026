@@ -68,7 +68,8 @@ def _check_form(session_id: str, take_id: str, run: Step | None) -> None:
     update_take(session_id, take_id, form_status="processing")
     try:
         run(session_id, take_id)
-        update_take(session_id, take_id, form_status="done")
+        if store.get(session_id).takes[take_id]["form_status"] == "processing":  # app.form.run records its own outcome
+            update_take(session_id, take_id, form_status="done")
     except Exception:
         logger.exception("Form check of take %s/%s failed", session_id, take_id)
         update_take(session_id, take_id, form_status="failed")
