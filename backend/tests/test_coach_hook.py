@@ -60,9 +60,9 @@ def test_the_same_wrong_sentence_twice_is_dropped_and_the_rest_kept(check_ctx):
     assert model.calls == 2
 
 
-def test_dropping_every_sentence_still_accepts_an_empty_output(check_ctx):
+def test_when_every_sentence_fails_twice_nothing_is_accepted(check_ctx):
     _, _, holder, _ = run_coach(check_ctx, [submit(wrong_sentence()), submit(wrong_sentence())])
-    assert holder.feedback["sentences"] == [] and len(holder.dropped) == 1
+    assert holder.feedback is None and holder.dropped == []
 
 
 def test_a_malformed_submission_counts_as_a_try(check_ctx):
