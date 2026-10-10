@@ -62,3 +62,8 @@ MAX_NATIVE_FPS = 240  # a container reporting more than this (or 0) has a broken
 FALLBACK_NATIVE_FPS = 30  # frame times come from this rate when the video gives no usable timestamps
 TRACKS_FILE_SUFFIX = "_tracks.json"
 COORDINATE_DECIMALS = 4  # precision kept when saving landmarks
+
+# Camera check (LLD-4 change 6)
+CAMERA_CHECK_MAX_BYTES = 2 * 1024 * 1024  # one JPEG frame from the live camera
+CAMERA_MIN_SHOULDER_WIDTH = 0.15  # shoulders narrower than this share of the image width: too small
+CAMERA_MIN_BRIGHTNESS = 40  # mean brightness (0-255) below this: too dark

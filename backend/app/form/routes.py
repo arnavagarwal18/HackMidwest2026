@@ -1,11 +1,17 @@
-"""GET /sessions/{id}/takes/{take}/tracks: the saved per-frame landmarks of a video take."""
+"""Form routes: GET /sessions/{id}/takes/{take}/tracks (saved landmarks of a video take) and POST /sessions/{id}/camera-check."""
 import gzip
 import logging
 
-from fastapi import APIRouter, Request, Response
+import cv2
+import numpy as np
+from fastapi import APIRouter, File, Request, Response, UploadFile
 
+from .. import store
 from ..errors import AppError, storage_error
 from ..takes.take_store import get_take
+from . import config
+from .camera_check import check_camera_frame
+from .errors import FormUnavailable
 from .track import tracks_path
 
 logger = logging.getLogger("app.form.routes")
@@ -36,3 +42,24 @@ def get_tracks(session_id: str, take_id: str, request: Request) -> Response:
     if _accepts_gzip(request):
         body, headers["Content-Encoding"] = gzip.compress(body), "gzip"
     return Response(body, media_type="application/json", headers=headers)
+
+
+def _decode_frame(upload: UploadFile) -> np.ndarray:
+    data = upload.file.read(config.CAMERA_CHECK_MAX_BYTES + 1)
+    if len(data) > config.CAMERA_CHECK_MAX_BYTES:
+        raise AppError(413, "file_too_large", f"That picture is too big. Keep it under {config.CAMERA_CHECK_MAX_BYTES // (1024 * 1024)} MB.")
+    frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR) if data else None
+    if frame is None:
+        raise AppError(415, "unsupported_type", "That file isn't a picture we can read. Send a JPEG frame from the camera.")
+    return frame
+
+
+@router.post("/sessions/{session_id}/camera-check")
+def camera_check(session_id: str, file: UploadFile = File(...)) -> dict:
+    session = store.get(session_id)
+    frame = _decode_frame(file)
+    try:
+        return check_camera_frame(frame, session.instrument)
+    except FormUnavailable as exc:
+        logger.error("Camera check unavailable for session %s: %s", session_id, exc)
+        raise AppError(503, exc.code, exc.message)
