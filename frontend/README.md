@@ -132,7 +132,7 @@ stops it when done.
 | `camera_panel.js` | Live preview + guide outline + badge; owns the checker. `attach(stream)` / `pauseChecks()` / `detach()`. |
 | `camera_checker.js` | One `camera-check` about every second (never overlapping), stops on `stop()` or on the first failure. |
 | `camera_status.js` | Answer -> badge text (`In frame`, `Move back: right elbow not in view`, too small, too dark). |
-| `camera_guide.js` | The SVG outline per instrument (violin, trumpet). `CAMERA_POSITION = 'front'`: the front-vs-45-degrees question is settled by editing this one file. |
+| `camera_guide.js` | The SVG outline over the camera preview (head, shoulders, arms and the trumpet). `CAMERA_POSITION = 'front'`: the front-vs-45-degrees question is settled by editing this one file. |
 | `frame_capture.js` | One 640 px wide JPEG from the `<video>`. |
 
 Flow: Record -> `recordTake` with the setup -> Stop (or the 180 s cap, with a notice) -> `POST /takes` -> save `state.current_take_id` and

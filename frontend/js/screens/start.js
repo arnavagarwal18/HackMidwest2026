@@ -1,25 +1,22 @@
-// Start: pick an instrument, open a session, go to the score screen.
+// Start: open a trumpet session and go to the score screen.
 import { createSession } from '../api.js';
 import { clearSession, setSession } from '../state.js';
 import { button, el, loadScoreStyles, runGuarded } from '../score/ui.js';
 
-const INSTRUMENTS = [
-  { id: 'violin', label: 'Violin' },
-  { id: 'trumpet', label: 'Trumpet' },
-];
+const INSTRUMENT = 'trumpet'; // the app is trumpet only
 
 export function render(root) {
   loadScoreStyles();
-  const choices = INSTRUMENTS.map(({ id, label }) => button(label, () => startSession(id, choices), 'instrument-choice'));
+  const start = button('Start (trumpet)', () => startSession([start]), 'start-button');
   root.append(
-    el('h1', { text: 'What are you playing?' }),
-    el('p', { text: 'Pick your instrument to begin a practice session.', className: 'muted' }),
-    el('p', { className: 'instrument-choices', children: choices }),
+    el('h1', { text: 'Trumpet practice' }),
+    el('p', { text: 'Start a practice session to begin.', className: 'muted' }),
+    el('p', { children: [start] }),
   );
 }
 
-async function startSession(instrument, controls) {
-  const session = await runGuarded(controls, () => createSession(instrument));
+async function startSession(controls) {
+  const session = await runGuarded(controls, () => createSession(INSTRUMENT));
   if (!session) return;
   clearSession();
   setSession(session.session_id, session.instrument);
