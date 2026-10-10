@@ -23,7 +23,7 @@ def _check_inputs(played: list[dict], take: dict) -> None:
 def align_take(score: dict, played: list[dict], take: dict, transposition_semitones: int) -> dict:
     """Line a take's played notes up with the score's notes and mark each expected note.
 
-    Returns {notes, extras, outside_count, grid, fit, alignment_quality, cant_tell, cant_tell_reason}; `fit` is
+    Returns {notes, extras, outside_count, tuning_cents, grid, fit, alignment_quality, cant_tell, cant_tell_reason}; `fit` is
     {offset_s, sec_per_beat} or None. Raises DiagnosisInputError for unusable input.
     """
     _check_inputs(played, take)

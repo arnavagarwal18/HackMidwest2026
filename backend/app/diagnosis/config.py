@@ -18,6 +18,10 @@ MIN_FIT_PAIRS = 3
 OK_TOLERANCE_SEMITONES = 0.5
 CONFIDENCE_THRESHOLD = 0.5
 CENTS_PER_SEMITONE = 100
+# Tuning offset: the median sharp/flat of pairs within OK_TOLERANCE_SEMITONES, needing this many such pairs
+# and clamped to +-TUNING_MAX_SEMITONES; marking then judges each note against the player's own tuning.
+TUNING_MIN_PAIRS = 5
+TUNING_MAX_SEMITONES = 0.4
 # An unpaired played note this many beats before the first pair, or after the last pair's end, is outside the range.
 OUTSIDE_MARGIN_BEATS = 1.0
 

@@ -18,7 +18,7 @@ from tests.test_sessions import assert_error
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
 ANALYSIS_KEYS = {
     "status", "error", "form_status", "calibrated", "transposition", "alignment_quality", "cant_tell",
-    "cant_tell_reason", "tempo", "notes", "extras", "outside_count", "bars", "problems", "tier1", "form", "media_url",
+    "cant_tell_reason", "tempo", "notes", "extras", "outside_count", "tuning_cents", "bars", "problems", "tier1", "form", "media_url",
 }
 
 
@@ -266,3 +266,13 @@ def test_analysis_reports_outside_notes_and_defaults_to_zero_for_old_diagnoses(c
     old = {key: value for key, value in diagnosis.get(session_id, take_id).items() if key != "outside_count"}
     update_take(session_id, take_id, diagnosis=old)
     assert analysis(client, session_id, take_id).json()["outside_count"] == 0
+
+
+def test_analysis_reports_the_tuning_and_defaults_to_zero_for_old_diagnoses(client, sessions_root):
+    sharp = [played_note(i, 1.0 + i * 0.5, midi + 0.25) for i, midi in enumerate(SCALE_MIDIS)]
+    session_id, take_id = diagnosed_session(sharp)
+
+    assert analysis(client, session_id, take_id).json()["tuning_cents"] == 25
+    old = {key: value for key, value in diagnosis.get(session_id, take_id).items() if key != "tuning_cents"}
+    update_take(session_id, take_id, diagnosis=old)
+    assert analysis(client, session_id, take_id).json()["tuning_cents"] == 0
