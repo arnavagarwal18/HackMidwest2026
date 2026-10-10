@@ -68,6 +68,7 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, pollOptio
   }
 
   function showReview(status, source) {
+    state.score.status = 'scanned';
     const confirm = button('Confirm', () => confirmReviewed(confirm), 'primary');
     const rescan = button('Rescan', () => { clear(); onRescan(); });
     root.append(el('h2', { text: 'Check your score' }), el('p', { text: `${status.bars} bars found.`, className: 'bar-count' }));
