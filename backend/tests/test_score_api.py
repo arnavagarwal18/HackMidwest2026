@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -17,8 +18,8 @@ class StubStore:
     def __init__(self, status: str, folder: Path):
         self.status, self.folder = status, folder
 
-    def score_status(self, session_id: str) -> str:
-        return self.status
+    def get(self, session_id: str) -> SimpleNamespace:
+        return SimpleNamespace(score_status=self.status)
 
     def session_dir(self, session_id: str) -> Path:
         return self.folder

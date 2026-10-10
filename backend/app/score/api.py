@@ -10,16 +10,20 @@ from app.score.model import Score
 CONFIRMED = "confirmed"
 
 
-class ScoreStore(Protocol):
-    """What get_score needs from the session store (app.store)."""
+class SessionLike(Protocol):
+    score_status: str
 
-    def score_status(self, session_id: str) -> str: ...
+
+class ScoreStore(Protocol):
+    """What get_score needs from the session store (the app.store module)."""
+
+    def get(self, session_id: str) -> SessionLike: ...
 
     def session_dir(self, session_id: str) -> Path: ...
 
 
 def _default_store() -> ScoreStore:
-    from app import store  # imported lazily: the store module is built separately
+    from app import store  # imported lazily so the score package imports without the web stack
 
     return store
 
@@ -27,7 +31,7 @@ def _default_store() -> ScoreStore:
 def get_score(session_id: str, store: ScoreStore | None = None) -> Score:
     """Return the session's confirmed score; raises NotConfirmed otherwise."""
     store = store or _default_store()
-    status = store.score_status(session_id)
+    status = store.get(session_id).score_status
     if status != CONFIRMED:
         raise NotConfirmed(f"The score for session {session_id} is '{status}', not confirmed yet.")
     return Score.load(store.session_dir(session_id))
