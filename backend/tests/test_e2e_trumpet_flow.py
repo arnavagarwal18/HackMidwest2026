@@ -205,9 +205,8 @@ def test_7_trace_route(flow):
     feedback = flow.need(flow.feedback, "feedback")
     response = flow.client.get(f"/sessions/{session_id}/feedback/{feedback['id']}/trace")
     print("trace:", response.status_code, response.text[:200])
-    assert response.status_code in (200, 404), response.text
-    if response.status_code == 200:
-        assert response.json()["feedback_id"] == feedback["id"]
-        assert isinstance(response.json()["events"], list)
-    else:
-        assert response.json()["error"]["code"] == "trace_missing"
+    assert response.status_code == 200, response.text  # run_feedback always saves a trace
+    body = response.json()
+    assert body["feedback_id"] == feedback["id"]
+    assert body["events"], "the trace has no events"
+    assert any(event["agent"] == "orchestrator" for event in body["events"]), body["events"]
