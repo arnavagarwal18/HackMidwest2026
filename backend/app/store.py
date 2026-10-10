@@ -38,6 +38,7 @@ class Session:
     feedback: dict[str, dict] = field(default_factory=dict)
     plans: dict[str, dict] = field(default_factory=dict)
     progress: dict = field(default_factory=dict)
+    clean_tempo: dict[str, float] = field(default_factory=dict)  # '{bar_from}-{bar_to}' -> BPM
 
 
 _READ_ONLY_FIELDS = ("session_id", "created_at")

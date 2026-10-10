@@ -75,9 +75,9 @@ def needleman_wunsch(
     return pairs
 
 
-def fit_line(points: list[tuple[float, float]]) -> Fit | None:
+def fit_line(points: list[tuple[float, float]], min_points: int = config.MIN_FIT_PAIRS) -> Fit | None:
     """Least squares onset_s = offset_s + beat * sec_per_beat; None if too few or degenerate points."""
-    if len(points) < config.MIN_FIT_PAIRS:
+    if len(points) < min_points:
         return None
     mean_x = sum(x for x, _ in points) / len(points)
     mean_y = sum(y for _, y in points) / len(points)

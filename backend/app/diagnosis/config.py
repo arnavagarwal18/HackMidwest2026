@@ -32,3 +32,21 @@ STATUS_UNCERTAIN = "uncertain"
 
 GRID_METRONOME = "metronome"
 GRID_FITTED = "fitted"
+
+# Timing (step 5): a note is late / early beyond this many ms
+LATE_EARLY_MS = 80
+MS_PER_S = 1000
+TIMED_STATUSES = (STATUS_OK, STATUS_WRONG)
+# A bar's local tempo needs this many ok notes; drift beyond +-this percent of the target is rushing / dragging
+MIN_BAR_NOTES_FOR_TEMPO = 2
+DRIFT_LIMIT_PCT = 5.0
+TIMING_LATE = "late"
+TIMING_EARLY = "early"
+DRIFT_RUSHING = "rushing"
+DRIFT_DRAGGING = "dragging"
+DRIFT_STEADY = "steady"
+TIMING_DECIMALS = 2
+
+# Error rate and clean tempo (step 6)
+CLEAN_MAX_ERROR_RATE = 0.10
+CLEAN_FALLBACK_FRACTION = 0.7
