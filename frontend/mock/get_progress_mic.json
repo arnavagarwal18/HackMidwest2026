@@ -1,0 +1,12 @@
+{
+  "before": {
+    "source": "take", "take_id": "take_1", "bar_from": 3, "bar_to": 4,
+    "errors": 3, "error_rate": 0.5, "played_bpm": 88, "clean_bpm": null,
+    "form_flags": 0, "form_checked": false
+  },
+  "after": null,
+  "exercises": [
+    { "id": "ex1", "title": "Bar 3 slow", "start_bpm": 60, "target_bpm": 96,
+      "best_passed_bpm": null, "complete": false, "reps": 1, "passes": 0 }
+  ]
+}

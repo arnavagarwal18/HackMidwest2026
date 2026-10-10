@@ -82,3 +82,30 @@ pre.response {
 main.with-chat { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.25rem; max-width: 80rem; }
 @media (max-width: 50rem) { main.with-chat { grid-template-columns: 1fr; } }
 .chat-panel { padding: 0 1rem; border-left: 1px solid #e4e4e0; }
+
+/* Progress screen */
+.progress-table { table-layout: fixed; border-collapse: collapse; width: 100%; background: #fff; border: 1px solid #e4e4e0; }
+.progress-table th, .progress-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e4e4e0; }
+.progress-table thead th { background: #f0f0ec; }
+.exercise-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.exercise-item { padding: 0.75rem 1rem; background: #fff; border: 1px solid #e4e4e0; border-radius: 6px; }
+.exercise-item p { margin: 0.25rem 0 0; }
+.badge { padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--notice-bg); color: var(--accent); font-size: 0.85rem; }
+.badge-done { background: #d1fadf; color: #05603a; }
+.empty-state { padding: 1.5rem; background: #fff; border: 1px dashed #c8c8c2; border-radius: 6px; }
+
+/* Trace screen: one colour per agent */
+.trace-group { --agent: #667085; margin: 1rem 0; padding: 0.25rem 1rem; background: #fff; border: 1px solid #e4e4e0; border-left: 6px solid var(--agent); border-radius: 6px; }
+.trace-group h3 { margin: 0.5rem 0; color: var(--agent); }
+.agent-orchestrator { --agent: #6941c6; }
+.agent-coach { --agent: #1570ef; }
+.agent-planner { --agent: #b54708; }
+.agent-checker { --agent: #087443; }
+.trace-events { list-style: none; margin: 0; padding: 0; }
+.trace-event { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; padding: 0.35rem 0; border-top: 1px solid #f0f0ec; }
+.trace-time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 4rem; }
+.trace-marker { padding: 0 0.5rem; border-radius: 4px; background: #f0f0ec; font-size: 0.8rem; font-weight: 600; }
+.trace-check_pass .trace-marker { background: #d1fadf; color: #05603a; }
+.trace-check_fail .trace-marker { background: var(--error-bg); color: var(--error); }
+.trace-dropped .trace-marker, .trace-fallback .trace-marker { background: #fef0c7; color: #93370d; }
+.trace-detail { flex-basis: 100%; margin: 0 0 0 5rem; font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; white-space: pre-wrap; overflow-wrap: anywhere; }
