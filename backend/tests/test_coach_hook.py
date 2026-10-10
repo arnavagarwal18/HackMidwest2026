@@ -56,7 +56,7 @@ def test_the_same_wrong_sentence_twice_is_dropped_and_the_rest_kept(check_ctx):
     assert [s["text"] for s in holder.feedback["sentences"]] == [sentence()["text"]]
     [dropped] = holder.dropped
     assert dropped["text"] == WRONG_TEXT and dropped["reasons"][0].startswith("count mismatch")
-    assert holder.check_counts() == {"coach_tries": 2, "claims_checked": 8, "claims_failed": 1, "sentences_dropped": 1}
+    assert holder.check_counts() == {"coach_tries": 2, "planner_tries": 0, "claims_checked": 8, "claims_failed": 1, "sentences_dropped": 1}
     assert model.calls == 2
 
 

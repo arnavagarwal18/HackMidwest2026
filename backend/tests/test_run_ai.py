@@ -41,7 +41,7 @@ def test_the_ai_path_saves_checked_coach_sentences(sessions_root, fixture_data, 
     assert shown["jump"] == {"bar": 3, "time_s": None}
     assert feedback["dropped"] == []
     assert feedback["check"] == {"coach_tries": 1, "planner_tries": 0, "claims_checked": 4, "claims_failed": 0, "sentences_dropped": 0}
-    assert plan["mode"] == "fallback" and len(plan["exercises"]) == 3  # the Planner comes later
+    assert plan["mode"] == "fallback" and len(plan["exercises"]) == 3  # the Orchestrator never asked for the Planner
     assert model.calls == 4
 
 
@@ -102,10 +102,8 @@ def test_coach_output_accepted_before_a_timeout_is_kept(sessions_root, fixture_d
     assert (feedback["mode"], feedback["fallback_reason"], len(feedback["sentences"])) == ("ai", None, 1)
 
 
-def test_a_take_that_cant_be_judged_never_calls_the_model(sessions_root, fixture_data, monkeypatch):
-    def forbidden():
-        raise AssertionError("the model must not be built")
-
-    monkeypatch.setattr(ai_run, "new_model", forbidden)
-    feedback, _ = feedback_of(fixture_data, cant_tell=True)
-    assert (feedback["mode"], feedback["fallback_reason"]) == ("fallback", "cant_tell")
+def test_a_take_that_cant_be_judged_runs_only_the_planner_and_keeps_the_cant_tell_sentences(sessions_root, fixture_data, monkeypatch):
+    model = use_script(monkeypatch, OVERVIEW, tool_turn("planner", {"brief": "Plan a slower retake of take t1."}), ACCESS_DENIED, text_turn())
+    feedback, plan = feedback_of(fixture_data, cant_tell=True)
+    assert (feedback["mode"], feedback["fallback_reason"], feedback["cant_tell"]) == ("fallback", "cant_tell", True)
+    assert (plan["mode"], len(plan["exercises"])) == ("fallback", 1) and model.calls == 4

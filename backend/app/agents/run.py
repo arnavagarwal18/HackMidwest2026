@@ -1,7 +1,7 @@
 """run_feedback: build and save a take's feedback record and practice plan, using the rule plan on any failure.
 
-With AI on, the Orchestrator and Coach write the feedback sentences (ai_run); the plan is still the rule plan.
-Any failure falls back to the rule feedback with a reason, keeping a Coach output that was already accepted.
+With AI on, the Orchestrator's Coach writes the feedback sentences and its Planner the exercises (ai_run), in parallel.
+Any failure falls back to the rule sentences (with a reason) or the rule plan, keeping whichever output was already accepted.
 """
 import logging
 import threading
@@ -19,6 +19,8 @@ from app.takes.pipeline_steps import resolve_step
 from app.takes.take_store import update_take
 
 log = logging.getLogger(__name__)
+
+EXERCISE_KEYS = ("title", "text", "bar_from", "bar_to", "start_bpm", "target_bpm", "step_bpm", "reps_to_pass", "pass_mark", "problem_ids")
 
 _run_locks: dict[tuple[str, str], threading.Lock] = {}
 _registry_lock = threading.Lock()
@@ -44,8 +46,6 @@ def ai_enabled() -> bool:
 
 def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bool, trace: Trace) -> tuple[AiFeedback | None, str | None]:
     """The AI path's result (None when it didn't run) and the reason the rule feedback is used instead (None when the AI's is)."""
-    if cant_tell:
-        return None, "cant_tell"
     try:
         enabled = ai_enabled()
     except Exception:
@@ -53,9 +53,9 @@ def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bo
         trace.add("orchestrator", "fallback", "model_error", "AI settings could not be read")
         return None, "model_error"
     if not enabled:
-        return None, "disabled"
-    ai = run_ai_feedback(session_id, take, history, trace)
-    return ai, ai.reason
+        return None, "cant_tell" if cant_tell else "disabled"
+    ai = run_ai_feedback(session_id, take, history, trace, cant_tell)
+    return ai, "cant_tell" if cant_tell else ai.reason
 
 
 def _earlier_takes(takes: dict[str, dict], take: dict) -> list[dict]:
@@ -66,6 +66,12 @@ def _earlier_takes(takes: dict[str, dict], take: dict) -> list[dict]:
         if isinstance(t.get("diagnosis"), dict) and (t["bar_from"], t["bar_to"]) == (take["bar_from"], take["bar_to"])
         and int(t["take_id"][1:]) < int(take["take_id"][1:])
     ]
+
+
+def _exercise_fields(exercise: dict) -> dict:
+    """An exercise as stored, without anything an agent added beyond the schema."""
+    kept = {key: exercise[key] for key in EXERCISE_KEYS}
+    return {**kept, "claims": exercise.get("claims") or []}
 
 
 def _build_records(session_id: str, take_id: str, trace: Trace, started: float) -> tuple[dict, dict]:
@@ -87,8 +93,10 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
         fallback, ai, reason = build_fallback({}, take, [], {}), None, "model_error"
     feedback_id, plan_id = f"fb{len(session.feedback) + 1}", f"pl{len(session.plans) + 1}"
     first_exercise = 1 + sum(len(p["exercises"]) for p in session.plans.values())
-    exercises = [{"id": f"ex{first_exercise + i}", **ex} for i, ex in enumerate(fallback.exercises)]
-    trace.add("orchestrator", "fallback", reason or "plan", f"rule plan with {len(exercises)} exercises")
+    planned = ai.exercises if ai else None
+    exercises = [{"id": f"ex{first_exercise + i}", **_exercise_fields(ex)} for i, ex in enumerate(planned or fallback.exercises)]
+    if not planned:
+        trace.add("orchestrator", "fallback", reason or "plan", f"rule plan with {len(exercises)} exercises")
     feedback = {
         "id": feedback_id, "take_id": take_id, "created_at": datetime.now(timezone.utc).isoformat(),
         "mode": "fallback" if reason else "ai", "fallback_reason": reason, "cant_tell": fallback.cant_tell,
@@ -98,7 +106,7 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
                   **(ai.check if ai else {})},
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
-    plan = {"id": plan_id, "take_id": take_id, "feedback_id": feedback_id, "mode": "fallback", "exercises": exercises}
+    plan = {"id": plan_id, "take_id": take_id, "feedback_id": feedback_id, "mode": "ai" if planned else "fallback", "exercises": exercises}
     return feedback, plan
 
 

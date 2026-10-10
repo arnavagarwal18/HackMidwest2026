@@ -11,18 +11,36 @@ class RunHolder:
     coach_tries: int = 0
     claims_checked: int = 0
     claims_failed: int = 0
-    errors: list[Exception] = field(default_factory=list)  # exceptions raised inside an agent tool
+    plan: dict | None = None  # the accepted PlannerOutput { exercises }
+    plan_dropped: list[dict] = field(default_factory=list)  # [{ text, reasons }] for exercises the Checker removed
+    planner_tries: int = 0
+    plan_claims_checked: int = 0
+    plan_claims_failed: int = 0
+    errors: list[Exception] = field(default_factory=list)  # exceptions raised inside the Coach tool
+    planner_errors: list[Exception] = field(default_factory=list)  # exceptions raised inside the Planner tool
 
-    def note_check(self, tries: int, result: dict) -> None:
+    def note_feedback_check(self, tries: int, result: dict) -> None:
         """Record the latest Checker result for the Coach's submit number `tries`."""
         self.coach_tries = tries
         self.claims_checked = result["claims_checked"]
         self.claims_failed = result["claims_failed"]
 
+    def note_plan_check(self, tries: int, result: dict) -> None:
+        """Record the latest Checker result for the Planner's submit number `tries`."""
+        self.planner_tries = tries
+        self.plan_claims_checked = result["claims_checked"]
+        self.plan_claims_failed = result["claims_failed"]
+
     def accept_feedback(self, output: dict, dropped: list[dict]) -> None:
         self.feedback = output
         self.dropped = dropped
 
+    def accept_plan(self, output: dict, dropped: list[dict]) -> None:
+        self.plan = output
+        self.plan_dropped = dropped
+
     def check_counts(self) -> dict:
-        return {"coach_tries": self.coach_tries, "claims_checked": self.claims_checked,
-                "claims_failed": self.claims_failed, "sentences_dropped": len(self.dropped)}
+        return {"coach_tries": self.coach_tries, "planner_tries": self.planner_tries,
+                "claims_checked": self.claims_checked + self.plan_claims_checked,
+                "claims_failed": self.claims_failed + self.plan_claims_failed,
+                "sentences_dropped": len(self.dropped)}
