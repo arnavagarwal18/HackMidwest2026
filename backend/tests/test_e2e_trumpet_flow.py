@@ -10,6 +10,7 @@ agents and the Instructor use their deterministic fallbacks.
 """
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from fastapi.testclient import TestClient
 from app import store
 from app.agents import config as agents_config
 from app.main import app
+from app.takes.media_tools import ffmpeg_exe
 
 TESTDATA = Path(__file__).parents[2] / "testdata"
 MAIN_SHEET, MAIN_VIDEO = "trumpet_video1_sheet.webp", "trumpet_video1.mp4"
@@ -26,6 +28,12 @@ EXTRA_SHEETS = ("ode_to_joy_photo.jpg", "trumpet_video2_sheet.webp")
 SCAN_TIMEOUT_S, TAKE_TIMEOUT_S, POLL_S = 300, 600, 1.0
 FEEDBACK_TAKE_BARS = 8
 FORM_SETTLED = ("done", "failed", "none")
+REP_POLL_S, REP_TIMEOUT_S = 0.5, 60
+REP_CLIP_S = 45  # the testdata videos run 64 s and a rep is capped at 60 s, so the rep is the first 45 s
+REP_FINAL_STATUSES = ("scored", "not_counted", "failed")
+REP_RESULT_KEYS = {"take_id", "exercise_id", "tempo_bpm", "status", "passed", "reasons", "errors", "mean_abs_timing_ms",
+                   "form_flag_ids", "next_bpm", "streak", "exercise_complete"}
+WHOLE_RANGE_TITLE = "Put it together"
 IMAGE_TYPES = {".webp": "image/webp", ".jpg": "image/jpeg"}
 
 pytestmark = pytest.mark.skipif(os.environ.get("RUN_E2E") != "1", reason="set RUN_E2E=1 to run the end-to-end trumpet flow")
@@ -62,14 +70,14 @@ class Flow:
         assert posted.json() == {"score_status": "scanning"}
         return self.poll(f"/sessions/{session_id}/score/status", lambda b: b["score_status"] != "scanning", SCAN_TIMEOUT_S)
 
-    def poll(self, route: str, settled, timeout_s: float) -> dict:
+    def poll(self, route: str, settled, timeout_s: float, poll_s: float = POLL_S) -> dict:
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             response = self.client.get(route)
             assert response.status_code == 200, f"GET {route}: {response.status_code} {response.text}"
             if settled(response.json()):
                 return response.json()
-            time.sleep(POLL_S)
+            time.sleep(poll_s)
         pytest.fail(f"GET {route} still not settled after {timeout_s} s: {json.dumps(response.json())[:300]}")
 
 
@@ -180,10 +188,6 @@ def test_4_feedback_is_flat_with_a_plan(flow):
     flow.feedback = feedback
 
 
-def test_5_practice_routes():
-    pytest.skip("the practice routes (reps, exercise, progress) are not in app/main.py yet: only app/practice/ helpers exist")
-
-
 def test_6_instructor_chat_falls_back(flow):
     session_id = flow.need(flow.session_id, "a session")
     take_id = flow.need(flow.take_id, "a finished take")
@@ -210,3 +214,96 @@ def test_7_trace_route(flow):
     assert body["feedback_id"] == feedback["id"]
     assert body["events"], "the trace has no events"
     assert any(event["agent"] == "orchestrator" for event in body["events"]), body["events"]
+
+
+def lld6_break(message: str) -> None:
+    """A response shape that contradicts LLD-6: xfail, so the break is reported without hiding the rest of the flow."""
+    pytest.xfail(f"LLD-6 (Caleb): {message}")
+
+
+def check_lld6(condition: bool, message: str) -> None:
+    if not condition:
+        lld6_break(message)
+
+
+def bars_of(item: dict) -> tuple:
+    return item["bar_from"], item["bar_to"]
+
+
+def pick_exercise(progress: dict, plan_exercises: list[dict]) -> str:
+    """The whole-range exercise when there is one (so a scored rep can fill 'after'), else the plan exercise on the before bars."""
+    before_bars = bars_of(progress["before"])
+    ids = [ex["id"] for ex in progress["exercises"]]
+    whole = [ex["id"] for ex in progress["exercises"] if ex["title"] == WHOLE_RANGE_TITLE]
+    covering = [ex["id"] for ex in plan_exercises if bars_of(ex) == before_bars and ex["id"] in ids]
+    return (whole or covering or ids)[0]
+
+
+def trim_clip(source: Path, target: Path, seconds: float) -> Path:
+    """The first `seconds` of a video, copied without re-encoding, with the backend's own ffmpeg."""
+    done = subprocess.run([ffmpeg_exe(), "-y", "-i", str(source), "-t", str(seconds), "-c", "copy", str(target)],
+                          capture_output=True, text=True, errors="replace", timeout=REP_CLIP_S)
+    assert done.returncode == 0 and target.exists(), f"could not trim {source.name}: {done.stderr[-300:]}"
+    return target
+
+
+def post_rep(flow: Flow, session_id: str, exercise_id: str, clip: Path):
+    return flow.client.post(f"/sessions/{session_id}/exercises/{exercise_id}/reps",
+                            data={"kind": "video", "source": "uploaded"},
+                            files={"file": (clip.name, clip.read_bytes(), "video/mp4")})
+
+
+# Last on purpose: a practice rep is a take too, and the chat (step 6) answers about the latest take, so a rep before
+# it would move the chat from the main take to the rep.
+def test_8_practice_rep_is_scored_and_progress_follows(flow, tmp_path):
+    session_id = flow.need(flow.session_id, "a session")
+    take_id = flow.need(flow.take_id, "a finished take")
+    feedback = flow.need(flow.feedback, "feedback and its plan")
+    progress_route = f"/sessions/{session_id}/progress"
+
+    first = flow.client.get(progress_route)
+    assert first.status_code == 200, first.text
+    progress = first.json()
+    print("progress before the rep:", json.dumps(progress)[:400])
+    assert progress["before"] and progress["before"]["source"] == "take", progress["before"]
+    assert isinstance(progress["exercises"], list) and progress["exercises"], "progress lists no exercises"
+    plan_exercises = feedback["plan"]["exercises"]
+    if not any(bars_of(ex) == bars_of(progress["before"]) for ex in plan_exercises):
+        assert any(ex["title"] == WHOLE_RANGE_TITLE for ex in progress["exercises"]), (
+            "no plan exercise covers the before take's bars, yet there is no 'Put it together' exercise")
+
+    exercise_id = pick_exercise(progress, plan_exercises)
+    got = flow.client.get(f"/sessions/{session_id}/exercises/{exercise_id}")
+    assert got.status_code == 200, got.text
+    exercise, current_bpm = got.json()["exercise"], got.json()["state"]["current_bpm"]
+    assert exercise["id"] == exercise_id and current_bpm
+    print(f"practising {exercise['title']!r} ({exercise_id}) bars {exercise['bar_from']}-{exercise['bar_to']} at {current_bpm} BPM")
+
+    reps_route = f"/sessions/{session_id}/exercises/{exercise_id}/reps"
+    clip = trim_clip(TESTDATA / MAIN_VIDEO, tmp_path / "rep.mp4", REP_CLIP_S)
+    posted = post_rep(flow, session_id, exercise_id, clip)
+    assert posted.status_code == 202, posted.text
+    accepted = posted.json()
+    rep_id = accepted["rep_id"]
+    assert accepted["tempo_bpm"] == current_bpm and accepted["status"] == "processing", accepted
+
+    second = post_rep(flow, session_id, exercise_id, clip)
+    print("second rep while the first processes:", second.status_code, second.text[:200])
+    assert second.status_code in (202, 409), second.text
+    rep_ids = [rep_id] + ([second.json()["rep_id"]] if second.status_code == 202 else [])
+
+    for pending_id in rep_ids:
+        result = flow.poll(f"{reps_route}/{pending_id}", lambda r: r["status"] != "processing", REP_TIMEOUT_S, REP_POLL_S)
+        check_lld6(set(result) == REP_RESULT_KEYS, f"RepResult keys are {sorted(result)}, expected {sorted(REP_RESULT_KEYS)}")
+        assert result["status"] in REP_FINAL_STATUSES, result
+        assert result["take_id"] == pending_id and result["exercise_id"] == exercise_id, result
+        print(f"rep {pending_id}: status={result['status']} reasons={result['reasons']} next_bpm={result['next_bpm']}")
+    scored_whole = result["status"] == "scored" and bars_of(exercise) == bars_of(progress["before"])
+
+    after = flow.client.get(progress_route)
+    assert after.status_code == 200, after.text
+    print("progress after the rep:", json.dumps(after.json())[:400])
+    assert after.json()["before"]["take_id"] == take_id
+    if scored_whole:
+        assert after.json()["after"] is not None, "a rep scored on the before take's bars, but 'after' is null"
+        assert after.json()["after"]["source"] == "rep", after.json()["after"]
