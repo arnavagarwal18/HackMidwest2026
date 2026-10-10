@@ -1,4 +1,8 @@
-"""The background photo scan: clean the photo, run homr, record the result on the session.
+"""The background photo scan: clean the photo, run homr and the Score reader side by side, record the result.
+
+The reader runs in a second thread on the same cleaned photo. If homr succeeds, the scan waits for the reader and
+compare.py turns its reading into doubtful_bars, double_checked and warnings. A reader that fails or times out
+never fails the scan: it just means "not double-checked". If homr fails, the scan fails whatever the reader says.
 
 Each part writes through store.update(session_id, key, value). Status is written last so a poller never sees
 'scanned' before the other fields are in place.
@@ -7,13 +11,16 @@ from __future__ import annotations
 
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from app import store
 from app.errors import AppError
-from app.score import clean, homr_runner
+from app.score import clean, homr_runner, reader_agent
+from app.score.compare import CompareResult, compare_bars
 from app.score.exceptions import ScanError
 from app.score.model import Score
+from app.score.reading import Reading
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +30,6 @@ SCAN_MESSAGES = {
     "scan_timeout": f"Reading the photo took too long. {THREE_CHOICES}",
     "no_notes": "No notes found in this photo. Is the whole staff inside the crop?",
 }
-NOT_DOUBLE_CHECKED_WARNING = "We couldn't double-check this scan: compare it with your copy before you confirm."
 
 
 def start_scan(session_id: str, photo: Path) -> threading.Thread:
@@ -35,35 +41,39 @@ def start_scan(session_id: str, photo: Path) -> threading.Thread:
 
 def run_scan(session_id: str, photo: Path) -> None:
     """Never raises: any failure ends as score_status 'failed' with a score_error code."""
+    reader = ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"reader-{session_id}")
     try:
         folder = store.session_dir(session_id)
         cleaned = clean.clean_photo(photo, folder / clean.CLEANED_FILENAME)
+        reading_future = reader.submit(_run_reader, cleaned)
         score = homr_runner.run_homr(cleaned, folder)
-        _run_reader(cleaned)
-        _record_success(session_id, folder, score)
+        _record_success(session_id, folder, score, reading_future.result())
     except ScanError as exc:
         logger.error("Scan of session %s failed (%s): %s", session_id, exc.code, exc)
         _record_failure(session_id, exc.code)
     except Exception:
         logger.exception("Scan of session %s crashed", session_id)
         _record_failure(session_id, "scan_failed")
+    finally:
+        reader.shutdown(wait=False)  # a failed scan does not wait for the reader
 
 
-def _run_reader(cleaned_png: Path) -> None:
-    """HOOK for the Score reader (LLD-1 change 6): no reader yet, so there is no reading to compare with.
+def _run_reader(cleaned_png: Path) -> Reading | None:
+    """Run the Score reader; None means 'no reading', and the scan carries on without a double-check."""
+    try:
+        return reader_agent.read_score(cleaned_png)
+    except Exception:
+        logger.exception("Score reader crashed on %s, so there is no reading", cleaned_png)
+        return None
 
-    Later this runs the reader on `cleaned_png` in a second thread (alongside homr) and returns its reading,
-    which compare.py turns into doubtful_bars and double_checked.
-    """
-    return None
 
-
-def _record_success(session_id: str, folder: Path, score: Score) -> None:
-    score.warnings.append(NOT_DOUBLE_CHECKED_WARNING)  # until a reader result exists, see _run_reader
+def _record_success(session_id: str, folder: Path, score: Score, reading: Reading | None) -> None:
+    comparison: CompareResult = compare_bars(score, reading)
+    score.warnings.extend(comparison.warnings)
     score.save(folder)
     store.update(session_id, "score_error", None)
-    store.update(session_id, "doubtful_bars", [])
-    store.update(session_id, "double_checked", False)
+    store.update(session_id, "doubtful_bars", comparison.doubtful_bars)
+    store.update(session_id, "double_checked", comparison.double_checked)
     store.update(session_id, "score_status", "scanned")
 
 

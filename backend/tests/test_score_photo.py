@@ -4,13 +4,19 @@ from pathlib import Path
 
 import pytest
 
-from app.score import homr_runner, scan_job
+from app.score import compare, homr_runner, reader_agent, scan_job
 from tests.photo_factory import encode, staff_image
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ODE_TO_JOY = Path(__file__).parents[1] / "app" / "score" / "builtins" / "ode_to_joy.musicxml"
 STUB = FIXTURES / "stub_homr.py"
 MB = 1024 * 1024
+
+
+@pytest.fixture(autouse=True)
+def no_reader(monkeypatch):
+    """These tests are about the photo scan itself: the Score reader gives no reading (and never calls Bedrock)."""
+    monkeypatch.setattr(reader_agent, "read_score", lambda image_path, timeout_s=30: None)
 
 
 @pytest.fixture
@@ -74,7 +80,7 @@ def test_photo_scan_goes_from_scanning_to_scanned(client, session_id, stub_homr)
         "bars": 16,
         "doubtful_bars": [],
         "double_checked": False,
-        "warnings": [scan_job.NOT_DOUBLE_CHECKED_WARNING],
+        "warnings": [compare.NO_READING_WARNING],
     }
     assert client.get(f"/sessions/{session_id}/score").status_code == 200  # the scanned score can be read back
 
