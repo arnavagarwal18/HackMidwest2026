@@ -31,6 +31,12 @@ def _wrong_state(message: str) -> AppError:
     return AppError(409, "wrong_state", message)
 
 
+def raise_if_locked(status: str) -> None:
+    """409 wrong_state while the score is confirmed or being scanned (shared with the photo route)."""
+    if status in LOCKED_MESSAGES:
+        raise _wrong_state(LOCKED_MESSAGES[status])
+
+
 def _bad_request(message: str) -> AppError:
     return AppError(422, "bad_request", message)
 
@@ -91,8 +97,7 @@ def _save_score(session_id: str, kind: str, payload) -> Score:
 @router.post("/sessions/{session_id}/score/file")
 async def post_score_file(session_id: str, request: Request) -> dict:
     session = store.get(session_id)
-    if session.score_status in LOCKED_MESSAGES:
-        raise _wrong_state(LOCKED_MESSAGES[session.score_status])
+    raise_if_locked(session.score_status)
     kind, payload = await _read_request(request)
     score = await run_in_threadpool(_save_score, session_id, kind, payload)
     store.update(session_id, "score_error", None)

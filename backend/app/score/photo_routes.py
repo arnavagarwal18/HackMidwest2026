@@ -13,6 +13,7 @@ from app import store
 from app.errors import AppError, storage_error
 from app.score import scan_job
 from app.score.model import Score
+from app.score.routes import raise_if_locked
 
 logger = logging.getLogger("app.score.photo_routes")
 router = APIRouter()
@@ -20,16 +21,7 @@ router = APIRouter()
 MAX_PHOTO_BYTES = 15 * 1024 * 1024
 PHOTO_SIGNATURES = {b"\xff\xd8\xff": ".jpg", b"\x89PNG\r\n\x1a\n": ".png"}
 PHOTO_FILENAME_STEM = "photo_upload"
-BLOCKED_MESSAGES = {
-    "confirmed": "This session's score is already confirmed. Start a new session to use a different score.",
-    "scanning": "This session's score is still being scanned. Wait for it to finish.",
-}
 _start_lock = threading.Lock()  # makes "check not scanning, then mark scanning" one step
-
-
-def _raise_if_blocked(status: str) -> None:
-    if status in BLOCKED_MESSAGES:
-        raise AppError(409, "wrong_state", BLOCKED_MESSAGES[status])
 
 
 def _photo_suffix(data: bytes) -> str | None:
@@ -69,7 +61,7 @@ def _mark_scanning(session_id: str) -> None:
 
 def _claim_scan(session_id: str, data: bytes, suffix: str) -> Path:
     with _start_lock:
-        _raise_if_blocked(store.get(session_id).score_status)
+        raise_if_locked(store.get(session_id).score_status)
         photo = _save_photo(session_id, data, suffix)
         _mark_scanning(session_id)
     return photo
@@ -77,7 +69,7 @@ def _claim_scan(session_id: str, data: bytes, suffix: str) -> Path:
 
 @router.post("/sessions/{session_id}/score/photo", status_code=202)
 async def post_score_photo(session_id: str, request: Request) -> dict:
-    _raise_if_blocked(store.get(session_id).score_status)
+    raise_if_locked(store.get(session_id).score_status)
     upload = (await request.form()).get("file")
     if not isinstance(upload, UploadFile):
         raise AppError(422, "bad_request", "Choose a photo to upload in the 'file' field.")
