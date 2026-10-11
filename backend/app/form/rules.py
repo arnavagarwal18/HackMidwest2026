@@ -6,8 +6,10 @@ from statistics import mean
 
 from . import config
 from .episodes import Sample, find_episodes
-from .measures import (ELBOW_ANGLE, ELBOW_GAP_LEFT, ELBOW_GAP_RIGHT, HEAD_DROP, NECK_RATIO, TORSO_LEAN, WRIST_BEND,
-                       Baseline, Reading, aspect_ratio, compute_baseline, frame_measures)
+from .measures import (ELBOW_ANGLE, ELBOW_GAP_LEFT, ELBOW_GAP_RIGHT, HEAD_DROP, MEASURE_SPECS, NECK_RATIO, TORSO_LEAN,
+                       WRIST_BEND, Baseline, Reading, aspect_ratio, compute_baseline, frame_measures)
+from .side_measures import HEAD_PITCH, NECK_SIDE, SIDE_TORSO_LEAN, side_specs, with_side_baseline
+from .view import FRONT, SIDE, detect_view, near_side
 
 logger = logging.getLogger("app.form")
 
@@ -16,6 +18,7 @@ BOTH_INSTRUMENTS = (VIOLIN, TRUMPET)
 LOW, HIGH = "low", "high"
 DEG, RATIO = "deg", "ratio"
 NOT_VISIBLE = "not_visible"
+NOT_FOR_VIEW = "not_for_view"
 
 Readings = dict[str, Reading]
 
@@ -29,15 +32,18 @@ class Rule:
     measure: str
     direction: str
     unit: str
-    threshold: Callable[[Baseline], float]
+    threshold: Callable[[Baseline], float | None]  # None when the baseline it needs is missing: the rule is then skipped
     label: str
     side: str | None = None
     fallback_for: str | None = None  # runs only when the named rule is skipped
     # extra condition on the same frame: returns None when its measure is missing, else the extra Reading to require
     also: Callable[[Readings, Baseline], bool | None] | None = None
+    views: tuple[str, ...] = (FRONT,)  # camera views the rule runs in
+    span_of: Callable[[Baseline], float] | None = None  # severity span when it isn't the fixed one in config
 
-    @property
-    def span(self) -> float:
+    def span(self, baseline: Baseline) -> float:
+        if self.span_of is not None:
+            return self.span_of(baseline)
         return config.SEVERITY_SPANS[self.name] if self.fallback_for is None else config.SLOUCHING_FALLBACK_SPAN
 
 
@@ -66,6 +72,14 @@ RULES = [
          lambda b: config.TRUMPET_ELBOWS_PINNED_GAP, "left elbow pinned to the body", side="left"),
     Rule("trumpet_elbows_pinned", (TRUMPET,), ELBOW_GAP_RIGHT, LOW, RATIO,
          lambda b: config.TRUMPET_ELBOWS_PINNED_GAP, "right elbow pinned to the body", side="right"),
+    # Side view (LLD-4 change 7): the near-side measures; elbows pinned has no side rule
+    Rule("shoulders_raised", BOTH_INSTRUMENTS, NECK_SIDE, LOW, RATIO,
+         lambda b: None if b.neck_side is None else config.SIDE_NECK_RATIO * b.neck_side, "shoulders raised",
+         side="both", views=(SIDE,), span_of=lambda b: config.SIDE_NECK_SPAN_FRACTION * b.neck_side),
+    Rule("slouching", BOTH_INSTRUMENTS, SIDE_TORSO_LEAN, HIGH, DEG, lambda b: config.SLOUCHING_TORSO_LEAN_DEG,
+         "slouching", views=(SIDE,), span_of=lambda b: config.SEVERITY_SPANS["slouching"]),
+    Rule("trumpet_head_down", (TRUMPET,), HEAD_PITCH, HIGH, DEG, lambda b: b.head_pitch + config.SIDE_HEAD_PITCH_DELTA,
+         "head dropped", views=(SIDE,), span_of=lambda b: config.SIDE_HEAD_PITCH_SPAN_DEG),
 ]
 
 
@@ -78,6 +92,8 @@ def _sample(rule: Rule, readings: Readings, baseline: Baseline) -> Sample:
     if reading.value is None or extra is None:
         return Sample(None, None, visibility)
     threshold = rule.threshold(baseline)
+    if threshold is None:
+        return Sample(None, None, visibility)
     excess = threshold - reading.value if rule.direction == LOW else reading.value - threshold
     if extra is False:
         excess = min(excess, 0.0)  # present, but the extra condition says the frame is fine
@@ -102,7 +118,7 @@ def _flag_fields(rule: Rule, baseline: Baseline, episode) -> dict:
         "threshold": threshold,
         "unit": rule.unit,
         "direction": rule.direction,
-        "severity": min(1.0, abs(episode.value - threshold) / rule.span),
+        "severity": min(1.0, abs(episode.value - threshold) / rule.span(baseline)),
         "confidence": episode.confidence,
         "side": rule.side,
         "bars": [],
@@ -115,9 +131,17 @@ def _check_instrument(instrument: str) -> None:
         raise ValueError(f"unknown instrument {instrument!r}; form rules exist for {', '.join(BOTH_INSTRUMENTS)}")
 
 
-def _active_rules(instrument: str, readings: list[Readings], baseline: Baseline) -> tuple[list[tuple[Rule, list[Sample]]], list[str]]:
+def _not_for_view(instrument: str, view: str) -> list[str]:
+    """Names of the instrument's rules that have no version for this camera view."""
+    names = {rule.name for rule in RULES if instrument in rule.instruments and rule.fallback_for is None}
+    in_view = {rule.name for rule in RULES if instrument in rule.instruments and view in rule.views}
+    return sorted(names - in_view)
+
+
+def _active_rules(instrument: str, view: str, readings: list[Readings], baseline: Baseline) -> tuple[list[tuple[Rule, list[Sample]]], list[str]]:
     """The rules to flag with, each with its per-frame samples, and the names of rules skipped for missing landmarks."""
-    judged = [(rule, [_sample(rule, r, baseline) for r in readings]) for rule in RULES if instrument in rule.instruments]
+    judged = [(rule, [_sample(rule, r, baseline) for r in readings])
+              for rule in RULES if instrument in rule.instruments and view in rule.views]
     usable = [(rule, samples) for rule, samples in judged if _missing_fraction(samples) <= config.MISSING_MAX_FRACTION]
     primary_names = {rule.name for rule, _ in judged if rule.fallback_for is None}
     usable_primary_names = {rule.name for rule, _ in usable if rule.fallback_for is None}
@@ -128,19 +152,25 @@ def _active_rules(instrument: str, readings: list[Readings], baseline: Baseline)
 
 def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None = None,
             height: int | None = None) -> dict:
-    """Judge a take's frames against the posture rules: { baseline, rules_skipped, flags }.
+    """Judge a take's frames against the posture rules: { view, view_ratio, baseline, rules_skipped, flags }.
 
     Each frame is { t, pose, left_hand, right_hand }. A rule whose measure is missing in too many frames is listed in
     rules_skipped and never flagged; the slouching torso rule then falls back to the neck and head measures.
     `width` and `height` are the video's pixel size, used so normalised x and y share one scale; None means square.
+    A side view (see view.detect_view) is judged with the side measures and rules; the front rules with no side version
+    are listed in rules_skipped with reason 'not_for_view'.
     """
     _check_instrument(instrument)
     aspect = aspect_ratio(width, height)
     frames = sorted(frames, key=lambda f: f["t"])
     times = [f["t"] for f in frames]
-    readings = [frame_measures(f, aspect) for f in frames]
+    view, view_ratio = detect_view(frames, aspect)
+    specs = MEASURE_SPECS if view == FRONT else {**MEASURE_SPECS, **side_specs(near_side(frames))}
+    readings = [frame_measures(f, aspect, specs) for f in frames]
     baseline = compute_baseline(frames, readings)
-    active, skipped = _active_rules(instrument, readings, baseline)
+    if view == SIDE:
+        baseline = with_side_baseline(baseline, frames, readings)
+    active, skipped = _active_rules(instrument, view, readings, baseline)
     for name in skipped:
         logger.warning("take %s: rule %s skipped, its measure is missing in over %d%% of frames",
                        take_id, name, round(config.MISSING_MAX_FRACTION * 100))
@@ -148,5 +178,7 @@ def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None
     flags = [_flag_fields(rule, baseline, episode) for rule, samples in active for episode in find_episodes(times, samples)]
     flags.sort(key=lambda flag: flag["start_s"])
     flags = [{"id": f"f:{take_id}:{k}", **flag} for k, flag in enumerate(flags, start=1)]
-    return {"baseline": baseline.to_dict(), "rules_skipped": [{"rule": n, "reason": NOT_VISIBLE} for n in skipped],
+    rules_skipped = ([{"rule": n, "reason": NOT_VISIBLE} for n in skipped]
+                     + [{"rule": n, "reason": NOT_FOR_VIEW} for n in _not_for_view(instrument, view)])
+    return {"view": view, "view_ratio": view_ratio, "baseline": baseline.to_dict(), "rules_skipped": rules_skipped,
             "flags": flags}

@@ -40,12 +40,19 @@ class Reading:
 
 @dataclass(frozen=True)
 class Baseline:
+    """The player's neutral posture. head_pitch and neck_side are the side view's own: None in a front view (left out of the saved baseline there)."""
+
     neck_ratio: float
     head_drop: float
     defaulted: bool
+    head_pitch: float | None = None
+    neck_side: float | None = None
 
     def to_dict(self) -> dict:
-        return {"neck_ratio": self.neck_ratio, "head_drop": self.head_drop, "defaulted": self.defaulted}
+        saved = {"neck_ratio": self.neck_ratio, "head_drop": self.head_drop, "defaulted": self.defaulted}
+        if self.head_pitch is not None:  # a side view; a front view's baseline keeps its original keys
+            saved.update(head_pitch=self.head_pitch, neck_side=self.neck_side)
+        return saved
 
 
 def _point(landmarks, index: int):
@@ -172,26 +179,31 @@ def _scale_x(points, aspect: float):
     return [[point[0] * aspect, *point[1:]] for point in points]
 
 
-def frame_measures(frame: dict, aspect: float = 1.0) -> dict[str, Reading]:
+def frame_measures(frame: dict, aspect: float = 1.0, specs: dict[str, MeasureSpec] = MEASURE_SPECS) -> dict[str, Reading]:
     """Every measure for one tracks-file frame; a measure is missing (value None) unless all its landmarks are visible.
 
     `aspect` is width / height of the video: x is scaled by it so angles and distance ratios are not distorted.
+    `specs` are the measures to take (the front ones unless a side view adds its own).
     """
     pose = _scale_x(frame.get("pose"), aspect)
     hands = {"left_hand": _scale_x(frame.get("left_hand"), aspect), "right_hand": _scale_x(frame.get("right_hand"), aspect)}
     readings = {}
-    for name, spec in MEASURE_SPECS.items():
+    for name, spec in specs.items():
         value = spec.compute(pose, hands) if _all_visible(pose, spec.landmarks) else None
         readings[name] = Reading(value, _visibility(pose, spec.landmarks))
     return readings
+
+
+def baseline_values(frames: list[dict], readings: list[dict[str, Reading]], name: str) -> list[float]:
+    """The measure's values in the first BASELINE_SECONDS of the take, where it is present."""
+    return [r[name].value for f, r in zip(frames, readings) if f["t"] < config.BASELINE_SECONDS and r[name].value is not None]
 
 
 def compute_baseline(frames: list[dict], readings: list[dict[str, Reading]]) -> Baseline:
     """The neutral neck_ratio and head_drop: medians over the first BASELINE_SECONDS, or the defaults when too few frames have them."""
 
     def neutral(name: str, default: float) -> tuple[float, bool]:
-        values = [r[name].value for f, r in zip(frames, readings)
-                  if f["t"] < config.BASELINE_SECONDS and r[name].value is not None]
+        values = baseline_values(frames, readings, name)
         if len(values) < config.BASELINE_MIN_FRAMES:
             logger.warning("baseline %s: only %d usable frames in the first %.1f s, using default %s",
                            name, len(values), config.BASELINE_SECONDS, default)

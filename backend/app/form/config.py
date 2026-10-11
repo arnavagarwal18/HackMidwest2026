@@ -71,3 +71,11 @@ CAMERA_MIN_BRIGHTNESS = 40  # mean brightness (0-255) below this: too dark
 # Bars and links (LLD-4 change 4)
 LINK_MIN_TIMING_NOTES = 2  # a bar is linked as late / early when at least this many of its notes are
 FORM_FILE_SUFFIX = "_form.json"
+
+# Camera view and side-view rules (LLD-4 change 7)
+VIEW_SIDE_MAX = 1.0  # median shoulder width / shoulder-to-nose height below this: the camera sees the player from the side
+VIEW_MIN_FRAMES = 5  # fewer usable frames than this: the view is 'front'
+SIDE_HEAD_PITCH_DELTA = 15  # side view: head_pitch above baseline plus this many degrees
+SIDE_NECK_RATIO = SHOULDERS_RAISED_RATIO  # side view: neck_side below this fraction of the baseline; kept equal to the front ratio (0.70)
+SIDE_NECK_SPAN_FRACTION = 0.35  # severity span for side shoulders_raised, as a share of the baseline (front: 0.2 of a 0.55 baseline)
+SIDE_HEAD_PITCH_SPAN_DEG = 20  # severity span for side trumpet_head_down

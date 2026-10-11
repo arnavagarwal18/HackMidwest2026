@@ -16,7 +16,7 @@ from tests.form_helpers import add_form_take, make_photo_video
 GRID = {"kind": "metronome", "offset_s": 1.0, "sec_per_beat": 1.0}
 BARS = [{"bar": n, "start_beat": 4.0 * (n - 1), "beats": 4.0, "notes": []} for n in range(1, 5)]
 FLAG = {"id": "f:t1:1", "rule": "slouching", "label": "Slouching", "start_s": 5.2, "end_s": 9.5, "bars": [], "linked": []}
-ANALYSIS = {"baseline": {"neck_ratio": 0.55, "head_drop": -0.05}, "rules_skipped": [{"rule": "x", "reason": "not_visible"}],
+ANALYSIS = {"view": "side", "view_ratio": 0.42, "baseline": {"neck_ratio": 0.55, "head_drop": -0.05}, "rules_skipped": [{"rule": "x", "reason": "not_visible"}],
             "flags": [FLAG]}
 
 
@@ -62,6 +62,7 @@ def test_run_saves_flags_on_bars_with_links_then_reranks_once(video_take, judged
     assert take["form_status"] == "done"
     assert (saved["error"], saved["frames_total"], saved["tracking_quality"]) == (None, 12, 1.0)
     assert saved["baseline"] == ANALYSIS["baseline"] and saved["rules_skipped"] == ANALYSIS["rules_skipped"]
+    assert (saved["view"], saved["view_ratio"]) == ("side", 0.42)
     assert saved["flags"][0]["bars"] == [2, 3]
     assert saved["flags"][0]["linked"] == [{"kind": "rushing", "bar": 2, "ids": ["b:t1:2"]}]
     assert "warning" not in saved
