@@ -9,6 +9,7 @@ import logging
 from typing import Any, Callable, Optional
 
 from app.agents.context import CheckContext, ContextError, build_context, item_kind, no_form, no_history
+from app.diagnosis.priority import priority_key
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class ToolInputError(Exception):
 def fit_json(payload: dict, max_chars: int = MAX_JSON_CHARS) -> str:
     """JSON of the payload, cutting list items from the end until it fits.
 
-    Lists arrive sorted by score, so what is cut is the least important. The cut is
+    Lists arrive sorted by importance (problems: notes, then rushing / dragging, then slips), so what is cut is the least important. The cut is
     recorded under 'truncated' as the number of items dropped per list.
     """
     dropped: dict[str, int] = {}
@@ -85,7 +86,7 @@ def _problems(ctx: CheckContext, max_tier: Any) -> dict:
     if not 1 <= tier <= MAX_TIER:
         raise ToolInputError(f"max_tier must be 1 to {MAX_TIER}")
     shown = [p for p in ctx.diagnosis.get("problems") or [] if p.get("tier", MAX_TIER) <= tier]
-    return {"problems": _by_score(shown)}
+    return {"problems": sorted(shown, key=priority_key)}
 
 
 def _bar(ctx: CheckContext, bar: Any) -> dict:
@@ -157,7 +158,7 @@ def make_tools(
         return run(_overview)
 
     def list_problems(max_tier: int = 2) -> str:
-        """The take's problems up to the given tier (1 to 3), best score first."""
+        """The take's problems up to the given tier (1 to 3), most important first: wrong or missed notes, then rushing or dragging, then small timing slips."""
         return run(_problems, max_tier)
 
     def get_bar(bar: int) -> str:

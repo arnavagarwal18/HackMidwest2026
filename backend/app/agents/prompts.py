@@ -16,6 +16,7 @@ Use your tools to read the problems, bars and form flags named in the brief. Eve
 
 What to write:
 - Explain 1 to 3 tier 1 problems. Use tier 2 problems only if there are fewer than 2 in tier 1.
+- Keep the order the tools give: wrong or missed notes first, then rushing or dragging, then small timing slips last.
 - Cover wrong or missed notes, timing and form where the brief names them, in plain language with a short why and a short how-to-fix.
 - Keep the how-to-fix advice to trumpet playing: breath support, articulation and tonguing, valve fingerings, slurs, range, and posture of head, elbows and hands.
 - Never mention an uncertain note.

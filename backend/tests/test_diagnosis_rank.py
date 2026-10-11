@@ -194,7 +194,7 @@ def test_rerank_adds_a_form_problem_and_renumbers_ids(sessions_root):
     diagnosis.rerank(session_id, take_id)
 
     after = diagnosis.get(session_id, take_id)
-    assert [(p["id"], p["kind"]) for p in after["problems"]] == [("p:t1:0", "form"), ("p:t1:1", "notes")]
+    assert [(p["id"], p["kind"]) for p in after["problems"]] == [("p:t1:0", "notes"), ("p:t1:1", "form")]  # notes first, even below a form flag's score
     assert [s["problem_id"] for s in after["tier1"]] == ["p:t1:0", "p:t1:1"]
     assert after["notes"] == before["notes"] and after["bars"] == before["bars"]
     assert "p:t1:1" in (store.session_dir(session_id) / "t1_diagnosis.json").read_text()

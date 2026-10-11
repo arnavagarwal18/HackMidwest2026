@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from app.agents.context import clean_tempo, item_bars
 from app.agents.plan_rules import COLD_START_RATIO, MIN_START_BPM
+from app.diagnosis.priority import priority_key
 
 log = logging.getLogger(__name__)
 
@@ -85,11 +86,11 @@ def _problem_pass_mark(problem: dict, form_flags: dict[str, dict]) -> dict:
 
 def _tier1_problems(diagnosis: dict) -> list[dict]:
     problems = [p for p in diagnosis.get("problems") or [] if p.get("tier") == 1]
-    return sorted(problems, key=lambda p: p.get("score", 0), reverse=True)[:MAX_PROBLEM_EXERCISES]
+    return sorted(problems, key=priority_key)[:MAX_PROBLEM_EXERCISES]
 
 
 def _strongest_problem_ids(diagnosis: dict) -> list[str]:
-    problems = sorted(diagnosis.get("problems") or [], key=lambda p: p.get("score", 0), reverse=True)
+    problems = sorted(diagnosis.get("problems") or [], key=priority_key)
     return [problems[0]["id"]] if problems else []
 
 

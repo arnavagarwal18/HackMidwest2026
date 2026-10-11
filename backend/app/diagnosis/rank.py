@@ -1,5 +1,6 @@
 """Steps 7-8: rank a take's problems, assign tiers and ids, and write the tier-1 sentences."""
 from . import config
+from .priority import priority_key
 from .problems import find_problems
 from .sentences import build_sentence
 
@@ -52,7 +53,7 @@ def rank(take_id: str, diagnosis: dict, form_flags: list[dict]) -> dict:
     """
     if diagnosis["cant_tell"]:
         return {"problems": [], "tier1": []}
-    found = sorted(find_problems(diagnosis, form_flags), key=lambda p: (-p["score"], p["first_time_s"]))
+    found = sorted(find_problems(diagnosis, form_flags), key=priority_key)
     tiers = _tiers(found)
     problems = [
         {"id": f"p:{take_id}:{k}", **problem, "tier": tier} for k, (problem, tier) in enumerate(zip(found, tiers))
