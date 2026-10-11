@@ -9,7 +9,8 @@ import librosa
 from .. import store
 from .calibrate import default_profile
 from .take_store import update_take
-from .transcribe import SAMPLE_RATE, AudioUnreadable, NoNotesHeard, transcribe
+from .transcribe import SAMPLE_RATE, AudioUnreadable, NoNotesHeard
+from .transcriber import transcribe
 from .video_calibration import SEARCH_WINDOW_S, calibrate_from_audio
 
 logger = logging.getLogger("app.takes.pipeline")
