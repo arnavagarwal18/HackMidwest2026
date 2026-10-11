@@ -20,8 +20,8 @@
   --primary-ink: #ffffff;
   --primary-hover: #3a3aa0;
   --ok: #1a6f40;            /* in tune: text-safe green */
-  --flat: #0066cc;          /* flat / early */
-  --sharp: #8a5a00;         /* sharp / late: text-safe amber */
+  --flat: #005cb8;          /* flat / early */
+  --sharp: #855600;         /* sharp / late: text-safe amber */
   --error: #b3261e;
   --error-solid: #b3261e;   /* the same red in both modes, behind white text */
   --on-error-solid: #ffffff;
