@@ -103,7 +103,6 @@ async def post_score_file(session_id: str, request: Request) -> dict:
     store.update(session_id, "score_error", None)
     store.update(session_id, "doubtful_bars", [])
     store.update(session_id, "double_checked", False)
-    store.update(session_id, "referee", None)
     store.update(session_id, "score_status", "scanned")
     return {
         "score_status": "scanned",

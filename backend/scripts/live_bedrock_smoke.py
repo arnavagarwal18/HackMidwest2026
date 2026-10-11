@@ -4,13 +4,12 @@
 
 Without RUN_LIVE_BEDROCK=1 it prints a skip message and exits 0, so nothing reaches Bedrock by accident. With it, from backend/:
   1. settings: AI_ENABLED is true and the BEDROCK_ names are set (names only are printed, never a value);
-  2. the Score reader on testdata/ode_to_joy_photo.jpg;
-  3. the Ode to Joy take (testdata/ode_to_joy) through the FastAPI app, whose pipeline runs the Coach, Planner and Checker;
-  4. one Instructor chat turn on that take.
+  2. the Ode to Joy take (testdata/ode_to_joy) through the FastAPI app, whose pipeline runs the Coach, Planner and Checker;
+  3. one Instructor chat turn on that take.
 Everything runs in this process against a temporary data folder. A row passes only when the AI's output was used, so
 a fallback fails with its reason code (checker_rejected, timeout, model_error ...). The results go to a JSON file
 (default backend/.venv/scratch/live_bedrock_smoke.json, errors in the .log next to it) and a table on stdout.
-Exit code: 0 when every row passed, 1 otherwise. One run costs one Reader call, one feedback run and one chat turn.
+Exit code: 0 when every row passed, 1 otherwise. One run costs one feedback run and one chat turn.
 """
 import argparse
 import logging
@@ -63,8 +62,8 @@ def check_settings() -> tuple[StepResult, dict[str, bool]]:
     return result, present
 
 
-def run_steps(work_dir: Path, take_source: Callable | None = None, photo: Path | None = None) -> list[StepResult]:
-    """The reader, feedback and chat rows, run against a temporary sessions folder inside `work_dir`."""
+def run_steps(work_dir: Path, take_source: Callable | None = None) -> list[StepResult]:
+    """The feedback and chat rows, run against a temporary sessions folder inside `work_dir`."""
     import live_smoke_steps as steps
     from fastapi.testclient import TestClient
 
@@ -75,37 +74,36 @@ def run_steps(work_dir: Path, take_source: Callable | None = None, photo: Path |
     store.SESSIONS_ROOT = work_dir / "sessions"
     store._sessions.clear()
     try:
-        results = [steps.reader_step(photo or steps.PHOTO, work_dir)]
         client = TestClient(app, raise_server_exceptions=False)
         taken, crashed = steps.guarded("take flow", lambda: (take_source or steps.take_flow)(client))
         if crashed:
-            return [*results, crashed, skipped("feedback: coach", "no take"), skipped("feedback: planner", "no take"), skipped("instructor chat", "no take")]
+            return [crashed, skipped("feedback: coach", "no take"), skipped("feedback: planner", "no take"), skipped("instructor chat", "no take")]
         session_id, take_id = taken
-        return [*results, *steps.feedback_step(client, session_id, take_id), steps.chat_step(client, session_id)]
+        return [*steps.feedback_step(client, session_id, take_id), steps.chat_step(client, session_id)]
     finally:
         store.SESSIONS_ROOT = original_root
         store._sessions.clear()
 
 
-def run_live(out: Path, take_source: Callable | None = None, photo: Path | None = None) -> int:
+def run_live(out: Path, take_source: Callable | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     log_handler = logging.FileHandler(out.with_suffix(".log"), mode="w", encoding="utf-8")
     log_handler.setLevel(logging.ERROR)
     logging.getLogger().addHandler(log_handler)  # every error the app logs during the run, for the reason codes
     try:
-        return _run_and_report(out, take_source, photo)
+        return _run_and_report(out, take_source)
     finally:
         logging.getLogger().removeHandler(log_handler)
         log_handler.close()
 
 
-def _run_and_report(out: Path, take_source: Callable | None, photo: Path | None) -> int:
+def _run_and_report(out: Path, take_source: Callable | None) -> int:
     started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     settings_row, present = check_settings()
     results = [settings_row]
     if settings_row.passed:
         with tempfile.TemporaryDirectory(prefix="live_bedrock_smoke_") as work_dir:
-            results += run_steps(Path(work_dir), take_source, photo)
+            results += run_steps(Path(work_dir), take_source)
     print("\n".join(table_lines(results)))
     if not write_json(out, payload_of(results, present, started_at)):
         print(f"FAILED: could not write the results to {out} (details: {out.with_suffix('.log').name})", file=sys.stderr)

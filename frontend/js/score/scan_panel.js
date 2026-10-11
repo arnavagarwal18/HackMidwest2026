@@ -1,9 +1,9 @@
 // The area under the score tabs: spinner while a photo is read, the plain error when a scan fails,
-// and the check-your-scan list with Confirm and Rescan once the score is read.
+// and the bar count, any warnings, Confirm and Rescan once the score is read.
 import { confirmScore, getScoreStatus } from '../api.js';
 import { reportError } from '../banner.js';
 import { state } from '../state.js';
-import { doubtfulBarReadings, scanErrorMessage, SLOW_MESSAGE, TOO_LONG_MESSAGE } from './format.js';
+import { CHECK_EVERY_BAR_MESSAGE, scanErrorMessage, SLOW_MESSAGE, TOO_LONG_MESSAGE } from './format.js';
 import { pollScoreStatus } from './poll.js';
 import { button, el, runGuarded } from './ui.js';
 
@@ -78,10 +78,8 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
     const confirm = button('Confirm', () => confirmReviewed(confirm), 'btn btn-primary primary');
     const rescan = button('Rescan', () => { clear(); onRescan(); }, 'btn btn-ghost');
     root.append(el('p', { text: `${status.bars} bars found.`, className: 'bar-count' }));
-    if (source === 'photo' && !status.double_checked) {
-      root.append(el('p', { text: 'This scan was not double-checked, so look at every bar against your paper.', className: 'muted' }));
-    }
-    root.append(...warningsList(status.warnings ?? []), ...doubtfulBarsSection(status.doubtful_bars ?? []), actionRow([confirm, rescan]));
+    if (source === 'photo') root.append(el('p', { text: CHECK_EVERY_BAR_MESSAGE, className: 'muted' }));
+    root.append(...warningsList(status.warnings ?? []), actionRow([confirm, rescan]));
   }
 
   async function confirmReviewed(confirm) {
@@ -102,21 +100,4 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
 function warningsList(warnings) {
   if (warnings.length === 0) return [];
   return [el('ul', { className: 'scan-warnings', children: warnings.map((warning) => el('li', { text: warning })) })];
-}
-
-// One plain row per doubtful bar, so each can be checked against the paper on its own.
-function doubtfulBarsSection(doubtfulBars) {
-  if (doubtfulBars.length === 0) return [];
-  return [
-    el('h3', { text: 'Check these bars against your paper' }),
-    el('ul', { className: 'doubtful-list', children: doubtfulBars.map(doubtfulBarRow) }),
-  ];
-}
-
-function doubtfulBarRow(doubtful) {
-  const { bar, scan, second } = doubtfulBarReadings(doubtful);
-  return el('li', { children: [
-    el('strong', { text: `Bar ${bar}` }),
-    el('dl', { children: [el('dt', { text: 'Scan read' }), el('dd', { text: scan }), el('dt', { text: 'Second reading' }), el('dd', { text: second })] }),
-  ] });
 }

@@ -15,7 +15,6 @@ from botocore.exceptions import ClientError
 from app.agents import ai_run, run
 from app.agents.config import ConfigError, Settings
 from app.agents.prompts import COACH_PROMPT, INSTRUCTOR_PROMPT, ORCHESTRATOR_PROMPT, PLANNER_PROMPT
-from app.score import reader_agent
 from scripts import live_bedrock_smoke as smoke
 from scripts import live_smoke_report as report
 from tests.feedback_helpers import add_diagnosed_take
@@ -28,7 +27,6 @@ from tests.test_coach_hook import submit, wrong_sentence
 BACKEND = Path(__file__).parents[1]
 SETTINGS = Settings(region="us-east-1", text_model="text-model-id", vision_model="vision-model-id", aws_profile="", ai_enabled=True)
 BRIEF = {"brief": "Take t1, tier 1 problems p:t1:0 and p:t1:1, trumpet."}
-GOOD_READING = {"bars": [{"bar": 1, "notes": [{"name": "E5", "length": "quarter"}]}]}
 ACCESS_DENIED = ClientError({"Error": {"Code": "AccessDeniedException", "Message": "not allowed"}}, "ConverseStream")
 ORCHESTRATE = [tool_turn("get_take_overview", {}), tools_turn(("coach", BRIEF), ("planner", BRIEF)), text_turn()]
 
@@ -49,8 +47,6 @@ def fixture_take(fixture_data):
 def ai_on(monkeypatch):
     monkeypatch.setattr(smoke, "_load_settings", lambda: SETTINGS)
     monkeypatch.setattr(run, "ai_enabled", lambda: True)
-    monkeypatch.setattr(reader_agent, "get_settings", lambda: SETTINGS)
-    monkeypatch.setattr(reader_agent, "_ask_model", lambda settings, image, cancel, timeout_s: GOOD_READING)
 
 
 def use_agents(monkeypatch, orchestrator=None, coach=None, planner=None, instructor=None):
@@ -91,11 +87,10 @@ def test_every_step_passing_prints_a_table_and_saves_the_results(tmp_path, monke
     use_agents(monkeypatch)
     code, rows, saved = smoke_run(tmp_path, fixture_take)
     assert code == 0 and saved["all_passed"] is True
-    assert list(rows) == ["settings", "score reader (vision)", "feedback: coach", "feedback: planner", "instructor chat"]
+    assert list(rows) == ["settings", "feedback: coach", "feedback: planner", "instructor chat"]
     assert {row["status"] for row in rows.values()} == {"pass"}
     assert [rows[name]["checker_accepted"] for name in ("feedback: coach", "feedback: planner", "instructor chat")] == [True] * 3
     assert [rows[name]["mode"] for name in ("feedback: coach", "feedback: planner", "instructor chat")] == ["ai"] * 3
-    assert rows["score reader (vision)"]["note"] == "1 bars, 1 notes"
     assert all(row["latency_s"] is not None for name, row in rows.items() if name != "settings")
     assert saved["settings_present"] == {"BEDROCK_REGION": True, "BEDROCK_TEXT_MODEL": True, "BEDROCK_VISION_MODEL": True}
     out = capsys.readouterr().out
@@ -138,27 +133,6 @@ def test_a_planner_the_checker_rejects_is_told_apart_from_a_coach_that_passed(tm
     assert (planner["status"], planner["mode"], planner["reason"], planner["checker_accepted"]) == ("fail", "fallback", "checker_rejected", False)
 
 
-@pytest.mark.parametrize("answer, reason", [(None, "schema_mismatch"), (RuntimeError("down"), "model_error")], ids=["bad_schema", "bedrock_error"])
-def test_a_reader_with_no_reading_fails_with_its_reason(tmp_path, monkeypatch, ai_on, fixture_take, answer, reason):
-    def ask(settings, image, cancel, timeout_s):
-        if isinstance(answer, Exception):
-            raise answer
-        return answer
-
-    monkeypatch.setattr(reader_agent, "_ask_model", ask)
-    use_agents(monkeypatch)
-    code, rows, _ = smoke_run(tmp_path, fixture_take)
-    assert code == 1 and (rows["score reader (vision)"]["status"], rows["score reader (vision)"]["reason"]) == ("fail", reason)
-    assert rows["feedback: coach"]["status"] == "pass"  # one failing step does not stop the others
-
-
-def test_a_reader_timeout_is_reported_as_timeout(tmp_path, monkeypatch, ai_on, fixture_take):
-    monkeypatch.setattr(reader_agent, "_run_with_timeout", lambda settings, image, timeout_s: (_ for _ in ()).throw(TimeoutError("slow")))
-    use_agents(monkeypatch)
-    _, rows, _ = smoke_run(tmp_path, fixture_take)
-    assert (rows["score reader (vision)"]["reason"], rows["score reader (vision)"]["error_class"]) == ("timeout", "TimeoutError")
-
-
 def test_a_take_that_cannot_be_made_fails_it_and_skips_what_needs_it(tmp_path, monkeypatch, ai_on):
     use_agents(monkeypatch)
 
@@ -169,12 +143,10 @@ def test_a_take_that_cannot_be_made_fails_it_and_skips_what_needs_it(tmp_path, m
     assert code == 1
     assert (rows["take flow"]["status"], rows["take flow"]["reason"], rows["take flow"]["error_class"]) == ("fail", "step_crashed", "RuntimeError")
     assert {rows[name]["status"] for name in ("feedback: coach", "feedback: planner", "instructor chat")} == {"skipped"}
-    assert rows["score reader (vision)"]["status"] == "pass"
 
 
 def test_ai_disabled_stops_after_the_settings_row_without_running_any_agent(tmp_path, monkeypatch, ai_on):
     monkeypatch.setattr(smoke, "_load_settings", lambda: replace(SETTINGS, ai_enabled=False))
-    monkeypatch.setattr(reader_agent, "_ask_model", lambda *a: pytest.fail("must not call the model"))
     code, rows, _ = smoke_run(tmp_path, lambda client: pytest.fail("must not make a take"))
     assert code == 1 and list(rows) == ["settings"] and rows["settings"]["reason"] == "ai_disabled"
 
