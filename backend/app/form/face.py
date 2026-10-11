@@ -1,17 +1,15 @@
 """Step 5c: the MediaPipe Face Landmarker on the player's face in the frames where a note sounds."""
 import logging
-import math
 from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
 
 from . import config
+from .face_crop import Box, Window, crop_face, cut, face_box_window
 
 logger = logging.getLogger("app.form.face")
 
-NOSE, LEFT_EAR, RIGHT_EAR, LEFT_SHOULDER, RIGHT_SHOULDER = 0, 7, 8, 11, 12  # pose landmark indices
-SIDE_VIEW = "side"
 CHEEK_PUFF, SMILE_LEFT, SMILE_RIGHT = "cheekPuff", "mouthSmileLeft", "mouthSmileRight"  # blendshape names
 
 _unavailable = False  # set by the first failure of the model; nothing retries until the process restarts
@@ -39,9 +37,13 @@ class FaceResult:
 
 
 class _MediaPipeFaceLandmarker:
-    """The Face Landmarker (Tasks API, one face, blendshapes on) behind `detect(rgb) -> blendshape scores or None`."""
+    """The Face Landmarker (Tasks API, one face, blendshapes on) behind `detect(rgb) -> blendshape scores or None`.
+
+    After each detect, `last_box` is the face's bounding box (a Box in the image given) or None when there was no face.
+    """
 
     def __init__(self):
+        self.last_box: Box | None = None
         import mediapipe as mp
         from mediapipe.tasks.python import BaseOptions, vision
 
@@ -53,8 +55,11 @@ class _MediaPipeFaceLandmarker:
     def detect(self, rgb: np.ndarray) -> dict[str, float] | None:
         image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb))
         result = self._landmarker.detect(image)
+        self.last_box = None
         if not result.face_blendshapes:
             return None
+        xs, ys = [p.x for p in result.face_landmarks[0]], [p.y for p in result.face_landmarks[0]]
+        self.last_box = (min(xs), min(ys), max(xs), max(ys))
         return {shape.category_name: shape.score for shape in result.face_blendshapes[0]}
 
     def close(self) -> None:
@@ -63,46 +68,6 @@ class _MediaPipeFaceLandmarker:
 
 def _create_landmarker():
     return _MediaPipeFaceLandmarker()
-
-
-def _visible(point) -> bool:
-    return point[2] >= config.VISIBILITY_MIN
-
-
-def _crop_side_px(pose: list, width: int, height: int, view: str) -> float | None:
-    """Side of the face crop in pixels (before the minimum), from the shoulders (front view) or the near ear (side view)."""
-    def pixels(index: int) -> tuple[float, float]:
-        return pose[index][0] * width, pose[index][1] * height
-
-    if view == SIDE_VIEW:
-        ears = [index for index in (LEFT_EAR, RIGHT_EAR) if _visible(pose[index])]
-        if not ears:
-            return None
-        near_ear = max(ears, key=lambda index: pose[index][2])
-        return config.FACE_CROP_EAR_RATIO * math.dist(pixels(near_ear), pixels(NOSE))
-    if not (_visible(pose[LEFT_SHOULDER]) and _visible(pose[RIGHT_SHOULDER])):
-        return None
-    return config.FACE_CROP_SHOULDER_RATIO * math.dist(pixels(LEFT_SHOULDER), pixels(RIGHT_SHOULDER))
-
-
-def crop_face(bgr: np.ndarray, pose: list | None, view: str) -> np.ndarray | None:
-    """The full-resolution frame cut to a square centred on the nose (at least FACE_CROP_MIN_PX, clipped to the frame).
-
-    None when the pose has no usable nose, or no shoulders (front view) or ear (side view) to size the square by.
-    """
-    if pose is None or not _visible(pose[NOSE]):
-        return None
-    height, width = bgr.shape[:2]
-    side = _crop_side_px(pose, width, height, view)
-    if side is None:
-        return None
-    half = max(side, config.FACE_CROP_MIN_PX) / 2
-    centre_x, centre_y = pose[NOSE][0] * width, pose[NOSE][1] * height
-    left, right = max(0, round(centre_x - half)), min(width, round(centre_x + half))
-    top, bottom = max(0, round(centre_y - half)), min(height, round(centre_y + half))
-    if right <= left or bottom <= top:
-        return None
-    return bgr[top:bottom, left:right]
 
 
 def _reading(blendshapes: dict[str, float] | None) -> FaceReading | None:
@@ -130,6 +95,7 @@ class FaceReader:
         self._spans = [(note["onset_s"], note["offset_s"]) for note in notes]
         self._view = view or ""
         self._landmarker = None
+        self._last_window: Window | None = None  # around the last face found in this take
         self.result = FaceResult(unavailable=_unavailable)
 
     def __enter__(self) -> "FaceReader":
@@ -146,13 +112,35 @@ class FaceReader:
     def _in_note(self, seconds: float) -> bool:
         return any(onset <= seconds < offset for onset, offset in self._spans)
 
-    def _detect(self, bgr: np.ndarray, pose: list | None) -> FaceReading | None:
-        crop = crop_face(bgr, pose, self._view)
-        if crop is None:
-            return None
+    def _windows_to_try(self, bgr: np.ndarray, pose: list | None) -> list[Window]:
+        """Where to look, in order: the pose crop, the window around the last face found in this take, the whole frame."""
+        height, width = bgr.shape[:2]
+        pose_crop = crop_face(bgr, pose, self._view)
+        wanted = [pose_crop.window if pose_crop else None, self._last_window, (0, 0, width, height)]
+        windows = []
+        for window in wanted:
+            if window is not None and window not in windows:
+                windows.append(window)
+        return windows
+
+    def _detect_in(self, bgr: np.ndarray, window: Window) -> FaceReading | None:
+        """Run the landmarker on one window; a face found there makes the next frame's first fallback the window around it."""
         if self._landmarker is None:
             self._landmarker = _create_landmarker()
-        return _reading(self._landmarker.detect(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)))
+        blendshapes = self._landmarker.detect(cv2.cvtColor(cut(bgr, window), cv2.COLOR_BGR2RGB))
+        if blendshapes is None:
+            return None
+        box = getattr(self._landmarker, "last_box", None)
+        height, width = bgr.shape[:2]
+        self._last_window = (face_box_window(box, window, width, height) if box else None) or window
+        return _reading(blendshapes)
+
+    def _detect(self, bgr: np.ndarray, pose: list | None) -> FaceReading | None:
+        for window in self._windows_to_try(bgr, pose):
+            reading = self._detect_in(bgr, window)
+            if reading is not None:
+                return reading
+        return None
 
     def read(self, bgr: np.ndarray, seconds: float, frame: dict) -> None:
         """Record the face in this full-resolution frame when `seconds` falls inside a note; `frame` is its tracked pose."""

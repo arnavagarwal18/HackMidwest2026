@@ -91,3 +91,6 @@ FACE_CROP_MIN_PX = 160  # the face crop is at least this many pixels on a side
 FACE_CROP_SHOULDER_RATIO = 1.2  # front view: crop side = this x shoulder width
 FACE_CROP_EAR_RATIO = 4  # side view: crop side = this x the near ear-to-nose distance
 SEVERITY_SPANS.update({"trumpet_cheeks_puffed": FACE_SPAN, "trumpet_smile_embouchure": FACE_SPAN})
+
+# Face crop that follows the head (LLD-4 change 9)
+FACE_BOX_MARGIN = 2.0  # the crop for the next frame is this x the larger side of the face box last found, centred on it

@@ -1,6 +1,7 @@
 """Embouchure checks (LLD-4 change 8): the face rules on a stubbed Face Landmarker, the crop, and the failure cases."""
 import logging
 
+import cv2
 import numpy as np
 import pytest
 
@@ -9,7 +10,7 @@ from app.form import face
 from app.form.rules import analyse
 from app.takes.take_store import update_take
 from tests.form_frames import make_frame
-from tests.form_helpers import add_form_take, make_photo_video
+from tests.form_helpers import PHOTO, add_form_take, make_photo_video
 
 FRAMES = 40  # 4 s at 10 fps
 FACE_RULE_NAMES = {"trumpet_cheeks_puffed", "trumpet_smile_embouchure"}
@@ -17,14 +18,23 @@ NEUTRAL = {"cheekPuff": 0.0, "mouthSmileLeft": 0.0, "mouthSmileRight": 0.0}
 
 
 class StubLandmarker:
-    """Stands in for the Face Landmarker: `shapes(call_index)` gives the blendshapes of the n-th crop (None: no face)."""
+    """Stands in for the Face Landmarker: `shapes(frame_index)` gives the blendshapes of the n-th frame (None: no face).
+
+    A frame's retries (last good crop, whole frame) are all answered with that frame's shapes; a frame ends at a face or at
+    the whole-frame try.
+    """
 
     def __init__(self, shapes):
-        self.shapes, self.calls, self.closed = shapes, 0, False
+        self.shapes, self.calls, self.frames, self.closed = shapes, 0, 0, False
+        height, width = cv2.imread(str(PHOTO)).shape[:2]
+        self.full_shape = (height // 2 * 2, width // 2 * 2)  # the video encoder drops an odd last row or column
 
     def detect(self, rgb):
         self.calls += 1
-        return self.shapes(self.calls - 1)
+        shapes = self.shapes(self.frames)
+        if shapes is not None or rgb.shape[:2] == self.full_shape:
+            self.frames += 1
+        return shapes
 
     def close(self):
         self.closed = True
@@ -197,24 +207,24 @@ def person_pose(nose=(0.5, 0.3), shoulders=((0.4, 0.5), (0.6, 0.5)), ears=((0.45
 def test_front_view_crops_a_square_of_1_2_shoulder_widths_centred_on_the_nose():
     bgr = np.zeros((1000, 2000, 3), np.uint8)  # shoulders 0.2 of the width apart: 400 px; crop 480 px
     crop = face.crop_face(bgr, person_pose(), "front")
-    assert crop.shape[:2] == (480, 480)
+    assert crop.image.shape[:2] == (480, 480)
 
 
 def test_a_small_person_gets_the_minimum_crop_and_no_view_means_front():
     bgr = np.zeros((600, 800, 3), np.uint8)  # shoulders 80 px apart: 1.2x is 96 px, raised to 160
-    assert face.crop_face(bgr, person_pose(shoulders=((0.45, 0.5), (0.55, 0.5))), None).shape[:2] == (160, 160)
+    assert face.crop_face(bgr, person_pose(shoulders=((0.45, 0.5), (0.55, 0.5))), None).image.shape[:2] == (160, 160)
 
 
 def test_side_view_uses_four_times_the_near_ear_to_nose_distance():
     bgr = np.zeros((1000, 1000, 3), np.uint8)
     pose = person_pose(nose=(0.5, 0.3), ears=((0.4, 0.3), (0.45, 0.3)), visibility=(0.6, 0.9))  # near ear: right, 50 px
-    assert face.crop_face(bgr, pose, "side").shape[:2] == (200, 200)
+    assert face.crop_face(bgr, pose, "side").image.shape[:2] == (200, 200)
 
 
 def test_the_crop_is_clipped_to_the_frame():
     bgr = np.zeros((1000, 1000, 3), np.uint8)
     crop = face.crop_face(bgr, person_pose(nose=(0.02, 0.5)), "front")
-    assert crop.shape[0] == 240 and crop.shape[1] < 240
+    assert crop.image.shape[0] == 240 and crop.image.shape[1] < 240
 
 
 def test_no_crop_without_a_pose():
