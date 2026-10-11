@@ -2,7 +2,7 @@
 // Text pairs need 4.5:1; large text and UI parts (marked "ui") need 3:1. Anything lower is flagged. Exits 1 if anything is flagged.
 const STATUS = {
   good: { fill: '#CDEFD8', border: '#30A46C' },
-  okay: { fill: '#FBE7B5', border: '#E2A336' },
+  okay: { fill: '#FBE7B5', border: '#B7791F' },
   work: { fill: '#F9D0CE', border: '#E5484D' },
 };
 const PALETTES = {

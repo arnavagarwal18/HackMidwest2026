@@ -30,7 +30,7 @@
     /* The same in every palette: the status colours (a soft fill with a stronger 1px border) and what is derived from the per-palette ones */
     :root {
       --c-good-fill: #cdefd8;  --c-good-border: #30a46c;
-      --c-okay-fill: #fbe7b5;  --c-okay-border: #e2a336;
+      --c-okay-fill: #fbe7b5;  --c-okay-border: #b7791f;
       --c-work-fill: #f9d0ce;  --c-work-border: #e5484d;
       --c-line-strong: var(--c-ink-soft);   /* the edge of a control (chip, input): needs 3:1 */
       --c-focus-text: var(--c-accent);      /* "Focus here" and the weakest score */
@@ -83,9 +83,9 @@
     .bars-head h2 { margin-top: 0; }
     .bars-head p { margin: 0; color: var(--soft-ink); }
     .bar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
-    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--c-bar-ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
+    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 60px; padding: 2px 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--c-bar-ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
     .bar-box .num { font-size: 18px; font-weight: 700; }
-    .bar-box .word { font-size: var(--fs-caption); font-weight: 600; }
+    .bar-box .word { font-size: 12px; font-weight: 600; line-height: 1.1; text-align: center; text-wrap: balance; }
     .bar-box[data-level="good"] { border-color: var(--c-good-border); background: var(--c-good-fill); }
     .bar-box[data-level="okay"]   { border-color: var(--c-okay-border); background: var(--c-okay-fill); }
     .bar-box[data-level="work"]  { border-color: var(--c-work-border); background: var(--c-work-fill); }
@@ -185,7 +185,7 @@
             <p>Pick a bar to see what happened in it.</p>
           </div>
           <ul class="bar-row" id="bar-row" role="list"></ul>
-          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Okay</b> a small slip</span><span><b>Work</b> = needs work</span></p>
+          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Okay</b> a small slip</span><span><b>Needs work</b> a bar to practise</span></p>
           <div class="detail" id="detail" aria-live="polite"></div>
         </section>
 
@@ -250,7 +250,7 @@
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
     ];
-    const LABEL = { good: 'Good', okay: 'Okay', work: 'Work' }; // short, to fit the box; the heading and aria-label spell out "needs work"
+    const LABEL = { good: 'Good', okay: 'Okay', work: 'Needs work' }; // wraps to two lines in the box
     const WORD = { good: 'good', okay: 'okay', work: 'needs work' };
 
     const row = document.getElementById('bar-row');
