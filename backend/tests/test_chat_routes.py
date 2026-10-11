@@ -326,9 +326,8 @@ def test_get_plan_returns_the_takes_plan_or_null(sessions_root, fixture_data, mo
     assert tools["get_plan"]() == "null"
     run.run_feedback(session_id, take_id)
     plan = json.loads(tools["get_plan"]())
-    assert plan["take_id"] == take_id and len(plan["exercises"]) == 3 and "progress" not in plan
-    store.update(session_id, "progress", {plan["id"]: {"reps": 1}})
-    assert json.loads(tools["get_plan"]())["progress"] == {"reps": 1}
+    assert plan["take_id"] == take_id and len(plan["exercises"]) == 3
+    assert {"ex1", "ex2", "ex3"} <= set(plan["progress"]["exercises"])
 
 
 def test_get_score_summary_has_the_takes_bars_and_target_tempo(sessions_root, fixture_data, caplog):

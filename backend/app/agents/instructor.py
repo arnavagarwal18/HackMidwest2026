@@ -13,12 +13,16 @@ from app.agents.hooks import CHAT_SUBMIT, CheckerHook, TraceHook
 from app.agents.prompts import INSTRUCTOR_PROMPT
 from app.agents.tools import fit_json
 from app.agents.trace import Trace
+from app.practice.progress import read_progress
+from app.practice.progress_view import _exercise_summary
 from app.score.api import get_score
 from app.score.exceptions import NotConfirmed
 
 log = logging.getLogger(__name__)
 
 HISTORY_TURNS = 10
+RECENT_REPS = 5
+REP_RESULT_FIELDS = ("take_id", "tempo_bpm", "status", "passed", "errors", "reasons")
 
 
 @tool(name=CHAT_SUBMIT.tool_name)
@@ -30,6 +34,27 @@ def submit_reply(sentences: list[CoachSentence]) -> dict:
 def _latest_plan(session: Any, take_id: str) -> dict | None:
     plans = [p for p in session.plans.values() if p["take_id"] == take_id]
     return max(plans, key=lambda p: int(p["id"][2:]), default=None)
+
+
+def plan_progress(session: Any, plan: dict) -> dict:
+    """The learner's practice state on the plan's exercises (those in the plan and those practice added for it), by exercise id.
+
+    Each entry is the progress view's exercise summary plus the ladder (current_bpm, streak, fails_in_row) and the
+    last few rep results. {} when the plan has no practice state.
+    """
+    progress = read_progress(session.session_id)
+    definitions = {**progress["added_exercises"], **{ex["id"]: ex for ex in plan["exercises"]}}
+    summaries = {}
+    for exercise_id, state in progress["exercises"].items():
+        if state["plan_id"] != plan["id"] or exercise_id not in definitions:
+            continue
+        reps = [progress["reps"][rep_id] for rep_id in state["rep_ids"] if rep_id in progress["reps"]]
+        summaries[exercise_id] = {
+            **_exercise_summary(definitions[exercise_id], state, progress["reps"]),
+            "current_bpm": state["current_bpm"], "streak": state["streak"], "fails_in_row": state["fails_in_row"],
+            "rep_results": [{k: rep.get(k) for k in REP_RESULT_FIELDS} for rep in reps[-RECENT_REPS:]],
+        }
+    return {"exercises": summaries} if summaries else {}
 
 
 def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]]:
@@ -52,9 +77,9 @@ def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]
         """The take's practice plan with the learner's progress on it, or null when the take has no plan."""
         session = store.get(session_id)
         plan = _latest_plan(session, take["take_id"])
-        progress = session.progress.get(plan["id"]) if plan else None
         if plan is None:
             return json.dumps(None)
+        progress = plan_progress(session, plan)
         return fit_json({**plan, **({"progress": progress} if progress else {})})
 
     return {fn.__name__: fn for fn in (get_score_summary, get_plan)}
