@@ -1,12 +1,13 @@
 """The Progress view for GET /sessions/{id}/progress: before and after snapshots and per-exercise counts, computed on read.
 
-before is the Snapshot of progress.before_take. after is the Snapshot of the best scored rep, of any exercise whose bars
+before is the Snapshot of progress.before_take, with its clean_bpm worked out from the takes up to and including it, so
+later reps on the same bars (which overwrite session.clean_tempo) never move it. after is the Snapshot of the best scored rep, of any exercise whose bars
 exactly match the before take's bars. Best means fewest errors, then the higher tempo, then the later rep.
 """
 import logging
 
 from .. import store
-from ..diagnosis.timing import clean_tempo_key
+from ..diagnosis.timing import clean_tempo_for, clean_tempo_key
 from .progress import find_exercise, read_progress
 from .rules import ERROR_STATUSES, FORM_DONE
 from .scoring import STATUS_SCORED
@@ -22,6 +23,18 @@ def _count_errors(diagnosis: dict) -> int:
     return wrong_or_missed + len(diagnosis.get("extras") or [])
 
 
+def _clean_bpm_at_take(session: store.Session, take: dict) -> float | None:
+    """The clean tempo of the take's bars as of that take: only it and the takes recorded before it count."""
+    earlier = {}
+    for take_id, other in session.takes.items():
+        if take_id == take["take_id"]:
+            break
+        earlier[take_id] = other
+    if take["diagnosis"].get("played_bpm") is None:
+        return None
+    return clean_tempo_for(earlier, take, take["diagnosis"])
+
+
 def _snapshot(session: store.Session, take: dict, source: str) -> dict:
     diagnosis = take["diagnosis"]
     form = take.get("form") or {}
@@ -29,7 +42,8 @@ def _snapshot(session: store.Session, take: dict, source: str) -> dict:
         "source": source, "take_id": take["take_id"], "bar_from": take["bar_from"], "bar_to": take["bar_to"],
         "errors": _count_errors(diagnosis), "error_rate": diagnosis.get("error_rate"),
         "played_bpm": diagnosis.get("played_bpm"),
-        "clean_bpm": session.clean_tempo.get(clean_tempo_key(take["bar_from"], take["bar_to"])),
+        "clean_bpm": (_clean_bpm_at_take(session, take) if source == SOURCE_TAKE
+                      else session.clean_tempo.get(clean_tempo_key(take["bar_from"], take["bar_to"]))),
         "form_flags": len(form.get("flags") or []),
         "form_checked": take["kind"] == "video" and take.get("form_status") == FORM_DONE,
     }
