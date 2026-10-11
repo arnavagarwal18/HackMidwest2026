@@ -7,19 +7,19 @@
 :root {
   color-scheme: light dark;
 
-  /* Colour - light, palette "Paper & Sky". Contrast ratios are WCAG 2.x (text needs 4.5:1, non-text 3:1); checked in tests/components.test.mjs. */
-  --bg: #f5f5f7;
+  /* Colour - light, palette "Mist Iris". Contrast ratios are WCAG 2.x (text needs 4.5:1, non-text 3:1); checked in tests/components.test.mjs. */
+  --bg: #e6eaf4;
   --surface: #ffffff;       /* cards, inputs */
-  --surface-2: #e5e5ea;     /* hover fills, the segmented track, meters, the media background */
-  --ink: #1d1d1f;
-  --muted: #6e6e73;         /* secondary text, still 4.5:1 on --bg and --surface */
-  --line: #e5e5ea;          /* a decorative hairline, not for text or control edges */
-  --line-strong: #6e6e73;   /* the edge of a control (input, chip, segmented): 3:1 */
-  --accent: #0066cc;        /* the one accent: the primary action, the focus ring */
+  --surface-2: #d3d9e8;     /* hover fills, the segmented track, meters, the media background */
+  --ink: #1f2433;
+  --muted: #565f72;         /* secondary text, still 4.5:1 on --bg and --surface */
+  --line: #d3d9e8;          /* a decorative hairline, not for text or control edges */
+  --line-strong: #565f72;   /* the edge of a control (input, chip, segmented): 3:1 */
+  --accent: #5a5ad4;        /* the one accent: the primary action, the focus ring */
   --primary: var(--accent);
   --primary-ink: #ffffff;
-  --primary-hover: #0058b0;
-  --ok: #1e7a46;            /* in tune: text-safe green */
+  --primary-hover: #4b4bc0;
+  --ok: #1a6f40;            /* in tune: text-safe green */
   --flat: #0066cc;          /* flat / early */
   --sharp: #8a5a00;         /* sharp / late: text-safe amber */
   --error: #b3261e;
@@ -65,7 +65,7 @@
   --page-pad: var(--sp-4);
 
   /* Elevation: resting cards are flat. Only what floats (toast, banner, overlay) has a soft shadow. */
-  --shadow-color: 29 29 31;
+  --shadow-color: 31 36 51;
   --shadow-1: none;
   --shadow-2: 0 4px 16px rgb(var(--shadow-color) / 0.12);
   --shadow-3: 0 8px 28px rgb(var(--shadow-color) / 0.16);
@@ -92,9 +92,9 @@
     --muted: #a1a1a6;
     --line: #38383c;
     --line-strong: #8e8e93;
-    --accent: #4c9dff;
+    --accent: #8b8bf0;
     --primary-ink: #0b0b0d;
-    --primary-hover: #6cb0ff;
+    --primary-hover: #a5a5f6;
     --ok: #6cc48b;
     --flat: #4c9dff;
     --sharp: #f0b050;
