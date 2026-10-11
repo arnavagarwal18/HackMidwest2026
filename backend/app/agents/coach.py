@@ -14,12 +14,20 @@ from app.agents.trace import Trace
 COACH_MAX_TOKENS = 1500  # up to 6 cited sentences with their claims, as one submit_feedback call
 
 
+CLAIM_VALUE_HELP = (
+    "Always set it, copied from the tool result: count = the number in numbers or the bar's count; timing_ms = the timing in ms; "
+    "direction = late, early, sharp, flat, rushing or dragging; tempo_pct = the drift percentage; "
+    "pitch = the note the learner PLAYED (played_name), never the written note, and never for a missed note; "
+    "form = the flag's rule name; bar = a bar number the item lies in"
+)
+
+
 class Claim(BaseModel):
     type: Literal["count", "timing_ms", "direction", "tempo_pct", "pitch", "form", "bar"]
     id: str = Field(description="The measurement id the claim is about")
     field: Optional[str] = Field(default=None, description="For count claims: wrong, missed, extra, late or early")
-    value: Union[int, float, str, None] = Field(default=None, description="The number, direction word, pitch name or form rule claimed")
-    time_s: Optional[float] = Field(default=None, description="For form claims: a time in seconds inside the flag")
+    value: Union[int, float, str, None] = Field(default=None, description=CLAIM_VALUE_HELP)
+    time_s: Optional[float] = Field(default=None, description="For form claims (required): a time in seconds inside the flag")
 
 
 class Jump(BaseModel):
@@ -31,7 +39,7 @@ class CoachSentence(BaseModel):
     text: str = Field(description="One sentence of at most 30 words")
     cites: list[str] = Field(description="At least one measurement id the sentence rests on")
     claims: list[Claim] = Field(default_factory=list, description="Every number, direction, pitch and form fact in the text")
-    jump: Jump = Field(default_factory=Jump)
+    jump: Optional[Jump] = Field(default=None, description="Null when the sentence has no jump")
 
 
 class CoachOutput(BaseModel):

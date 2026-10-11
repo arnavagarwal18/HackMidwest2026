@@ -121,7 +121,7 @@ def run_live_check(trace_path: Path) -> int:
         failure = exc
         logger.error("The live check failed", exc_info=exc)
     total_ms = round((time.monotonic() - started) * 1000)
-    print("\n".join(stage_lines(trace.events, total_ms)))
+    print("\n".join([*stage_lines(trace.events, total_ms), *(f"rejected: {line}" for line in holder.rejections)]))
     reason = _failure_line(failure, holder)
     if reason:
         logger.error("The live check ended without a full result: %s", reason)

@@ -11,6 +11,12 @@ from app.main import app
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "diagnosis_fixture.json"
 
 
+@pytest.fixture(autouse=True)
+def ai_off_unless_a_test_turns_it_on(monkeypatch):
+    """The process environment wins over backend/.env, so a developer's .env with AI_ENABLED=true never sends a test to Bedrock."""
+    monkeypatch.setenv("AI_ENABLED", "false")
+
+
 @pytest.fixture
 def sessions_root(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "SESSIONS_ROOT", tmp_path / "sessions")
