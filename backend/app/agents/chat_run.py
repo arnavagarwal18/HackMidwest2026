@@ -9,7 +9,8 @@ from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, is_credential_error
 from app.agents.fallback import tier1_sentences
 from app.agents.holder import ReplyHolder
 from app.agents.hooks import CHAT_SUBMIT
-from app.agents.instructor import build_instructor_agent, history_messages, make_chat_tools
+from app.agents.chat_history import history_messages
+from app.agents.instructor import build_instructor_agent, make_chat_tools
 from app.agents.persona_run import PersonaRun, resolve_persona
 from app.agents.submit_retry import invoke_until_submitted
 from app.agents.trace import Trace
@@ -44,8 +45,9 @@ async def _ask(session_id: str, take: dict, turns: list[dict], message: str, hol
     """One Instructor turn, in the coach style the session has now (read at reply time)."""
     session = store.get(session_id)
     ctx, tools = ai_run.context_and_tools(session_id, take, run.earlier_takes(session.takes, take))
+    persona = resolve_persona(session.persona, trace, "instructor")
     agent = build_instructor_agent(ai_run.new_model(), {**tools, **make_chat_tools(session_id, take)}, ctx, holder, trace,
-                                   history_messages(turns), PersonaRun(resolve_persona(session.persona, trace, "instructor")))
+                                   history_messages(turns, persona.id), PersonaRun(persona), turns)
     await asyncio.wait_for(
         invoke_until_submitted(agent, message, agent_name="instructor", tool_name=CHAT_SUBMIT.tool_name,
                                accepted=lambda: holder.reply is not None, trace=trace),
