@@ -1,0 +1,9 @@
+/* Demo upload (#/demo): two file picks side by side, a clear Start button and a calm upload bar. Loaded by screens/demo.js. */
+.demo-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.demo-picks .file-pick { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); margin: 0; padding: var(--sp-3); background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--radius-card); color: var(--ink); font-weight: 600; }
+.demo-picks p { margin: 0; }
+.demo-actions { margin: 0 0 var(--sp-3); }
+.demo-progress { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.demo-progress progress { flex: 1 1 12rem; max-width: 24rem; height: 10px; accent-color: var(--brass); }
+.demo-prompt:empty { display: none; }
+.demo-prompt { margin-top: var(--sp-3); padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-card); }

@@ -1,5 +1,7 @@
 import { getProgress, isNotFound } from '../api.js';
 import { state } from '../state.js';
+import { badge, emptyState, pageHeader, skeleton } from '../ui/components.js';
+import { loadStylesheet } from '../ui/styles.js';
 import { element } from './placeholder.js';
 
 // Progress screen (#/progress): the first take against the latest one, then each exercise's standing.
@@ -39,27 +41,52 @@ function comparisonTable({ before, after }) {
   return table;
 }
 
+// How far the best passed tempo has come from the start tempo toward the target, 0 to 1.
+export function tempoShare({ start_bpm: start, target_bpm: target, best_passed_bpm: best }) {
+  if (best == null || target <= start) return best == null || best < target ? 0 : 1;
+  return Math.min(1, Math.max(0, (best - start) / (target - start)));
+}
+
+// A bar from the start tempo to the target, filled up to the best passed tempo. The words under it say the same.
+function tempoMeter(exercise) {
+  const meter = element('div', '', 'meter tempo-meter', {
+    role: 'progressbar',
+    'aria-label': `Tempo reached in ${exercise.title}`,
+    'aria-valuemin': String(exercise.start_bpm),
+    'aria-valuemax': String(exercise.target_bpm),
+    'aria-valuenow': String(exercise.best_passed_bpm ?? exercise.start_bpm),
+  });
+  meter.append(element('i', '', '', { style: `width: ${Math.round(tempoShare(exercise) * 100)}%` }));
+  const scale = element('p', '', 'tempo-scale muted');
+  scale.append(element('span', `${exercise.start_bpm} bpm`), element('span', `${exercise.target_bpm} bpm`));
+  const box = element('div', '', 'tempo');
+  box.append(meter, scale);
+  return box;
+}
+
 function exerciseItem(exercise) {
-  const item = element('li', '', 'exercise-item');
+  const item = element('li', '', 'exercise-item card');
   const link = element('a', exercise.title);
   link.href = `#/exercise/${encodeURIComponent(exercise.id)}`;
-  const status = exercise.complete
-    ? element('span', 'Complete', 'badge badge-done')
-    : element('span', 'In progress', 'badge');
+  const heading = element('h3');
+  heading.append(link);
+  const header = element('div', '', 'card-header');
+  header.append(heading, exercise.complete ? badge('Complete', 'ok') : badge('In progress', 'warn'));
   const best = exercise.best_passed_bpm == null ? 'No pass yet' : `Best passed: ${exercise.best_passed_bpm} bpm`;
   const detail = `${best} (from ${exercise.start_bpm} toward ${exercise.target_bpm} bpm). `
     + `${exercise.passes} of ${exercise.reps} reps passed.`;
-  item.append(link, ' ', status, element('p', detail, 'muted'));
+  const body = element('div', '', 'card-body');
+  body.append(tempoMeter(exercise), element('p', detail, 'muted'));
+  item.append(header, body);
   return item;
 }
 
 // Pure view of one progress response; exported so it can be tried with any saved response.
 export function renderProgress(root, progress) {
-  root.replaceChildren(element('h1', 'Progress'));
+  root.replaceChildren(pageHeader({ title: 'Progress', subtitle: 'Your first take against your latest one, and how far each exercise has come.' }));
   const hasSnapshots = progress.before || progress.after;
   if (!hasSnapshots && !progress.exercises.length) {
-    root.append(element('p', 'Nothing to compare yet. Record a take, then practice an exercise, and your '
-      + 'before and after will show up here.', 'empty-state'));
+    root.append(emptyState('Nothing to compare yet', 'Record a take, then practice an exercise, and your before and after will show up here.'));
     return;
   }
   root.append(element('h2', 'Before and after'));
@@ -78,14 +105,17 @@ export function renderProgress(root, progress) {
 export const NO_PROGRESS_TEXT = 'No progress yet: record a take first.';
 
 export async function render(root, _params, isCurrent = () => true) {
+  loadStylesheet('css/progress.css');
+  root.replaceChildren(pageHeader({ title: 'Progress' }), skeleton(4));
   let progress;
   try {
     progress = await getProgress(state.session_id ?? 'no-session');
   } catch (err) {
+    if (isCurrent()) root.replaceChildren(pageHeader({ title: 'Progress' })); // the placeholders must not stay up after a failure
     if (!isNotFound(err)) throw err; // other errors reach the banner
     if (!isCurrent()) return;
     console.warn(`No progress for this session (${err.code}).`);
-    root.replaceChildren(element('h1', 'Progress'), element('p', NO_PROGRESS_TEXT, 'empty-state'));
+    root.replaceChildren(pageHeader({ title: 'Progress' }), emptyState(NO_PROGRESS_TEXT));
     return;
   }
   if (!isCurrent()) return; // the learner already moved to another screen

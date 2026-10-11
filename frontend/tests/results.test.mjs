@@ -68,7 +68,7 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.equal(await count(page, '.video-stage video[controls]'), 1);
   assert.equal(await count(page, '#form-flag-slot'), 1);
   assert.equal(await page.eval(`document.querySelector('.exercise a').getAttribute('href')`), '#/exercise/ex1');
-  assert.deepEqual(await text(page, '.exercise a'), ['Practice']);
+  assert.deepEqual(await text(page, '.exercise a'), ['Practice this']);
   assert.equal(await page.eval(`document.querySelector('a.trace-link').getAttribute('href')`), '#/trace/fb_1');
   assert.deepEqual(await text(page, 'a.trace-link'), ['How the AI worked']);
   assert.equal(await count(page, '.fallback-notice'), 0);

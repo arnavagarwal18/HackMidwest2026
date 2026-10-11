@@ -1,0 +1,27 @@
+/* Trace (#/trace/:fb): each agent's run is a card, and its events are small cards on a vertical timeline. Loaded by screens/trace.js. */
+.trace-mode { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-4); color: var(--muted); }
+.trace-group.card { border-left: 4px solid var(--agent); }
+.trace-group + .trace-group { margin-top: var(--sp-3); }
+
+.trace-events { position: relative; display: grid; gap: var(--sp-2); padding: 0 0 0 var(--sp-4); }
+.trace-events::before { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--line); }
+
+.trace-event, .trace-event:first-child {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.trace-event::before { content: ""; position: absolute; top: var(--sp-3); left: calc(2px - var(--sp-4)); width: 10px; height: 10px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 0 3px var(--bg); }
+.trace-marker { padding: 0; background: none; }
+.trace-title { min-width: 0; overflow-wrap: anywhere; }
+.trace-time, .trace-duration { min-width: 0; font-size: var(--fs-sm); white-space: nowrap; }
+.trace-event > .trace-detail { grid-column: 1 / -1; margin: 0; padding: var(--sp-2) var(--sp-3); background: var(--surface); border-radius: var(--radius); }
+.trace-check_fail, .trace-error, .trace-model_error, .trace-tool_error { border-color: var(--error); }
+@media (max-width: 40rem) { .trace-event, .trace-event:first-child { grid-template-columns: auto minmax(0, 1fr); } .trace-time, .trace-duration { grid-column: 2; } }

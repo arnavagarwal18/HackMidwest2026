@@ -4,6 +4,7 @@
 import { takeMediaUrl } from '../api.js';
 import { button, element } from '../dom.js';
 import { state } from '../state.js';
+import { emptyState, pageHeader } from '../ui/components.js';
 import { createBarList } from './bars.js';
 import { createJumper } from './jumper.js';
 import { renderBarActions } from './loop.js';
@@ -24,7 +25,7 @@ export const FAILED_DEFAULT_TEXT = 'The take could not be checked. Please record
 // The one filled button on the results: the take screen keeps the bars, tempo and kind of this take, so it is the same settings.
 function playAgainActions() {
   const actions = element('p', '', 'actions');
-  actions.append(button('Play again', () => { window.location.hash = '#/take'; }, 'play-again primary'));
+  actions.append(button('Play again', () => { window.location.hash = '#/take'; }, 'play-again primary btn btn-primary'));
   return actions;
 }
 
@@ -58,7 +59,7 @@ export function renderDone(view, data, context) {
   const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList }) };
   const barStrip = createBarStrip(analysis, { ...jumpContext, renderActions });
 
-  view.replaceChildren(element('h1', 'Results'));
+  view.replaceChildren(pageHeader({ title: 'Results', subtitle: 'How this take went, bar by bar.' }));
   if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
   const coachedBy = renderCoachedBy(feedback);
   if (coachedBy) view.append(coachedBy);
@@ -71,7 +72,7 @@ export function renderDone(view, data, context) {
   if (tier1.length) view.append(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
   const coach = coachSentences(feedback, tier1);
   if (coach.length) view.append(sentenceSection("Your coach's notes", 'coach', coach, jumpContext, { checkedBadge: true }));
-  if (!tier1.length && !coach.length) view.append(element('p', 'No problems were found in this take.', 'muted'));
+  if (!tier1.length && !coach.length) view.append(emptyState('Nothing to fix', 'No problems were found in this take.'));
   view.append(barList.section, player.section, renderPlan(plan));
   if (feedback.id) view.append(renderTraceLink(feedback.id));
   return { ...jumpContext, player, barList, barStrip, analysis, feedback };

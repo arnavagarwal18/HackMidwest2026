@@ -35,12 +35,16 @@ export function createBarStrip(analysis, { index, jumper, renderActions }) {
   if (!bars.length) return null;
   const flagged = new Set(problemBars(analysis).map((bar) => bar.bar));
   const verdicts = bars.map((bar) => barVerdict(bar, analysis.notes ?? [], flagged.has(bar.bar)));
-  const section = element('section', '', 'bar-strip-section');
+  const section = element('section', '', 'bar-strip-section card');
   const strip = element('div', '', 'bar-strip', { role: 'group', 'aria-label': 'Every bar of this take' });
   const cells = bars.map((bar, i) => cellFor(bar, verdicts[i]));
   strip.append(...cells);
   const detail = element('div', '', 'bar-detail', { id: 'bar-detail', 'aria-live': 'polite' });
-  section.append(element('h2', 'Bar by bar'), strip, legend(verdicts), detail);
+  const header = element('div', '', 'card-header');
+  const body = element('div', '', 'card-body');
+  header.append(element('h2', 'Bar by bar'));
+  body.append(strip, legend(verdicts), detail);
+  section.append(header, body);
 
   function select(barNumber) {
     const at = bars.findIndex((bar) => bar.bar === barNumber);

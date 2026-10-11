@@ -22,7 +22,7 @@ export function createPicks({ onChange }) {
   const video = pickerRow('Video of the playing', UPLOAD_ACCEPT);
   [photo.input, video.input].forEach((input) => input.addEventListener('change', onChange));
   return {
-    element: el('div', { children: [photo.row, video.row] }),
+    element: el('div', { className: 'demo-picks', children: [photo.row, video.row] }),
     read: () => ({ photo: photo.input.files[0], video: video.input.files[0] }),
   };
 }

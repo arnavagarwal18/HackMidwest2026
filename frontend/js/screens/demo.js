@@ -5,14 +5,17 @@ import { createPicks, picksProblem } from '../demo/picks.js';
 import { runDemo } from '../demo/flow.js';
 import { createDemoView } from '../demo/view.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
+import { pageHeader } from '../ui/components.js';
+import { loadStylesheet } from '../ui/styles.js';
 
 const INTRO = 'For demos: choose a photo of sheet music and a video of someone playing it. Start runs the normal steps; you only confirm the score.';
 
 export function render(root, _params, isCurrent = () => true) {
   loadScoreStyles();
+  loadStylesheet('css/demo.css');
   const view = createDemoView();
   const picks = createPicks({ onChange: () => clearBanner() });
-  const start = button('Start', begin, 'primary');
+  const start = button('Start', begin, 'primary btn btn-primary btn-lg');
 
   async function begin() {
     clearBanner();
@@ -31,11 +34,12 @@ export function render(root, _params, isCurrent = () => true) {
     }
   }
 
-  root.append(el('section', { className: 'demo', children: [
-    el('h1', { text: 'Demo upload' }),
-    el('p', { text: INTRO, className: 'muted' }),
-    picks.element,
-    el('p', { children: [start] }),
-    view.element,
-  ] }));
+  root.append(
+    pageHeader({ title: 'Demo upload', subtitle: INTRO }),
+    el('section', { className: 'demo', children: [
+      picks.element,
+      el('p', { className: 'demo-actions', children: [start] }),
+      view.element,
+    ] }),
+  );
 }
