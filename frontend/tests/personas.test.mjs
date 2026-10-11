@@ -371,7 +371,7 @@ test('the menu sits in the sheet header, and a change leaves no "Now coaching" l
   assert.equal(root.withClass('coached-by').length, 0);
   pick(root, 'Concert');
   await settle();
-  assert.deepEqual(root.texts('chat-note'), []);
+  assert.equal(root.withClass('chat-turn').length, 0, 'the transcript has no turns, so no "Now coaching" line');
   assert.equal(drawn.length, 1);
   assert.equal(trigger(root).disabled, false, 'the new feedback record enabled the menu again');
 });
@@ -386,8 +386,7 @@ test('switching coach empties the whole thread, from any coach, and the new coac
   pick(root, 'Concert');
   await settle();
   assert.deepEqual(threadTexts(root), [], 'no earlier message is left');
-  assert.deepEqual(root.texts('chat-note'), [], 'and no "Now coaching" history');
-  assert.equal(root.withClass('chat-turn').length, 0);
+  assert.equal(root.withClass('chat-turn').length, 0, 'and no "Now coaching" history');
   pick(root, 'Marching');
   await settle();
   assert.deepEqual(threadTexts(root), [], 'a second switch leaves it empty too');

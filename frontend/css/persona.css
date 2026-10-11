@@ -17,7 +17,6 @@
 .persona-hint { margin: 0; min-height: 1.5em; }
 
 .coached-by { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
-.chat-note { font-size: var(--fs-sm); list-style: none; }
 
 /* The coach style menu: a text button with a caret and a popup list. The chosen item carries a check mark, not only a colour. */
 .coach-menu { position: relative; }

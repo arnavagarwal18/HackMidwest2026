@@ -23,7 +23,6 @@ function renderSentences(sentences, jumpContext) {
 
 // One turn as an <li>. jumpContextFor(turn) gives the jump context for that turn, or null.
 export function renderTurn(turn, jumpContextFor) {
-  if (turn.role === 'note') return element('li', turn.text, 'chat-note muted'); // a line the app adds
   const item = element('li', '', `chat-turn chat-${turn.role}`);
   item.append(element('span', turn.role === 'user' ? 'You' : 'Coach', 'chat-speaker'));
   if (isFallback(turn)) item.append(element('p', FALLBACK_NOTE, 'notice fallback-notice', { role: 'status' }));
