@@ -3,17 +3,20 @@ import json
 import logging
 import os
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
 import cv2
+import numpy as np
 
 from .. import store
 from ..errors import storage_error
 from ..takes.take_store import get_take
 from . import config
 from .errors import VideoUnreadable
+from .face import FaceReader, FaceResult
 from .tracker import Tracker, downscale
 
 logger = logging.getLogger("app.form.track")
@@ -28,6 +31,7 @@ class TrackResult:
     height: int
     frames: list[dict] = field(default_factory=list)  # {t, pose, left_hand, right_hand}
     warning: str | None = None  # set when the time limit cut the analysis short
+    face: FaceResult | None = None  # embouchure readings; None when the face is not checked
 
     @property
     def frames_total(self) -> int:
@@ -83,8 +87,11 @@ def _sampled_fps(frames: list[dict]) -> float:
 
 
 def track_video(video_path: Path, with_hands: bool, time_limit_s: float = config.TIME_LIMIT_S,
-                clock: Callable[[], float] = time.monotonic) -> TrackResult:
+                clock: Callable[[], float] = time.monotonic,
+                on_frame: Callable[[np.ndarray, float, dict], None] | None = None) -> TrackResult:
     """Track one frame per 1 / FPS seconds of video time, stopping early once time_limit_s of wall time has passed.
+
+    `on_frame(full_resolution_bgr, seconds, tracked_frame)` is called for each tracked frame, before it is saved.
 
     Raises VideoUnreadable if the video can't be opened or has no frames, FormUnavailable if MediaPipe can't load.
     """
@@ -110,11 +117,13 @@ def track_video(video_path: Path, with_hands: bool, time_limit_s: float = config
                 if not ok:
                     break
                 previous_slot = _sample_slot(seconds)
-                bgr = downscale(bgr)
+                full_bgr, bgr = bgr, downscale(bgr)
                 result.height, result.width = bgr.shape[:2]
                 previous_stamp_ms = max(round(seconds * 1000), previous_stamp_ms + 1)  # MediaPipe needs strictly growing timestamps
                 frame = tracker.track(bgr, previous_stamp_ms)
                 result.frames.append({"t": round(seconds, 3), **frame})
+                if on_frame is not None:
+                    on_frame(full_bgr, result.frames[-1]["t"], frame)
     finally:
         capture.release()
     if not result.frames:
@@ -137,10 +146,18 @@ def save_tracks(session_id: str, take_id: str, result: TrackResult) -> None:
 
 
 def track_take(session_id: str, take_id: str) -> TrackResult:
-    """Track a video take (hands too for violin) and save its tracks file; the caller records result.warning in take.form."""
+    """Track a video take (hands too for violin; the trumpet face inside its notes) and save its tracks file.
+
+    The caller records result.warning in take.form. result.face is set for a trumpet take when FACE_ENABLED.
+    """
     take = get_take(session_id, take_id)
-    with_hands = store.get(session_id).instrument == "violin"
-    result = track_video(store.session_dir(session_id) / take["file"], with_hands)
+    instrument = store.get(session_id).instrument
+    video_path = store.session_dir(session_id) / take["file"]
+    view = (take.get("form") or {}).get("view")  # known only when the take was analysed before; a first run crops as front
+    reader = FaceReader(take.get("notes") or [], view) if config.FACE_ENABLED and instrument == "trumpet" else None
+    with reader or nullcontext():
+        result = track_video(video_path, instrument == "violin", on_frame=reader.read if reader else None)
+    result.face = reader.result if reader else None
     save_tracks(session_id, take_id, result)
     logger.info("Tracked %s/%s: %d of %d frames", session_id, take_id, result.frames_tracked, result.frames_total)
     return result

@@ -6,6 +6,8 @@ from statistics import mean
 
 from . import config
 from .episodes import Sample, find_episodes
+from .face import FaceResult
+from .face_rules import CHEEK_PUFF, FACE_UNAVAILABLE, SMILE, face_samples
 from .measures import (ELBOW_ANGLE, ELBOW_GAP_LEFT, ELBOW_GAP_RIGHT, HEAD_DROP, MEASURE_SPECS, NECK_RATIO, TORSO_LEAN,
                        WRIST_BEND, Baseline, Reading, aspect_ratio, compute_baseline, frame_measures)
 from .side_measures import HEAD_PITCH, NECK_SIDE, SIDE_TORSO_LEAN, side_specs, with_side_baseline
@@ -16,7 +18,7 @@ logger = logging.getLogger("app.form")
 VIOLIN, TRUMPET = "violin", "trumpet"
 BOTH_INSTRUMENTS = (VIOLIN, TRUMPET)
 LOW, HIGH = "low", "high"
-DEG, RATIO = "deg", "ratio"
+DEG, RATIO, SCORE = "deg", "ratio", "score"
 NOT_VISIBLE = "not_visible"
 NOT_FOR_VIEW = "not_for_view"
 
@@ -80,6 +82,12 @@ RULES = [
          "slouching", views=(SIDE,), span_of=lambda b: config.SEVERITY_SPANS["slouching"]),
     Rule("trumpet_head_down", (TRUMPET,), HEAD_PITCH, HIGH, DEG, lambda b: b.head_pitch + config.SIDE_HEAD_PITCH_DELTA,
          "head dropped", views=(SIDE,), span_of=lambda b: config.SIDE_HEAD_PITCH_SPAN_DEG),
+]
+
+FACE_RULES = [  # judged on the Face Landmarker's readings (measure names a FaceReading field), not on the pose
+    Rule("trumpet_cheeks_puffed", (TRUMPET,), CHEEK_PUFF, HIGH, SCORE, lambda b: config.CHEEK_PUFF_MAX, "cheeks puffing out"),
+    Rule("trumpet_smile_embouchure", (TRUMPET,), SMILE, HIGH, SCORE, lambda b: config.SMILE_MAX,
+         "mouth corners pulled back (smile embouchure)"),
 ]
 
 
@@ -150,8 +158,21 @@ def _active_rules(instrument: str, view: str, readings: list[Readings], baseline
     return active, skipped
 
 
+def _active_face_rules(face: FaceResult, times: list[float], baseline: Baseline,
+                       take_id: str) -> tuple[list[tuple[Rule, list[Sample]]], list[dict]]:
+    """The face rules to flag with, each with its per-frame samples, and every one skipped with its reason."""
+    if face.unavailable:
+        reason = FACE_UNAVAILABLE
+    elif face.face_quality is None or face.face_quality < config.FACE_MIN_QUALITY:
+        reason = NOT_VISIBLE
+    else:
+        return [(rule, face_samples(rule.measure, rule.threshold(baseline), times, face)) for rule in FACE_RULES], []
+    logger.warning("take %s: face rules skipped (%s), face_quality %s", take_id, reason, face.face_quality)
+    return [], [{"rule": rule.name, "reason": reason} for rule in FACE_RULES]
+
+
 def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None = None,
-            height: int | None = None) -> dict:
+            height: int | None = None, face: FaceResult | None = None) -> dict:
     """Judge a take's frames against the posture rules: { view, view_ratio, baseline, rules_skipped, flags }.
 
     Each frame is { t, pose, left_hand, right_hand }. A rule whose measure is missing in too many frames is listed in
@@ -159,6 +180,7 @@ def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None
     `width` and `height` are the video's pixel size, used so normalised x and y share one scale; None means square.
     A side view (see view.detect_view) is judged with the side measures and rules; the front rules with no side version
     are listed in rules_skipped with reason 'not_for_view'.
+    `face` holds the Face Landmarker's readings of a trumpet take (None: not checked); it adds the embouchure rules.
     """
     _check_instrument(instrument)
     aspect = aspect_ratio(width, height)
@@ -175,10 +197,12 @@ def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None
         logger.warning("take %s: rule %s skipped, its measure is missing in over %d%% of frames",
                        take_id, name, round(config.MISSING_MAX_FRACTION * 100))
 
+    face_active, face_skipped = _active_face_rules(face, times, baseline, take_id) if face is not None else ([], [])
+    active = active + face_active
     flags = [_flag_fields(rule, baseline, episode) for rule, samples in active for episode in find_episodes(times, samples)]
     flags.sort(key=lambda flag: flag["start_s"])
     flags = [{"id": f"f:{take_id}:{k}", **flag} for k, flag in enumerate(flags, start=1)]
     rules_skipped = ([{"rule": n, "reason": NOT_VISIBLE} for n in skipped]
-                     + [{"rule": n, "reason": NOT_FOR_VIEW} for n in _not_for_view(instrument, view)])
+                     + [{"rule": n, "reason": NOT_FOR_VIEW} for n in _not_for_view(instrument, view)] + face_skipped)
     return {"view": view, "view_ratio": view_ratio, "baseline": baseline.to_dict(), "rules_skipped": rules_skipped,
             "flags": flags}
