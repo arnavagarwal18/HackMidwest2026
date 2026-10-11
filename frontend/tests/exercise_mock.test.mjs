@@ -40,13 +40,13 @@ async function open(ex) {
   return { root, trainer, recorded, playRep };
 }
 
-test('mock exercise ex1: card, a passing rep fills the dots from the mock result', async () => {
+test('mock exercise ex1: tempo, a passing rep fills the dots from the mock result', async () => {
   const t = await open('ex1');
-  assert.ok(t.root.texts('pass-mark')[0].includes('average timing within 60 ms'));
   assert.equal(t.root.withClass('dot').length, 3);
-  assert.equal(t.root.texts('current-tempo')[0], 'Current tempo: 66 BPM');
+  assert.deepEqual(t.root.texts('tempo-value'), ['66']);
   await t.playRep(() => t.root.withClass('verdict').length > 0);
-  assert.equal(t.root.texts('verdict')[0], 'PASS');
+  assert.ok(t.root.texts('pass-mark')[0].includes('average timing within 60 ms'));
+  assert.ok(t.root.texts('verdict')[0].startsWith('Pass'));
   assert.equal(t.root.withClass('filled').length, 2); // get_rep.json: streak 2
   assert.equal(t.recorded[0].tempoBpm, 66);
   t.trainer.destroy();
@@ -55,7 +55,7 @@ test('mock exercise ex1: card, a passing rep fills the dots from the mock result
 test('mock exercise ex_fail: FAIL with the reasons', async () => {
   const t = await open('ex_fail');
   await t.playRep(() => t.root.withClass('verdict').length > 0);
-  assert.equal(t.root.texts('verdict')[0], 'FAIL');
+  assert.ok(t.root.texts('verdict')[0].startsWith('Not yet'));
   assert.deepEqual(t.root.withClass('reasons')[0].children.map((li) => li.textContent), ['2 errors, pass mark 0', 'mean timing 72 ms, pass mark 60 ms']);
   t.trainer.destroy();
 });
@@ -69,11 +69,11 @@ test('mock exercise ex_not_counted: the back end message and Record again', asyn
 
 test('mock exercise ex_complete: the rep passes the target and Done appears; ex_done opens on Done', async () => {
   const t = await open('ex_complete');
-  assert.equal(t.root.texts('current-tempo')[0], 'Current tempo: 96 BPM');
+  assert.deepEqual(t.root.texts('tempo-value'), ['96']);
   await t.playRep(() => t.root.button('Record a full take'));
-  assert.deepEqual(t.root.texts('verdict'), ['PASS', 'Done']);
+  assert.deepEqual(t.root.texts('verdict'), ['Done — you passed 96 BPM']);
   t.trainer.destroy();
   const done = await open('ex_done');
-  assert.deepEqual(done.root.texts('verdict'), ['Done']);
+  assert.deepEqual(done.root.texts('verdict'), ['Done — you passed 96 BPM']);
   done.trainer.destroy();
 });

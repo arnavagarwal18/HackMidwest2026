@@ -1,86 +1,42 @@
-// The parts of the trainer screen that show where the learner stands: page header, tempo card and rep history.
+// The parts of the trainer screen that show where the learner stands: the title, the tempo with its streak, and the rep history.
 import { element } from '../dom.js';
-import { emptyState, badge, pageHeader, stat } from '../ui/components.js';
-import { barsText, ladderView, passMarkText, streakDots, streakLabel, tempoProgressPercent } from './model.js';
+import { pageHeader } from '../ui/components.js';
+import { streakDots, streakLabel } from './model.js';
 
-const capitalized = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-
+// The title, with the exercise's own instruction as the quiet line under it.
 export function renderHeader(exercise) {
-  return pageHeader({ title: exercise.title, subtitle: `${capitalized(barsText(exercise))}, from ${exercise.start_bpm} to ${exercise.target_bpm} BPM` });
+  return pageHeader({ title: exercise.title, subtitle: exercise.text });
 }
 
 function renderStreakDots(exercise, xstate) {
-  const label = streakLabel(xstate.streak, exercise.reps_to_pass);
-  const dots = element('ul', '', 'streak-dots', { 'aria-label': label });
+  const dots = element('ul', '', 'streak-dots', { 'aria-label': streakLabel(xstate.streak, exercise.reps_to_pass) });
   streakDots(xstate.streak, exercise.reps_to_pass).forEach((filled) => {
     dots.append(element('li', filled ? '●' : '○', filled ? 'dot filled' : 'dot'));
   });
   return dots;
 }
 
-function renderLadder(exercise, xstate) {
-  const ladder = element('ol', '', 'ladder', { 'aria-label': 'Tempo ladder, from start to target' });
-  ladderView(exercise, xstate).forEach(({ bpm, status }) => {
-    ladder.append(element('li', String(bpm), `step ${status}`));
-  });
-  return ladder;
+// First glance: the current tempo as one big number, the target in a quiet line, and the streak dots with what is left.
+export function renderTempo(exercise, xstate) {
+  const section = element('section', '', 'tempo', { 'aria-label': 'Tempo' });
+  const now = element('p', '', 'current-tempo');
+  now.append(element('span', String(xstate.current_bpm), 'tempo-value'), element('span', ' BPM now', 'visually-hidden'));
+  section.append(now, element('p', `of ${exercise.target_bpm} BPM`, 'muted tempo-target'));
+  if (xstate.complete) return section; // the streak is spent: the Done line says the rest
+  const streak = element('div', '', 'streak');
+  streak.append(renderStreakDots(exercise, xstate), element('span', `${Math.max(0, exercise.reps_to_pass - xstate.streak)} to go`, 'muted streak-label'));
+  section.append(streak);
+  return section;
 }
 
-// A thin bar from the start tempo to the target; the stats and the ladder say the same in words.
-function renderProgress(exercise, xstate) {
-  const bar = element('div', '', 'tempo-progress', { 'aria-hidden': 'true' });
-  bar.append(element('span', '', 'tempo-progress-fill', { style: `width: ${tempoProgressPercent(exercise, xstate)}%` }));
-  return bar;
-}
-
-function renderStats(exercise, xstate) {
-  const row = element('div', '', 'trainer-stats');
-  row.append(
-    stat(xstate.current_bpm, 'BPM now'),
-    stat(exercise.target_bpm, 'Target BPM'),
-    stat(`${xstate.streak} / ${exercise.reps_to_pass}`, 'Passes in a row'),
-  );
-  return row;
-}
-
-// The tempo card: the stats row, the progress bar, the streak dots, the ladder and the pass mark.
-export function renderTempoCard(exercise, xstate) {
-  const card = element('section', '', 'card exercise-card', { 'aria-label': 'Tempo' });
-  const body = element('div', '', 'card-body');
-  const dotsRow = element('div', '', 'streak');
-  dotsRow.append(renderStreakDots(exercise, xstate), element('span', `${Math.max(0, exercise.reps_to_pass - xstate.streak)} to go`, 'muted streak-label'));
-  body.append(
-    element('p', exercise.text, 'exercise-text'),
-    renderStats(exercise, xstate),
-    renderProgress(exercise, xstate),
-    element('p', `Current tempo: ${xstate.current_bpm} BPM`, 'current-tempo'),
-    renderLadder(exercise, xstate),
-    dotsRow,
-  );
-  const footer = element('div', '', 'card-footer');
-  footer.append(element('p', `To pass a rep: ${passMarkText(exercise.pass_mark)}.`, 'pass-mark'));
-  card.append(body, footer);
-  return card;
-}
-
-// The reps scored since the screen opened, newest first.
+// The reps scored since the screen opened, newest first, behind a "History" disclosure; nothing shows before the first rep.
 export function renderHistory(history) {
-  const card = element('section', '', 'card rep-history-card', { 'aria-label': 'Rep history' });
-  const header = element('div', '', 'card-header');
-  header.append(element('h2', 'Reps this visit'));
-  card.append(header);
-  const body = element('div', '', 'card-body');
-  if (history.length === 0) {
-    body.append(emptyState('No reps yet', 'Record a rep and its result shows up here.'));
-  } else {
-    const list = element('ol', '', 'rep-history');
-    history.forEach(({ tempo_bpm: bpm, passed }) => {
-      const item = element('li', '', 'rep-history-item');
-      item.append(element('span', `${bpm} BPM`, 'rep-history-tempo'), passed ? badge('Pass', 'ok') : badge('Fail', 'error'));
-      list.append(item);
-    });
-    body.append(list);
-  }
-  card.append(body);
-  return card;
+  if (history.length === 0) return null;
+  const disclosure = element('details', '', 'disclosure rep-history-card');
+  const list = element('ol', '', 'rep-history');
+  history.forEach(({ tempo_bpm: bpm, passed }) => {
+    list.append(element('li', `${bpm} BPM · ${passed ? 'Pass' : 'Not yet'}`, 'rep-history-item'));
+  });
+  disclosure.append(element('summary', 'History'), list);
+  return disclosure;
 }

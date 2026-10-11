@@ -99,45 +99,45 @@ async function setup({ outcomes = [], exercise = EXERCISE, recorder = {}, tweak 
   return { dom, backend, rec, root, trainer, full, press, playRep, text: (name) => root.texts(name), view: () => root };
 }
 
-test('shows the exercise card, streak dots and ladder', async () => {
+test('first glance: title, one big tempo with its target, streak dots and one Record rep button', async () => {
   const t = await setup();
-  assert.deepEqual(t.text('exercise-card').length, 1);
   assert.ok(t.root.all().some((n) => n.tagName === 'H1' && n.textContent === 'Bars 3 to 4 slowly'));
-  assert.ok(t.text('exercise-card')[0].includes('Play it slowly, then speed up.'));
-  assert.ok(t.text('pass-mark')[0].includes('No wrong or missed notes and average timing within 60 ms'));
-  assert.equal(t.text('current-tempo')[0], 'Current tempo: 60 BPM');
+  assert.ok(t.text('page-subtitle')[0].includes('Play it slowly, then speed up.'));
+  assert.deepEqual(t.text('tempo-value'), ['60']);
+  assert.equal(t.text('current-tempo')[0], '60 BPM now');
+  assert.equal(t.text('tempo-target')[0], 'of 72 BPM');
   assert.equal(t.root.withClass('dot').length, 2);
   assert.equal(t.root.withClass('filled').length, 0);
-  assert.deepEqual(t.root.withClass('step').map((n) => n.textContent), ['60', '66', '72']);
-  assert.equal(t.text('next-rep')[0], 'Rep at 60 BPM - press space');
+  assert.equal(t.text('streak-label')[0], '2 to go');
+  assert.equal(t.root.all().filter((n) => n.tagName === 'BUTTON').length, 1);
+  assert.ok(t.root.button('Record rep'));
+  // Everything else waits behind a disclosure, or is gone.
+  assert.equal(t.root.withClass('ladder').length + t.root.withClass('pass-mark').length + t.root.withClass('stat').length + t.root.withClass('card').length, 0);
+  assert.equal(t.root.all().filter((n) => n.tagName === 'DETAILS').length, 0);
   t.trainer.destroy();
 });
 
-test('walks the ladder: PASS fills dots, tempo steps up after reps_to_pass passes, down after 2 fails, Done at the target', async () => {
+test('walks the ladder: Pass fills dots, tempo steps up after reps_to_pass passes, down after 2 fails, Done at the target', async () => {
   const t = await setup({ outcomes: ['pass', 'pass', 'fail', 'fail', 'pass', 'pass', 'pass', 'pass', 'pass'] });
   await t.playRep(); // pass at 60
-  assert.equal(t.text('verdict')[0], 'PASS');
+  assert.equal(t.text('verdict')[0], 'Pass — staying at 60');
   assert.equal(t.root.withClass('filled').length, 1);
-  assert.equal(t.text('next-rep')[0], 'Next rep at 60 BPM - press space');
+  assert.equal(t.text('streak-label')[0], '1 to go');
   await t.playRep(); // second pass: tempo up
-  assert.equal(t.text('verdict')[0], 'PASS');
-  assert.equal(t.text('tempo-change')[0], 'Tempo up: 60 to 66 BPM');
-  assert.equal(t.text('next-rep')[0], 'Next rep at 66 BPM - press space');
+  assert.equal(t.text('verdict')[0], 'Pass — tempo up to 66');
+  assert.equal(t.text('tempo-value')[0], '66');
   await t.playRep(); // fail at 66
-  assert.equal(t.text('verdict')[0], 'FAIL');
-  assert.deepEqual(t.text('reasons').length, 1);
-  assert.ok(t.root.withClass('reasons')[0].children.map((li) => li.textContent).includes('2 errors, pass mark 0'));
+  assert.equal(t.text('verdict')[0], 'Not yet — try again at 66');
   assert.equal(t.root.withClass('filled').length, 0);
-  assert.equal(t.text('tempo-change')[0], 'Staying at 66 BPM');
   await t.playRep(); // second fail in a row: tempo down
-  assert.equal(t.text('tempo-change')[0], 'Tempo down: 66 to 60 BPM');
-  assert.equal(t.text('next-rep')[0], 'Next rep at 60 BPM - press space');
+  assert.equal(t.text('verdict')[0], 'Not yet — tempo down to 60');
+  assert.equal(t.text('tempo-value')[0], '60');
   for (let i = 0; i < 4; i += 1) await t.playRep(); // 60 up to 66, 66 up to 72
-  assert.equal(t.text('next-rep')[0], 'Next rep at 72 BPM - press space');
+  assert.equal(t.text('tempo-value')[0], '72');
   await t.playRep(); // first pass at the target
-  assert.deepEqual(t.text('verdict'), ['PASS']);
+  assert.deepEqual(t.text('verdict'), ['Pass — staying at 72']);
   await t.playRep(); // second pass at the target: done
-  assert.deepEqual(t.text('verdict'), ['PASS', 'Done']);
+  assert.deepEqual(t.text('verdict'), ['Done — you passed 72 BPM']);
   assert.ok(t.root.button('Record a full take'));
   assert.equal(t.root.button('Record rep'), undefined);
   t.root.button('Record a full take').click();
@@ -145,6 +145,19 @@ test('walks the ladder: PASS fills dots, tempo steps up after reps_to_pass passe
   const tempos = t.rec.log.takes.map((take) => take.tempoBpm);
   assert.deepEqual(tempos, [60, 60, 66, 66, 60, 60, 66, 66, 72, 72].slice(0, tempos.length));
   assert.equal(t.rec.log.takes.every((take) => take.maxSeconds === 60 && take.countInBeats === 4), true);
+  t.trainer.destroy();
+});
+
+test('after a rep the reasons and the pass mark are behind a Details disclosure', async () => {
+  const t = await setup({ outcomes: ['fail'] });
+  await t.playRep();
+  const details = t.root.withClass('rep-details');
+  assert.equal(details.length, 1);
+  assert.equal(details[0].tagName, 'DETAILS');
+  assert.equal(details[0].children[0].textContent, 'Details');
+  assert.deepEqual(details[0].withClass('reasons')[0].children.map((li) => li.textContent), ['2 errors, pass mark 0', 'mean timing 72 ms, pass mark 60 ms']);
+  assert.ok(details[0].withClass('pass-mark')[0].textContent.includes('No wrong or missed notes and average timing within 60 ms'));
+  assert.equal(t.root.withClass('reasons').length, 1); // nowhere outside the disclosure
   t.trainer.destroy();
 });
 
@@ -178,7 +191,7 @@ test('an exercise that is already complete shows Done and offers no rep', async 
   dom.body.append(root);
   const trainer = createTrainer(root, { sessionId: 's1', ex: 'ex1', thresholds: FAST, onFullTake() {} }, { ...backend.deps, ...fakeRecorder().deps });
   await trainer.start();
-  assert.deepEqual(root.texts('verdict'), ['Done']);
+  assert.deepEqual(root.texts('verdict'), ['Done — you passed 72 BPM']);
   assert.equal(root.button('Record rep'), undefined);
   dom.document.dispatch('keydown', space());
   await settle();
@@ -223,7 +236,7 @@ test('a refused upload shows the message in the red banner and keeps the recordi
   await settle();
   assert.equal(t.backend.calls.uploads.length, 1);
   assert.equal(t.backend.calls.uploads[0].file.name, 'rec1.webm'); // the same file as the first try
-  assert.equal(t.text('verdict')[0], 'PASS');
+  assert.equal(t.text('verdict')[0], 'Pass — staying at 60');
   t.trainer.destroy();
 });
 
@@ -252,7 +265,7 @@ test('uploading a file instead sends it as an uploaded rep', async () => {
   await settle();
   await settle();
   assert.deepEqual(t.backend.calls.uploads[0].fields, { kind: 'mic', source: 'uploaded' });
-  assert.equal(t.text('verdict')[0], 'PASS');
+  assert.equal(t.text('verdict')[0], 'Pass — staying at 60');
   t.trainer.destroy();
 });
 
@@ -298,7 +311,7 @@ test('polling: Still working after the slow threshold, This is taking too long a
   getRepImpl = async () => ({ take_id: 't', exercise_id: 'ex1', tempo_bpm: 60, status: 'scored', passed: true, reasons: [], next_bpm: 60, streak: 1, exercise_complete: false });
   root.button('Check again').click();
   await settle();
-  assert.deepEqual(root.texts('verdict'), ['PASS']);
+  assert.deepEqual(root.texts('verdict'), ['Pass — staying at 60']);
   trainer.destroy();
 });
 
@@ -416,30 +429,28 @@ test('a trainer opened before any take was sent counts in one bar, as the take s
   assert.equal(repSettings({ time_signature: [3, 4] }, { count_in_beats: 2 }).countInBeats, 2);
 });
 
-test('the result card shows the errors and timing, and the history lists each scored rep newest first', async () => {
+test('the details show the errors and timing, and the history lists each scored rep newest first', async () => {
   const t = await setup({ outcomes: ['pass', 'fail', 'not_counted'] });
-  assert.equal(t.text('empty-state-title')[0], 'No reps yet');
+  assert.equal(t.root.withClass('rep-history-card').length, 0); // no History before the first rep
   await t.playRep(); // pass
-  assert.deepEqual(t.text('stat-label').slice(-2), ['Wrong or missed notes', 'Average timing']);
-  assert.deepEqual(t.text('stat-value').slice(-2), ['0', '40 ms']);
-  assert.equal(t.text('empty-state-title').length, 0);
+  assert.deepEqual(t.text('rep-fact'), ['Wrong or missed notes: 0', 'Average timing: 40 ms']);
+  assert.equal(t.root.withClass('rep-history-card')[0].children[0].textContent, 'History');
   await t.playRep(); // fail
-  assert.deepEqual(t.text('rep-history-tempo'), ['60 BPM', '60 BPM']);
-  assert.deepEqual(t.text('badge').slice(-2), ['Fail', 'Pass']);
-  await t.playRep(); // not counted: no result card, history unchanged
+  assert.deepEqual(t.text('rep-history-item'), ['60 BPM · Not yet', '60 BPM · Pass']);
+  await t.playRep(); // not counted: no result line, history unchanged
   assert.equal(t.text('verdict').length, 0);
-  assert.equal(t.text('rep-history-tempo').length, 2);
+  assert.equal(t.text('rep-history-item').length, 2);
   t.trainer.destroy();
 });
 
-test('the result card says whether the form rule raised flags', async () => {
+test('the details say whether the form rule raised flags', async () => {
   const withRule = { ...EXERCISE, pass_mark: { ...EXERCISE.pass_mark, form_rule: 'elbow_height' } };
   const t = await setup({ outcomes: ['pass'], exercise: withRule });
   await t.playRep();
-  assert.deepEqual(t.text('badge').slice(0, 1), ['No form flags']);
+  assert.ok(t.text('rep-fact').includes('No form flags'));
   t.trainer.destroy();
   const noRule = await setup({ outcomes: ['pass'] });
   await noRule.playRep();
-  assert.equal(noRule.text('badge').includes('No form flags'), false);
+  assert.equal(noRule.text('rep-fact').includes('No form flags'), false);
   noRule.trainer.destroy();
 });

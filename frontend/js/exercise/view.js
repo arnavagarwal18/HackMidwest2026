@@ -3,12 +3,10 @@
 // handlers: { onPrimary, onRecordAgain, onCheckAgain, onSendAgain, onFullTake, onTryAgain, onUpload, onFile }
 import { button, element } from '../dom.js';
 import { renderMediaError } from '../media_error.js';
-import { badge, skeleton, stat } from '../ui/components.js';
 import {
-  STILL_WORKING_TEXT, TOO_LONG_TEXT, firstRepText, formFlagsText, nextRepText, notCountedMessages,
-  repFactsText, tempoChangeText,
+  STILL_WORKING_TEXT, TOO_LONG_TEXT, formFlagsText, notCountedMessages, passMarkText, repFactsText, resultLine,
 } from './model.js';
-import { renderHeader, renderHistory, renderTempoCard } from './overview.js';
+import { renderHeader, renderHistory, renderTempo } from './overview.js';
 
 const statusPanel = (className = '') => element('div', '', `trainer-status ${className}`.trim(), { role: 'status' });
 
@@ -22,39 +20,37 @@ function actions(...buttons) {
   return row;
 }
 
-function renderRepFacts(exercise, rep) {
-  const row = element('div', '', 'rep-facts');
-  const { errors, timing } = repFactsText(rep);
-  if (errors) row.append(stat(errors.value, errors.label));
-  if (timing) row.append(stat(timing.value, timing.label));
-  const flags = formFlagsText(exercise, rep);
-  if (flags) row.append(badge(flags.text, flags.tone));
-  return row;
-}
-
-function renderVerdict(model, handlers) {
-  const { rep, exercise } = model;
-  const panel = statusPanel(rep.passed ? 'result-pass' : 'result-fail');
-  const heading = element('div', '', 'verdict-row');
-  heading.append(element('p', rep.passed ? 'PASS' : 'FAIL', `verdict ${rep.passed ? 'pass' : 'fail'}`), element('p', tempoChangeText(rep.tempo_bpm, rep), 'tempo-change'));
-  panel.append(heading, renderRepFacts(exercise, rep));
+// Everything about the rep behind one "Details" disclosure: why it passed or not, the counts, the form flags and the pass mark.
+function renderDetails(exercise, rep) {
+  const disclosure = element('details', '', 'disclosure rep-details');
+  disclosure.append(element('summary', 'Details'));
   if (rep.reasons?.length) {
     const reasons = element('ul', '', 'reasons');
     rep.reasons.forEach((reason) => reasons.append(element('li', reason)));
-    panel.append(reasons);
+    disclosure.append(reasons);
   }
-  if (rep.exercise_complete) return panel; // the Done panel is added by the caller
-  panel.append(element('p', nextRepText(rep.next_bpm), 'next-rep'), actions(primaryButton('Record rep', handlers.onPrimary)));
+  const { errors, timing } = repFactsText(rep);
+  const flags = formFlagsText(exercise, rep);
+  [errors && `${errors.label}: ${errors.value}`, timing && `${timing.label}: ${timing.value}`, flags].filter(Boolean)
+    .forEach((fact) => disclosure.append(element('p', fact, 'rep-fact')));
+  disclosure.append(element('p', `To pass a rep: ${passMarkText(exercise.pass_mark)}.`, 'pass-mark'));
+  return disclosure;
+}
+
+function renderResult(model, handlers) {
+  const { rep, exercise } = model;
+  const tone = rep.exercise_complete ? 'done' : (rep.passed ? 'pass' : 'fail');
+  const panel = statusPanel(`result-${tone}`);
+  const next = rep.exercise_complete
+    ? primaryButton('Record a full take', handlers.onFullTake)
+    : primaryButton('Record rep', handlers.onPrimary);
+  panel.append(element('p', resultLine(rep.tempo_bpm, exercise, rep), `verdict ${tone}`), actions(next), renderDetails(exercise, rep));
   return panel;
 }
 
 function renderDone(exercise, handlers) {
-  const panel = statusPanel('done');
-  panel.append(
-    element('p', 'Done', 'verdict done'),
-    element('p', `You passed ${exercise.target_bpm} BPM.`),
-    actions(primaryButton('Record a full take', handlers.onFullTake)),
-  );
+  const panel = statusPanel('result-done');
+  panel.append(element('p', `Done — you passed ${exercise.target_bpm} BPM`, 'verdict done'), actions(primaryButton('Record a full take', handlers.onFullTake)));
   return panel;
 }
 
@@ -66,40 +62,29 @@ function renderUpload(handlers) {
   return panel;
 }
 
-function renderVerdictWithDone(model, handlers) {
-  const panel = renderVerdict(model, handlers);
-  panel.append(renderDone(model.exercise, handlers));
-  return panel;
-}
-
-// Everything the panel under the tempo card can show, by phase.
+// Everything the panel under the tempo can show, by phase.
 function renderPanel(model, handlers) {
-  const { exercise, xstate, phase, rep } = model;
+  const { exercise, phase, rep } = model;
   const text = (message, className = 'stage') => { const p = statusPanel(); p.append(element('p', message, className)); return p; };
   switch (phase) {
-    case 'loading': {
-      const panel = text('Loading the exercise...');
-      panel.append(skeleton(2));
-      return panel;
-    }
+    case 'loading': return text('Loading the exercise...');
     case 'ready': {
-      const panel = text(firstRepText(xstate.current_bpm), 'next-rep');
+      const panel = statusPanel();
       panel.append(actions(primaryButton('Record rep', handlers.onPrimary)));
       return panel;
     }
     case 'recording': {
       const panel = statusPanel('is-recording');
-      panel.append(element('p', 'Recording: the count-in plays, then play the rep. Press space to stop.', 'stage recording'), actions(primaryButton('Stop', handlers.onPrimary, 'is-stop')));
+      panel.append(element('p', 'Recording: the count-in plays, then play the rep.', 'stage recording'), actions(primaryButton('Stop', handlers.onPrimary, 'is-stop')));
       return panel;
     }
     case 'sending': return text('Sending your rep...');
     case 'scoring': {
       const panel = text('Checking your rep...');
-      panel.append(skeleton(2));
       if (model.slow) panel.append(element('p', STILL_WORKING_TEXT, 'muted slow-note'));
       return panel;
     }
-    case 'result': return rep.exercise_complete ? renderVerdictWithDone(model, handlers) : renderVerdict(model, handlers);
+    case 'result': return renderResult(model, handlers);
     case 'not_counted': {
       const panel = statusPanel('not-counted');
       panel.append(element('p', 'This rep did not count', 'stage'));
@@ -141,9 +126,12 @@ function renderPanel(model, handlers) {
 
 export function renderTrainer(root, model, handlers) {
   const view = element('section', '', 'trainer');
-  if (model.exercise) view.append(renderHeader(model.exercise), renderTempoCard(model.exercise, model.xstate));
+  if (model.exercise) view.append(renderHeader(model.exercise), renderTempo(model.exercise, model.xstate));
   view.append(renderPanel(model, handlers));
-  if (model.exercise) view.append(renderHistory(model.history));
+  if (model.exercise) {
+    const history = renderHistory(model.history);
+    if (history) view.append(history);
+  }
   root.replaceChildren(view);
   return view;
 }

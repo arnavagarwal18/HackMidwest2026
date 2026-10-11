@@ -1,9 +1,10 @@
-/* Progress (#/progress): each exercise is a card with a tempo bar from its start tempo to its target. Loaded by screens/progress.js. */
-.exercise-list { gap: var(--sp-3); }
-.exercise-item { padding: 0; }
-.exercise-item .card-header h3 { font-size: var(--fs-md); }
-.exercise-item .card-body > p { margin: 0; }
-.tempo-meter { height: 10px; }
-.tempo-meter > i { background: var(--brass); }
-.exercise-item:has(.badge-ok) .tempo-meter > i { background: var(--ok); }
-.tempo-scale { display: flex; justify-content: space-between; margin: var(--sp-1) 0 var(--sp-3); font-size: var(--fs-xs); }
+/* Progress (#/progress): one plain list of exercises, each a title and one quiet status line. Loaded by screens/progress.js. */
+.exercise-list { gap: 0; }
+.exercise-list .exercise-item { padding: 0; background: none; border: 0; border-top: 1px solid var(--line); box-shadow: none; }
+.exercise-list .exercise-item:first-child { border-top: 0; }
+.exercise-link { display: block; min-height: var(--tap); padding: var(--sp-3) 0; color: var(--ink); text-decoration: none; }
+.exercise-link:hover .exercise-title { text-decoration: underline; }
+.exercise-title { display: block; font-weight: 600; }
+.exercise-status { display: block; color: var(--muted); font-size: var(--fs-sm); }
+.progress-compare { margin-top: var(--sp-4); }
+.progress-compare > table { margin-top: var(--sp-2); }

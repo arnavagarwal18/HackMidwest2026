@@ -1,10 +1,10 @@
 import { getProgress, isNotFound } from '../api.js';
 import { state } from '../state.js';
-import { badge, emptyState, pageHeader, skeleton } from '../ui/components.js';
+import { emptyState, pageHeader, skeleton } from '../ui/components.js';
 import { loadStylesheet } from '../ui/styles.js';
-import { element } from './placeholder.js';
+import { element } from '../dom.js';
 
-// Progress screen (#/progress): the first take against the latest one, then each exercise's standing.
+// Progress screen (#/progress): each exercise's standing in one plain list; the first take against the latest one sits behind "Before and after".
 
 const SOURCE_LABELS = { take: 'Take', rep: 'Practice rep' };
 
@@ -41,65 +41,39 @@ function comparisonTable({ before, after }) {
   return table;
 }
 
-// How far the best passed tempo has come from the start tempo toward the target, 0 to 1.
-export function tempoShare({ start_bpm: start, target_bpm: target, best_passed_bpm: best }) {
-  if (best == null || target <= start) return best == null || best < target ? 0 : 1;
-  return Math.min(1, Math.max(0, (best - start) / (target - start)));
-}
-
-// A bar from the start tempo to the target, filled up to the best passed tempo. The words under it say the same.
-function tempoMeter(exercise) {
-  const meter = element('div', '', 'meter tempo-meter', {
-    role: 'progressbar',
-    'aria-label': `Tempo reached in ${exercise.title}`,
-    'aria-valuemin': String(exercise.start_bpm),
-    'aria-valuemax': String(exercise.target_bpm),
-    'aria-valuenow': String(exercise.best_passed_bpm ?? exercise.start_bpm),
-  });
-  meter.append(element('i', '', '', { style: `width: ${Math.round(tempoShare(exercise) * 100)}%` }));
-  const scale = element('p', '', 'tempo-scale muted');
-  scale.append(element('span', `${exercise.start_bpm} bpm`), element('span', `${exercise.target_bpm} bpm`));
-  const box = element('div', '', 'tempo');
-  box.append(meter, scale);
-  return box;
+// One quiet status line: how far the best passed tempo has come, or Done.
+export function statusText({ target_bpm: target, best_passed_bpm: best, complete }) {
+  if (complete) return 'Done';
+  return best == null ? 'Not started yet' : `${best} of ${target} BPM`;
 }
 
 function exerciseItem(exercise) {
-  const item = element('li', '', 'exercise-item card');
-  const link = element('a', exercise.title);
-  link.href = `#/exercise/${encodeURIComponent(exercise.id)}`;
-  const heading = element('h3');
-  heading.append(link);
-  const header = element('div', '', 'card-header');
-  header.append(heading, exercise.complete ? badge('Complete', 'ok') : badge('In progress', 'warn'));
-  const best = exercise.best_passed_bpm == null ? 'No pass yet' : `Best passed: ${exercise.best_passed_bpm} bpm`;
-  const detail = `${best} (from ${exercise.start_bpm} toward ${exercise.target_bpm} bpm). `
-    + `${exercise.passes} of ${exercise.reps} reps passed.`;
-  const body = element('div', '', 'card-body');
-  body.append(tempoMeter(exercise), element('p', detail, 'muted'));
-  item.append(header, body);
+  const item = element('li', '', 'exercise-item');
+  const link = element('a', '', 'exercise-link', { href: `#/exercise/${encodeURIComponent(exercise.id)}` });
+  link.append(element('span', exercise.title, 'exercise-title'), element('span', statusText(exercise), 'exercise-status'));
+  item.append(link);
   return item;
 }
 
 // Pure view of one progress response; exported so it can be tried with any saved response.
 export function renderProgress(root, progress) {
-  root.replaceChildren(pageHeader({ title: 'Progress', subtitle: 'Your first take against your latest one, and how far each exercise has come.' }));
+  root.replaceChildren(pageHeader({ title: 'Progress' }));
   const hasSnapshots = progress.before || progress.after;
   if (!hasSnapshots && !progress.exercises.length) {
     root.append(emptyState('Nothing to compare yet', 'Record a take, then practice an exercise, and your before and after will show up here.'));
     return;
   }
-  root.append(element('h2', 'Before and after'));
-  if (hasSnapshots) root.append(comparisonTable(progress));
-  else root.append(element('p', 'No take has been analysed yet.', 'muted'));
-  root.append(element('h2', 'Exercises'));
-  if (!progress.exercises.length) {
+  if (progress.exercises.length) {
+    const list = element('ul', '', 'exercise-list');
+    list.append(...progress.exercises.map(exerciseItem));
+    root.append(list);
+  } else {
     root.append(element('p', 'No exercises yet. Ask for feedback on a take to get some.', 'muted'));
-    return;
   }
-  const list = element('ul', '', 'exercise-list');
-  list.append(...progress.exercises.map(exerciseItem));
-  root.append(list);
+  if (!hasSnapshots) return;
+  const comparison = element('details', '', 'disclosure progress-compare');
+  comparison.append(element('summary', 'Before and after'), comparisonTable(progress));
+  root.append(comparison);
 }
 
 export const NO_PROGRESS_TEXT = 'No progress yet: record a take first.';

@@ -4,34 +4,18 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { mockFileFor } from '../js/mock.js';
 import {
-  HISTORY_LIMIT, barsText, formFlagsText, historyAfterRep, ladderSteps, ladderView, nextRepText, notCountedMessages, passMarkText, recordKind, repFactsText, stateAfterRep,
-  streakDots, tempoChangeText, wantsVideo,
+  HISTORY_LIMIT, formFlagsText, historyAfterRep, notCountedMessages, passMarkText, recordKind, repFactsText, resultLine, stateAfterRep,
+  streakDots, wantsVideo,
 } from '../js/exercise/model.js';
 
 const exercise = { bar_from: 3, bar_to: 4, start_bpm: 60, target_bpm: 96, step_bpm: 6, reps_to_pass: 3, pass_mark: { max_errors: 0, max_mean_timing_ms: 60, form_rule: null } };
 const mockJson = (name) => JSON.parse(readFileSync(new URL(`../mock/${name}.json`, import.meta.url)));
 
-test('bars and pass mark are put in words', () => {
-  assert.equal(barsText(exercise), 'bars 3 to 4');
-  assert.equal(barsText({ bar_from: 5, bar_to: 5 }), 'bar 5');
+test('the pass mark is put in words', () => {
   assert.equal(passMarkText(exercise.pass_mark), 'No wrong or missed notes and average timing within 60 ms');
   assert.equal(passMarkText({ max_errors: 2, max_mean_timing_ms: null, form_rule: null }), 'At most 2 wrong or missed notes');
   assert.equal(passMarkText({ max_errors: 1, max_mean_timing_ms: 50, form_rule: 'elbow_height' }),
     'At most 1 wrong or missed note, average timing within 50 ms and form rule: elbow height');
-});
-
-test('the tempo ladder runs from start to target and always ends on the target', () => {
-  assert.deepEqual(ladderSteps(exercise), [60, 66, 72, 78, 84, 90, 96]);
-  assert.deepEqual(ladderSteps({ start_bpm: 60, target_bpm: 70, step_bpm: 8 }), [60, 68, 70]);
-});
-
-test('ladder marks passed steps and the current one', () => {
-  const view = ladderView(exercise, { current_bpm: 72, best_passed_bpm: 66, complete: false });
-  assert.deepEqual(view.map((s) => s.status), ['passed', 'passed', 'current', 'todo', 'todo', 'todo', 'todo']);
-  const none = ladderView(exercise, { current_bpm: 60, best_passed_bpm: null, complete: false });
-  assert.equal(none[0].status, 'current');
-  const done = ladderView(exercise, { current_bpm: 96, best_passed_bpm: 96, complete: true });
-  assert.ok(done.every((s) => s.status === 'passed'));
 });
 
 test('streak dots: one per rep needed, filled for each pass', () => {
@@ -48,11 +32,12 @@ test('video is wanted only when the exercise has a form rule, and a failed camer
   assert.equal(recordKind(exercise, true), 'mic');
 });
 
-test('tempo change and next rep wording', () => {
-  assert.equal(nextRepText(64), 'Next rep at 64 BPM - press space');
-  assert.equal(tempoChangeText(60, { next_bpm: 66 }), 'Tempo up: 60 to 66 BPM');
-  assert.equal(tempoChangeText(66, { next_bpm: 60 }), 'Tempo down: 66 to 60 BPM');
-  assert.equal(tempoChangeText(66, { next_bpm: 66 }), 'Staying at 66 BPM');
+test('the result line says the verdict in a word and what happens to the tempo', () => {
+  assert.equal(resultLine(60, exercise, { passed: true, next_bpm: 66 }), 'Pass — tempo up to 66');
+  assert.equal(resultLine(60, exercise, { passed: true, next_bpm: 60 }), 'Pass — staying at 60');
+  assert.equal(resultLine(66, exercise, { passed: false, next_bpm: 60 }), 'Not yet — tempo down to 60');
+  assert.equal(resultLine(66, exercise, { passed: false, next_bpm: 66 }), 'Not yet — try again at 66');
+  assert.equal(resultLine(96, exercise, { passed: true, next_bpm: 96, exercise_complete: true }), 'Done — you passed 96 BPM');
 });
 
 test('a rep that did not count shows the back end words, with a plain fallback', () => {
@@ -112,9 +97,9 @@ test('formFlagsText and repFactsText put a rep result into words', () => {
   const plain = { pass_mark: { form_rule: null } };
   const withRule = { pass_mark: { form_rule: 'elbow_height' } };
   assert.equal(formFlagsText(plain, { form_flag_ids: [] }), null);
-  assert.deepEqual(formFlagsText(withRule, { form_flag_ids: [] }), { tone: 'ok', text: 'No form flags' });
-  assert.deepEqual(formFlagsText(plain, { form_flag_ids: ['a'] }), { tone: 'warn', text: '1 form flag raised' });
-  assert.deepEqual(formFlagsText(withRule, { form_flag_ids: ['a', 'b'] }), { tone: 'warn', text: '2 form flags raised' });
+  assert.equal(formFlagsText(withRule, { form_flag_ids: [] }), 'No form flags');
+  assert.equal(formFlagsText(plain, { form_flag_ids: ['a'] }), '1 form flag raised');
+  assert.equal(formFlagsText(withRule, { form_flag_ids: ['a', 'b'] }), '2 form flags raised');
   assert.deepEqual(repFactsText({ errors: 1, mean_abs_timing_ms: 71.6 }), {
     errors: { value: '1', label: 'Wrong or missed note' }, timing: { value: '72 ms', label: 'Average timing' },
   });

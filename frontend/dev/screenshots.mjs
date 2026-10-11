@@ -38,6 +38,7 @@ const SCREENS = [
   { name: 'trainer-ready', hash: '#/exercise/ex1', ready: TRAINER_READY, session: true, height: TRAINER_HEIGHT },
   { name: 'trainer-pass', hash: '#/exercise/ex1', ready: TRAINER_READY, session: true, act: RECORD_A_REP, height: TRAINER_HEIGHT },
   { name: 'trainer-fail', hash: '#/exercise/ex_fail', ready: TRAINER_READY, session: true, act: RECORD_A_REP, height: TRAINER_HEIGHT },
+  { name: 'trainer-fail-details', hash: '#/exercise/ex_fail', ready: TRAINER_READY, session: true, act: RECORD_A_REP, prepare: `document.querySelectorAll('.trainer details').forEach((d) => { d.open = true; })`, height: TRAINER_HEIGHT },
 ];
 
 mkdirSync(OUT_DIR, { recursive: true });
