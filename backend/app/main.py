@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import store
@@ -13,6 +12,7 @@ from .diagnosis.routes import router as diagnosis_router
 from .errors import register_error_handlers
 from .form.routes import router as form_router
 from .lan import router as lan_router
+from .static_files import RevalidatingStaticFiles
 from .practice.routes import router as practice_router
 from .score.photo_routes import router as photo_router
 from .score.routes import router as score_router
@@ -66,4 +66,4 @@ def get_session(session_id: str) -> dict:
     }
 
 
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+app.mount("/", RevalidatingStaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
