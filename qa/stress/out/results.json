@@ -1,0 +1,1646 @@
+{
+ "disk_after_load_mb": 974.7,
+ "disk_after_large_mb": 1248.5,
+ "malformed": {
+  "probes": [
+   {
+    "group": "takes",
+    "case": "wrong content-type text/plain",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file type isn't supported. Use one of: audio/webm, audio/wav, audio/"
+   },
+   {
+    "group": "takes",
+    "case": "content-type missing/odd",
+    "status": 202,
+    "body": "{\"take_id\":\"t1\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "truncated webm (1000 bytes)",
+    "status": 202,
+    "body": "{\"take_id\":\"t2\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "truncated wav (header + half)",
+    "status": 202,
+    "body": "{\"take_id\":\"t3\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "zero-byte wav",
+    "status": 202,
+    "body": "{\"take_id\":\"t4\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "no file field",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "filename path traversal",
+    "status": 202,
+    "body": "{\"take_id\":\"t5\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "filename unicode + NUL",
+    "status": 202,
+    "body": "{\"take_id\":\"t6\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "mp4 type but wav bytes",
+    "status": 202,
+    "body": "{\"take_id\":\"t7\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "takes",
+    "case": "field bar_from='abc'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"bar_from must be a number.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field bar_from='999999999999'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Pick a starting bar that is 1 or more and not after the ending bar.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field bar_to='-1'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Pick a starting bar that is 1 or more and not after the ending bar.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field tempo_bpm='nan'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Tempo must be between 30 and 240 beats per minute.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field tempo_bpm='1e999'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Tempo must be between 30 and 240 beats per minute.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field downbeat_s='inf'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"downbeat_s must be a time in seconds, 0 or more.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field count_in_beats='2.5'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"count_in_beats must be a number.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field kind='xxxxxxxxxxxx'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"kind must be one of: mic, video.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field bar_from='\u0661\u0662'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Pick a starting bar that is 1 or more and not after the ending bar.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "field tempo_bpm='xxxxxxxxxxxx'",
+    "status": 400,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "unknown take media",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"take_not_found\",\"message\":\"We couldn't find that take.\"}}"
+   },
+   {
+    "group": "takes",
+    "case": "take id traversal media",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"not_found\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "wrong extension .exe",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file type isn't supported. Use one of: .mid, .midi, .musicxml, .mxl,"
+   },
+   {
+    "group": "score file",
+    "case": "zero-byte .musicxml",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_score_file\",\"message\":\"This file couldn't be read as sheet music.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "truncated musicxml",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_score_file\",\"message\":\"This file couldn't be read as sheet music.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "not xml",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_score_file\",\"message\":\"This file couldn't be read as sheet music.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "entity expansion XML",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_score_file\",\"message\":\"This file couldn't be read as sheet music.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "filename path traversal",
+    "status": 200,
+    "body": "{\"score_status\":\"scanned\",\"bars\":16,\"doubtful_bars\":[],\"double_checked\":false,\"warnings\":[]}"
+   },
+   {
+    "group": "score file",
+    "case": "filename unicode",
+    "status": 200,
+    "body": "{\"score_status\":\"scanned\",\"bars\":16,\"doubtful_bars\":[],\"double_checked\":false,\"warnings\":[]}"
+   },
+   {
+    "group": "score file",
+    "case": "no file field",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Choose a file to upload in the 'file' field.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "multipart without boundary",
+    "status": 400,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "bad JSON",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "JSON list",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "builtin number",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "builtin null",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "builtin traversal",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"builtin_not_found\",\"message\":\"We don't have that built-in piece.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "builtin unknown",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"builtin_not_found\",\"message\":\"We don't have that built-in piece.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "builtin 5 MB string",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"builtin_not_found\",\"message\":\"We don't have that built-in piece.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "empty body",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "invalid UTF-8",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Send a file, or JSON like {\\\"builtin\\\": \\\"piece_id\\\"}.\"}}"
+   },
+   {
+    "group": "score file",
+    "case": "deeply nested",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "zero bytes",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a JPEG, PNG or WebP photo.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "text file",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a JPEG, PNG or WebP photo.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "GIF",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a JPEG, PNG or WebP photo.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "PDF",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a JPEG, PNG or WebP photo.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "RIFF but not WEBP",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a JPEG, PNG or WebP photo.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "1-byte JPEG magic only",
+    "status": 202,
+    "body": "{\"score_status\":\"scanning\"}"
+   },
+   {
+    "group": "photo",
+    "case": "no file field",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"This session's score is still being scanned. Wait for it to finish.\"}}"
+   },
+   {
+    "group": "photo",
+    "case": "truncated real JPEG",
+    "status": 202,
+    "body": "{\"score_status\":\"scanning\"}"
+   },
+   {
+    "group": "photo",
+    "case": "filename traversal (real photo)",
+    "status": 202,
+    "body": "{\"score_status\":\"scanning\"}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions bad JSON",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions empty body",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions instrument viola",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions instrument 5 MB",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions instrument number",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions form-encoded body",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions extra fields",
+    "status": 201,
+    "body": "{\"session_id\":\"c943feef60854ca8812ecf8911d83f36\",\"instrument\":\"violin\"}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions JSON NaN",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "POST /sessions deeply nested",
+    "status": 400,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition semitones string",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition semitones float",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition semitones 99",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition semitones bool",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition no body",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "transposition semitones 10**30",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat empty message",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Write a message of 1 to 1000 characters.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat spaces only",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Write a message of 1 to 1000 characters.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat 1001 chars",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Write a message of 1 to 1000 characters.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat 1 MB message",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Write a message of 1 to 1000 characters.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat message number",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat unknown take_id",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"take_not_found\",\"message\":\"We couldn't find that take.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat huge take_id",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"take_not_found\",\"message\":\"We couldn't find that take.\"}}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat NUL + emoji",
+    "status": 200,
+    "body": "{\"user_turn\":{\"id\":\"c1\",\"role\":\"user\",\"text\":\"hi\\u0000\ud83c\udfbb\",\"take_id\":null,\"created_at\":\"2026-10-11T00:11:17.116187+00:00\"}"
+   },
+   {
+    "group": "sessions/json/chat",
+    "case": "chat message null",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"That request wasn't quite right. Check what you sent and try again.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "no files",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Missing ref_0.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s='nan'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds, 0 or more.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s='inf'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds, 0 or more.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s='-1'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds, 0 or more.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s='abc'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s='1e999'",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds, 0 or more.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s=''",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"click_at_s must be a number of seconds.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "truncated ref_0 wav",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "zero-byte ref_1",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"audio_unreadable\",\"message\":\"We couldn't read the recording for ref_1. Record it again.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "ref_2 text/plain",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"ref_2 isn't a supported audio type. Use webm, ogg or wav audio.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "ref_0 is 30 s long",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"ref_0 is too long. Record 1 to 6 seconds of each note.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click is zero-byte",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"audio_unreadable\",\"message\":\"We couldn't read the recording for click. Record it again.\"}}"
+   },
+   {
+    "group": "calibration",
+    "case": "click_at_s beyond clip",
+    "status": 200,
+    "body": "{\"profile\":{\"source\":\"live\",\"calibrated\":true,\"pitch_offset_cents\":-0.01,\"noise_floor_db\":-70.76,\"pickup_db\":{\"low\":-0.0"
+   },
+   {
+    "group": "camera-check",
+    "case": "zero bytes",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a picture we can read. Send a JPEG frame from the camera."
+   },
+   {
+    "group": "camera-check",
+    "case": "text",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a picture we can read. Send a JPEG frame from the camera."
+   },
+   {
+    "group": "camera-check",
+    "case": "truncated JPEG",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a picture we can read. Send a JPEG frame from the camera."
+   },
+   {
+    "group": "camera-check",
+    "case": "JPEG magic only",
+    "status": 415,
+    "body": "{\"error\":{\"code\":\"unsupported_type\",\"message\":\"That file isn't a picture we can read. Send a JPEG frame from the camera."
+   },
+   {
+    "group": "camera-check",
+    "case": "real photo (baseline)",
+    "status": 200,
+    "body": "{\"ok\":false,\"missing\":[\"nose\",\"left ear\",\"right ear\",\"left shoulder\",\"right shoulder\",\"left elbow\",\"right elbow\",\"left w"
+   }
+  ],
+  "after_5xx_connection_checks": {
+   "sent": 2,
+   "dropped": 2
+  }
+ },
+ "sessions": {
+  "probes": [
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<unknown hex>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<unicode>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<unicode digits>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<encoded traversal>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"not_found\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<percent-NUL>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<300 chars>",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<5000 chars>",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<spaces>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/<empty segment>",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"not_found\",\"message\":\"That didn't work. Check the address and try again.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id} (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST /sessions/{id}/score/confirm (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/score (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/score/status (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST /sessions/{id}/calibration/skip (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/calibration (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/chat (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST /sessions/{id}/chat (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST /sessions/{id}/transposition (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/takes/t1/analysis (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/takes/t1/media (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/takes/t1/feedback (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/takes/t1/tracks (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "GET /sessions/{id}/feedback/f1/trace (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST /sessions/{id}/score/file (unknown id)",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"session_not_found\",\"message\":\"We couldn't find that practice session. Start a new one.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST score/confirm <300 chars>",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "unknown/odd ids",
+    "case": "POST score/confirm <5000 chars>",
+    "status": 500,
+    "body": "{\"error\":{\"code\":\"server_error\",\"message\":\"Something went wrong. Tell the team.\"}}"
+   },
+   {
+    "group": "id case sensitivity",
+    "case": "GET lowercase id",
+    "status": 200,
+    "body": "{\"session_id\":\"7cf044d6ad954fa1a44f16c5262dfb61\",\"instrument\":\"violin\",\"score_status\":\"none\",\"has_calibration\":false,\"ta"
+   },
+   {
+    "group": "id case sensitivity",
+    "case": "GET UPPERCASE id",
+    "status": 200,
+    "body": "{\"session_id\":\"7cf044d6ad954fa1a44f16c5262dfb61\",\"instrument\":\"violin\",\"score_status\":\"none\",\"has_calibration\":false,\"ta"
+   },
+   {
+    "group": "id case sensitivity",
+    "case": "skip calibration via UPPERCASE id",
+    "status": 200,
+    "body": "{\"profile\":{\"source\":\"default\",\"calibrated\":false,\"pitch_offset_cents\":0.0,\"noise_floor_db\":-60.0,\"pickup_db\":{\"low\":0.0"
+   },
+   {
+    "group": "id case sensitivity",
+    "case": "GET calibration via lowercase id",
+    "status": 200,
+    "body": "{\"profile\":null}"
+   },
+   {
+    "group": "id case sensitivity",
+    "case": "GET calibration via UPPERCASE id",
+    "status": 200,
+    "body": "{\"profile\":{\"source\":\"default\",\"calibrated\":false,\"pitch_offset_cents\":0.0,\"noise_floor_db\":-60.0,\"pickup_db\":{\"low\":0.0"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "confirm before any score",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"There's no scanned score to confirm yet. Add your sheet music first.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "take before confirm",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"Confirm your sheet music before recording a take.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "transposition before confirm",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"Confirm your sheet music before changing the transposition.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "read score before any score",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"This session doesn't have a score yet. Add your sheet music first.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "status before any score",
+    "status": 200,
+    "body": "{\"score_status\":\"none\",\"score_error\":null,\"score_error_message\":null,\"bars\":null,\"doubtful_bars\":[],\"double_checked\":fal"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "calibration (live) with no clips",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"Missing ref_0.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "chat with no takes",
+    "status": 200,
+    "body": "{\"user_turn\":{\"id\":\"c1\",\"role\":\"user\",\"text\":\"hi\",\"take_id\":null,\"created_at\":\"2026-10-11T00:11:18.504189+00:00\"},\"instr"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "first confirm",
+    "status": 200,
+    "body": "{\"score_status\":\"confirmed\",\"bars\":16,\"tempo_bpm\":96.0,\"time_signature\":[4,4]}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "second confirm (double)",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"There's no scanned score to confirm yet. Add your sheet music first.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "pick builtin after confirm",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"This session's score is already confirmed. Start a new session to use a differ"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "photo after confirm",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"This session's score is already confirmed. Start a new session to use a differ"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "feedback for unknown take",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"take_not_found\",\"message\":\"We couldn't find that take.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "rerun feedback for unknown take",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"take_not_found\",\"message\":\"We couldn't find that take.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "trace for unknown feedback",
+    "status": 404,
+    "body": "{\"error\":{\"code\":\"feedback_not_found\",\"message\":\"We couldn't find that feedback.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "bar range beyond the score",
+    "status": 422,
+    "body": "{\"error\":{\"code\":\"bad_request\",\"message\":\"The score has 16 bars. Pick bars within it.\"}}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "feedback while take still processing",
+    "status": 202,
+    "body": "{\"take_id\":\"t1\",\"status\":\"processing\"}"
+   },
+   {
+    "group": "out of order / double actions",
+    "case": "rerun feedback right after upload",
+    "status": 409,
+    "body": "{\"error\":{\"code\":\"wrong_state\",\"message\":\"Feedback can't run until the take has been checked.\"}}"
+   }
+  ],
+  "after_5xx_connection_checks": {
+   "sent": 4,
+   "dropped": 4
+  },
+  "concurrent_writers": {
+   "builtin pick x20": {
+    "200": 20
+   },
+   "confirm x20": {
+    "200": 1,
+    "409": 19
+   },
+   "calibration skip x20": {
+    "200": 20
+   },
+   "take upload x20": {
+    "202": 20
+   },
+   "take ids unique": "20 unique of 20 accepted",
+   "chat x20": {
+    "200": 9,
+    "409": 11
+   },
+   "transposition x20": {
+    "200": 20
+   },
+   "API vs disk take count": "api 20, disk 20",
+   "take statuses on disk": {
+    "done": 20
+   },
+   "chat turns stored": 18
+  }
+ },
+ "leak_check": {
+  "sessions_per_round": 1500,
+  "rss_mb_before_then_after_each_round": [
+   567.7,
+   569.4,
+   372.0,
+   373.5,
+   375.0
+  ]
+ },
+ "hangs_over_limit": 0,
+ "no_response": 6,
+ "total_requests": 18944,
+ "phases": {
+  "1 sessions create/get": {
+   "wall_s": 3.76,
+   "routes": {
+    "POST /sessions": {
+     "requests": 800,
+     "p50_ms": 18.3,
+     "p95_ms": 171.8,
+     "max_ms": 531.0,
+     "statuses": {
+      "201": 800
+     },
+     "throughput_rps": 213.0
+    },
+    "GET /sessions/{id}": {
+     "requests": 800,
+     "p50_ms": 16.5,
+     "p95_ms": 163.3,
+     "max_ms": 613.7,
+     "statuses": {
+      "200": 800
+     },
+     "throughput_rps": 213.0
+    }
+   }
+  },
+  "2 builtins/reference notes": {
+   "wall_s": 3.11,
+   "routes": {
+    "GET /builtins": {
+     "requests": 800,
+     "p50_ms": 14.9,
+     "p95_ms": 133.7,
+     "max_ms": 477.2,
+     "statuses": {
+      "200": 800
+     },
+     "throughput_rps": 256.8
+    },
+    "GET /reference-notes": {
+     "requests": 800,
+     "p50_ms": 14.0,
+     "p95_ms": 132.4,
+     "max_ms": 468.1,
+     "statuses": {
+      "200": 800
+     },
+     "throughput_rps": 256.8
+    }
+   }
+  },
+  "3 score upload/confirm/read": {
+   "wall_s": 4.02,
+   "routes": {
+    "POST /sessions": {
+     "requests": 400,
+     "p50_ms": 32.6,
+     "p95_ms": 89.3,
+     "max_ms": 235.7,
+     "statuses": {
+      "201": 400
+     },
+     "throughput_rps": 99.6
+    },
+    "POST /sessions/{id}/score/file (musicxml upload)": {
+     "requests": 200,
+     "p50_ms": 83.2,
+     "p95_ms": 250.0,
+     "max_ms": 267.7,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    },
+    "GET /sessions/{id}/score?format=musicxml": {
+     "requests": 200,
+     "p50_ms": 16.7,
+     "p95_ms": 36.8,
+     "max_ms": 183.8,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    },
+    "GET /sessions/{id}/score?format=json": {
+     "requests": 200,
+     "p50_ms": 21.9,
+     "p95_ms": 113.5,
+     "max_ms": 193.7,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    },
+    "GET /sessions/{id}/score/status": {
+     "requests": 200,
+     "p50_ms": 43.5,
+     "p95_ms": 124.7,
+     "max_ms": 197.8,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    },
+    "POST /sessions/{id}/score/confirm": {
+     "requests": 200,
+     "p50_ms": 37.2,
+     "p95_ms": 123.6,
+     "max_ms": 241.9,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    },
+    "POST /sessions/{id}/score/file (builtin)": {
+     "requests": 200,
+     "p50_ms": 54.9,
+     "p95_ms": 119.5,
+     "max_ms": 224.8,
+     "statuses": {
+      "200": 200
+     },
+     "throughput_rps": 49.8
+    }
+   }
+  },
+  "4 prepare 20 confirmed sessions": {
+   "wall_s": 0.14,
+   "routes": {
+    "POST /sessions": {
+     "requests": 20,
+     "p50_ms": 58.9,
+     "p95_ms": 96.4,
+     "max_ms": 129.2,
+     "statuses": {
+      "201": 20
+     },
+     "throughput_rps": 138.8
+    },
+    "POST /sessions/{id}/score/file (builtin)": {
+     "requests": 20,
+     "p50_ms": 24.0,
+     "p95_ms": 62.8,
+     "max_ms": 66.3,
+     "statuses": {
+      "200": 20
+     },
+     "throughput_rps": 138.8
+    },
+    "POST /sessions/{id}/score/confirm": {
+     "requests": 20,
+     "p50_ms": 16.8,
+     "p95_ms": 26.8,
+     "max_ms": 67.7,
+     "statuses": {
+      "200": 20
+     },
+     "throughput_rps": 138.8
+    }
+   }
+  },
+  "5 takes upload + analysis reads": {
+   "wall_s": 9.74,
+   "routes": {
+    "POST /sessions/{id}/takes": {
+     "requests": 160,
+     "p50_ms": 173.4,
+     "p95_ms": 245.6,
+     "max_ms": 343.1,
+     "statuses": {
+      "202": 160
+     },
+     "throughput_rps": 16.4
+    },
+    "GET /sessions/{id}/takes/{take}/analysis": {
+     "requests": 160,
+     "p50_ms": 47.1,
+     "p95_ms": 115.7,
+     "max_ms": 169.4,
+     "statuses": {
+      "200": 160
+     },
+     "throughput_rps": 16.4
+    },
+    "GET /sessions/{id}/takes/{take}/media": {
+     "requests": 160,
+     "p50_ms": 107.5,
+     "p95_ms": 253.1,
+     "max_ms": 293.8,
+     "statuses": {
+      "200": 160
+     },
+     "throughput_rps": 16.4
+    },
+    "GET /sessions/{id}/takes/{take}/feedback": {
+     "requests": 160,
+     "p50_ms": 31.2,
+     "p95_ms": 86.6,
+     "max_ms": 107.0,
+     "statuses": {
+      "200": 47,
+      "409": 113
+     },
+     "throughput_rps": 16.4
+    },
+    "POST /sessions/{id}/takes/{take}/feedback (rerun)": {
+     "requests": 160,
+     "p50_ms": 47.4,
+     "p95_ms": 472.2,
+     "max_ms": 508.3,
+     "statuses": {
+      "200": 48,
+      "409": 112
+     },
+     "throughput_rps": 16.4
+    },
+    "GET /sessions/{id}/takes/{take}/tracks": {
+     "requests": 160,
+     "p50_ms": 26.5,
+     "p95_ms": 87.8,
+     "max_ms": 112.1,
+     "statuses": {
+      "404": 160
+     },
+     "throughput_rps": 16.4
+    },
+    "POST /sessions/{id}/transposition": {
+     "requests": 20,
+     "p50_ms": 68.7,
+     "p95_ms": 106.4,
+     "max_ms": 112.9,
+     "statuses": {
+      "200": 20
+     },
+     "throughput_rps": 2.1
+    }
+   }
+  },
+  "6 calibration": {
+   "wall_s": 46.03,
+   "routes": {
+    "GET /reference-notes": {
+     "requests": 1,
+     "p50_ms": 17.7,
+     "p95_ms": 17.7,
+     "max_ms": 17.7,
+     "statuses": {
+      "200": 1
+     },
+     "throughput_rps": 0.0
+    },
+    "POST /sessions/{id}/calibration (live)": {
+     "requests": 100,
+     "p50_ms": 7145.0,
+     "p95_ms": 13747.0,
+     "max_ms": 14339.8,
+     "statuses": {
+      "200": 100
+     },
+     "throughput_rps": 2.2
+    },
+    "POST /sessions/{id}/calibration/skip": {
+     "requests": 100,
+     "p50_ms": 34.2,
+     "p95_ms": 105.1,
+     "max_ms": 203.7,
+     "statuses": {
+      "200": 100
+     },
+     "throughput_rps": 2.2
+    },
+    "GET /sessions/{id}/calibration": {
+     "requests": 100,
+     "p50_ms": 17.3,
+     "p95_ms": 67.7,
+     "max_ms": 88.4,
+     "statuses": {
+      "200": 100
+     },
+     "throughput_rps": 2.2
+    }
+   }
+  },
+  "7 chat": {
+   "wall_s": 0.56,
+   "routes": {
+    "POST /sessions/{id}/chat (AI off)": {
+     "requests": 160,
+     "p50_ms": 16.2,
+     "p95_ms": 109.5,
+     "max_ms": 314.3,
+     "statuses": {
+      "200": 160
+     },
+     "throughput_rps": 286.8
+    },
+    "GET /sessions/{id}/chat": {
+     "requests": 160,
+     "p50_ms": 11.7,
+     "p95_ms": 94.0,
+     "max_ms": 234.9,
+     "statuses": {
+      "200": 160
+     },
+     "throughput_rps": 286.8
+    }
+   }
+  },
+  "8 camera check": {
+   "wall_s": 1.87,
+   "routes": {
+    "POST /sessions/{id}/camera-check": {
+     "requests": 100,
+     "p50_ms": 363.9,
+     "p95_ms": 396.5,
+     "max_ms": 404.7,
+     "statuses": {
+      "200": 100
+     },
+     "throughput_rps": 53.5
+    }
+   }
+  },
+  "9 photo scans": {
+   "wall_s": 12.12,
+   "routes": {
+    "POST /sessions": {
+     "requests": 24,
+     "p50_ms": 22.3,
+     "p95_ms": 47.3,
+     "max_ms": 50.8,
+     "statuses": {
+      "201": 24
+     },
+     "throughput_rps": 2.0
+    },
+    "POST /sessions/{id}/score/photo (not an image)": {
+     "requests": 20,
+     "p50_ms": 11.2,
+     "p95_ms": 25.2,
+     "max_ms": 36.2,
+     "statuses": {
+      "415": 20
+     },
+     "throughput_rps": 1.7
+    },
+    "POST /sessions/{id}/score/photo (real photo)": {
+     "requests": 4,
+     "p50_ms": 7.5,
+     "p95_ms": 12.0,
+     "max_ms": 12.0,
+     "statuses": {
+      "202": 4
+     },
+     "throughput_rps": 0.3
+    },
+    "GET /sessions/{id}/score/status": {
+     "requests": 14,
+     "p50_ms": 3.0,
+     "p95_ms": 16.6,
+     "max_ms": 19.2,
+     "statuses": {
+      "200": 14
+     },
+     "throughput_rps": 1.2
+    }
+   }
+  },
+  "10a large takes": {
+   "wall_s": 36.53,
+   "routes": {
+    "POST /sessions": {
+     "requests": 4,
+     "p50_ms": 2.4,
+     "p95_ms": 3.3,
+     "max_ms": 3.3,
+     "statuses": {
+      "201": 4
+     },
+     "throughput_rps": 0.1
+    },
+    "POST /sessions/{id}/score/file (builtin)": {
+     "requests": 4,
+     "p50_ms": 8.2,
+     "p95_ms": 13.2,
+     "max_ms": 13.2,
+     "statuses": {
+      "200": 4
+     },
+     "throughput_rps": 0.1
+    },
+    "POST /sessions/{id}/score/confirm": {
+     "requests": 4,
+     "p50_ms": 1.6,
+     "p95_ms": 2.7,
+     "max_ms": 2.7,
+     "statuses": {
+      "200": 4
+     },
+     "throughput_rps": 0.1
+    },
+    "POST takes (wav) 10 MB": {
+     "requests": 1,
+     "p50_ms": 17.0,
+     "p95_ms": 17.0,
+     "max_ms": 17.0,
+     "statuses": {
+      "202": 1
+     },
+     "throughput_rps": 0.0
+    },
+    "GET analysis after big take": {
+     "requests": 3,
+     "p50_ms": 10.1,
+     "p95_ms": 23.6,
+     "max_ms": 23.6,
+     "statuses": {
+      "200": 3
+     },
+     "throughput_rps": 0.1
+    },
+    "POST takes (wav) 50 MB": {
+     "requests": 1,
+     "p50_ms": 59.7,
+     "p95_ms": 59.7,
+     "max_ms": 59.7,
+     "statuses": {
+      "202": 1
+     },
+     "throughput_rps": 0.0
+    },
+    "POST takes (wav) 200 MB": {
+     "requests": 1,
+     "p50_ms": 187.8,
+     "p95_ms": 187.8,
+     "max_ms": 187.8,
+     "statuses": {
+      "202": 1
+     },
+     "throughput_rps": 0.0
+    },
+    "POST takes (wav) 201 MB": {
+     "requests": 1,
+     "p50_ms": 167.2,
+     "p95_ms": 167.2,
+     "max_ms": 167.2,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 0.0
+    }
+   }
+  },
+  "10b large score/photo/camera uploads": {
+   "wall_s": 0.76,
+   "routes": {
+    "POST /sessions": {
+     "requests": 9,
+     "p50_ms": 1.3,
+     "p95_ms": 271.6,
+     "max_ms": 271.6,
+     "statuses": {
+      "201": 9
+     },
+     "throughput_rps": 11.9
+    },
+    "POST score/file (.musicxml) 4 MB": {
+     "requests": 1,
+     "p50_ms": 5.3,
+     "p95_ms": 5.3,
+     "max_ms": 5.3,
+     "statuses": {
+      "422": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/file (.musicxml) 6 MB": {
+     "requests": 1,
+     "p50_ms": 5.1,
+     "p95_ms": 5.1,
+     "max_ms": 5.1,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/file (.musicxml) 50 MB": {
+     "requests": 1,
+     "p50_ms": 36.5,
+     "p95_ms": 36.5,
+     "max_ms": 36.5,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/file (.musicxml) 200 MB": {
+     "requests": 1,
+     "p50_ms": 152.0,
+     "p95_ms": 152.0,
+     "max_ms": 152.0,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/photo 10 MB": {
+     "requests": 1,
+     "p50_ms": 34.0,
+     "p95_ms": 34.0,
+     "max_ms": 34.0,
+     "statuses": {
+      "202": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/photo 50 MB": {
+     "requests": 1,
+     "p50_ms": 41.9,
+     "p95_ms": 41.9,
+     "max_ms": 41.9,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST score/photo 200 MB": {
+     "requests": 1,
+     "p50_ms": 145.7,
+     "p95_ms": 145.7,
+     "max_ms": 145.7,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST camera-check 10 MB": {
+     "requests": 1,
+     "p50_ms": 8.2,
+     "p95_ms": 8.2,
+     "max_ms": 8.2,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    },
+    "POST camera-check 50 MB": {
+     "requests": 1,
+     "p50_ms": 35.3,
+     "p95_ms": 35.3,
+     "max_ms": 35.3,
+     "statuses": {
+      "413": 1
+     },
+     "throughput_rps": 1.3
+    }
+   }
+  }
+ },
+ "memory": {
+  "start_mb": 165.3,
+  "peak_mb": 1321.1,
+  "end_mb": 374.9,
+  "samples": 98,
+  "peak_by_phase_mb": {
+   "start": 165.6,
+   "1 sessions create/get": 170.0,
+   "2 builtins/reference notes": 171.2,
+   "3 score upload/confirm/read": 324.1,
+   "5 takes upload + analysis reads": 939.1,
+   "6 calibration": 996.2,
+   "8 camera check": 871.9,
+   "9 photo scans": 873.1,
+   "10a large takes": 1321.1,
+   "10b large score/photo/camera uploads": 470.3,
+   "11 malformed": 558.5,
+   "12 session edge cases": 568.6,
+   "13 leak check": 569.4,
+   "cooldown": 375.0
+  },
+  "peak_children_mb": 3951.6,
+  "process_gone": false
+ },
+ "memory_points": [
+  [
+   0.0,
+   165.3,
+   "start"
+  ],
+  [
+   6.1,
+   170.0,
+   "1 sessions create/get"
+  ],
+  [
+   12.1,
+   324.1,
+   "3 score upload/confirm/read"
+  ],
+  [
+   18.2,
+   802.8,
+   "5 takes upload + analysis reads"
+  ],
+  [
+   24.2,
+   939.8,
+   "6 calibration"
+  ],
+  [
+   30.3,
+   988.4,
+   "6 calibration"
+  ],
+  [
+   36.3,
+   995.4,
+   "6 calibration"
+  ],
+  [
+   42.4,
+   994.5,
+   "6 calibration"
+  ],
+  [
+   48.4,
+   993.8,
+   "6 calibration"
+  ],
+  [
+   54.5,
+   993.5,
+   "6 calibration"
+  ],
+  [
+   60.5,
+   993.5,
+   "6 calibration"
+  ],
+  [
+   66.6,
+   993.5,
+   "6 calibration"
+  ],
+  [
+   72.6,
+   873.1,
+   "9 photo scans"
+  ],
+  [
+   78.7,
+   291.8,
+   "9 photo scans"
+  ],
+  [
+   84.8,
+   629.2,
+   "10a large takes"
+  ],
+  [
+   90.9,
+   1319.6,
+   "10a large takes"
+  ],
+  [
+   96.9,
+   1321.1,
+   "10a large takes"
+  ],
+  [
+   103.0,
+   1321.0,
+   "10a large takes"
+  ],
+  [
+   109.0,
+   1000.8,
+   "10a large takes"
+  ],
+  [
+   115.1,
+   1000.9,
+   "10a large takes"
+  ],
+  [
+   121.2,
+   470.3,
+   "10b large score/photo/camera uploads"
+  ],
+  [
+   127.3,
+   568.3,
+   "12 session edge cases"
+  ],
+  [
+   133.3,
+   568.2,
+   "12 session edge cases"
+  ],
+  [
+   139.4,
+   568.2,
+   "12 session edge cases"
+  ],
+  [
+   145.5,
+   568.4,
+   "13 leak check"
+  ],
+  [
+   151.6,
+   569.3,
+   "13 leak check"
+  ],
+  [
+   157.6,
+   371.3,
+   "13 leak check"
+  ],
+  [
+   163.7,
+   372.0,
+   "13 leak check"
+  ],
+  [
+   169.7,
+   373.5,
+   "13 leak check"
+  ],
+  [
+   175.8,
+   373.7,
+   "13 leak check"
+  ],
+  [
+   181.9,
+   374.9,
+   "13 leak check"
+  ],
+  [
+   187.9,
+   375.0,
+   "cooldown"
+  ],
+  [
+   194.0,
+   374.9,
+   "cooldown"
+  ]
+ ],
+ "total_s": 196.9
+}
