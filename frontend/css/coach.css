@@ -1,4 +1,6 @@
-/* The coach sheet: a bottom sheet at every width (centred, at most 40rem, on wide screens). It opens at half height and can grow to full height.
+/* The coach panel has two modes, switched by js/chat/panel.js at 901px (not by CSS, so the markup and behaviour change together):
+   a modal bottom sheet (.coach-sheet, centred and at most 40rem on mid-width screens; it opens at half height and can grow to full height)
+   and, on wide screens, a docked side panel (.coach-sheet.is-docked) that fills the column the Results page gives #coach-root.
    Loaded from js/chat/panel.js. Only app.css tokens and components.css classes (.btn, .chip) are used.
    Calm on purpose: one accent colour, on the Send button; everything else is ink on surface. */
 
@@ -80,5 +82,24 @@
 .chat-form { display: flex; align-items: flex-end; gap: var(--sp-2); }
 .chat-input { flex: 1 1 auto; min-height: var(--tap); padding: var(--sp-2) var(--sp-3); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); font: inherit; resize: none; }
 .chat-send { flex: none; }
+
+/* Docked: an ordinary block in the column, not a layer above the page. The transcript scrolls inside it (.coach-body); the header and
+   the question box stay put. The height is the viewport less the sticky page header and a margin, because #coach-root is sticky and has no height of its own. */
+.coach-sheet.is-docked {
+  position: static;
+  width: 100%;
+  height: calc(100vh - var(--header-h) - var(--sp-3));
+  height: calc(100dvh - var(--header-h) - var(--sp-3));
+  margin: 0;
+  padding-bottom: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+  animation: none;
+}
+
+.coach-sheet.is-docked .coach-head { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
 
 @media (prefers-reduced-motion: reduce) { .coach-sheet { animation: none; transition: none; } }

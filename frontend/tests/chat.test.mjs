@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { installFakeDom, settle } from './fake_dom.mjs';
 
-installFakeDom();
+const { setWide, listenerCount } = installFakeDom();
 const { MAX_MESSAGE_LENGTH, EMPTY_MESSAGE_ERROR, TOO_LONG_ERROR, TIMEOUT_MESSAGE, FALLBACK_NOTE, validateMessage, withTimeout, openingTurn, suggestedQuestions } =
   await import('../js/chat/model.js');
 const { createChatPanel, OPEN_EVENT } = await import('../js/chat/panel.js');
@@ -25,8 +25,10 @@ function deferred() {
   return d;
 }
 
-// Builds a panel with fakes; options.getChat / sendChat override the defaults.
+// Builds a panel with fakes; options.getChat / sendChat override the defaults, options.wide builds it on a wide (docked) screen.
 async function setup(options = {}) {
+  press('Escape'); // shuts the sheets earlier tests left open, so their document listeners do not leak into this test
+  setWide(Boolean(options.wide));
   const root = document.createElement('div');
   document.body.replaceChildren(root); // a panel only answers 'coach:open' while it is on the page; earlier tests' panels leave it
   const errors = [];
@@ -380,4 +382,140 @@ test('a bar reference closes the sheet and then jumps', async () => {
   root.withClass('coach-link')[0].click();
   assert.equal(sheetOf(root).hidden, true, 'the bar is in view, not behind the sheet');
   assert.deepEqual(jumps.map((j) => j.bar), [3]);
+});
+
+// ---- docked mode (wide screens) ----
+
+test('on a wide screen the panel is a visible, non-modal complementary region with a Collapse button and no scrim', async () => {
+  const { root } = await setup({ wide: true });
+  const sheet = sheetOf(root);
+  assert.equal(sheet.hidden, false, 'visible without coach:open');
+  assert.equal(sheet.attributes.role, 'complementary');
+  assert.equal(sheet.attributes['aria-label'], 'Coach');
+  assert.equal(sheet.attributes['aria-modal'], undefined);
+  assert.equal(root.withClass('coach-backdrop')[0].hidden, true, 'no scrim');
+  assert.equal(root.withClass('coach-grabber')[0].hidden, true, 'no grabber');
+  assert.ok(sheet.className.split(' ').includes('is-docked'));
+  assert.equal(root.button('Close'), undefined);
+  assert.ok(root.button('Collapse'));
+  assert.equal(document.count('keydown'), 0);
+  assert.equal(document.count('focusin'), 0);
+  assert.notEqual(document.activeElement, sheet, 'focus is not moved into it on load');
+});
+
+test('docked: Escape does nothing and focus is never moved in automatically', async () => {
+  const { root, input } = await setup({ wide: true });
+  const outside = document.createElement('button');
+  outside.focus();
+  press('Escape');
+  assert.equal(sheetOf(root).hidden, false);
+  document.dispatch('focusin', { target: outside });
+  assert.ok(document.activeElement === outside, 'focus on the page is not pulled back');
+  assert.notEqual(document.activeElement, input);
+});
+
+test('docked: no focus trap, Tab is left alone', async () => {
+  const { root } = await setup({ wide: true });
+  sheetOf(root).querySelectorAll = () => [root.button('Collapse'), root.withClass('chat-input')[0], root.button('Send')];
+  root.button('Send').focus();
+  let prevented = false;
+  press('Tab', { preventDefault: () => { prevented = true; } });
+  assert.equal(prevented, false);
+  assert.ok(document.activeElement === root.button('Send'));
+});
+
+test('docked: Collapse hides the panel and coach:open expands it again and focuses the question box', async () => {
+  const { root, input, panel } = await setup({ wide: true });
+  root.button('Collapse').click();
+  assert.equal(sheetOf(root).hidden, true);
+  assert.equal(panel.isOpen(), false);
+  document.dispatch(OPEN_EVENT);
+  assert.equal(sheetOf(root).hidden, false);
+  assert.equal(panel.isOpen(), true);
+  assert.ok(document.activeElement === input, 'focus goes to the input');
+  assert.equal(document.count('keydown'), 0, 'still no modal listeners');
+});
+
+test('docked: coach:open on the visible panel focuses the question box', async () => {
+  const { input } = await setup({ wide: true });
+  document.dispatch(OPEN_EVENT);
+  assert.ok(document.activeElement === input);
+});
+
+test('docked: a bar link jumps and does not close the panel', async () => {
+  const { root, panel, jumpContext, jumps } = await setup({ wide: true });
+  panel.setResults({ jumpContext, feedback: { mode: 'ai', sentences: [sentence('Bar 3 sounded wrong.')] } });
+  root.withClass('coach-link')[0].click();
+  assert.equal(sheetOf(root).hidden, false, 'the panel stays');
+  assert.deepEqual(jumps.map((j) => j.bar), [3]);
+});
+
+test('docked: a reply that disables the box gives focus back only if it was in the panel', async () => {
+  const reply = deferred();
+  const { input, send } = await setup({ wide: true, sendChat: () => reply.promise });
+  const outside = document.createElement('button');
+  input.focus();
+  input.value = 'Why?';
+  send.click();
+  browserDropsFocus();
+  reply.resolve(aiReply());
+  await settle();
+  assert.ok(document.activeElement === input, 'focus was in the panel, so it returns to the box');
+
+  const second = deferred();
+  const again = await setup({ wide: true, sendChat: () => second.promise });
+  again.input.value = 'Why?';
+  outside.focus();
+  again.send.click();
+  second.resolve(aiReply());
+  await settle();
+  assert.ok(document.activeElement === outside, 'focus was elsewhere, so it is left there');
+});
+
+test('widening an open sheet docks it: the scrim and the document listeners are gone, and the panel shows', async () => {
+  const { root } = await setup();
+  const sheet = sheetOf(root);
+  document.dispatch(OPEN_EVENT);
+  assert.equal(document.count('keydown'), 1);
+  setWide(true);
+  assert.equal(sheet.hidden, false);
+  assert.equal(sheet.attributes.role, 'complementary');
+  assert.equal(sheet.attributes['aria-modal'], undefined);
+  assert.equal(root.withClass('coach-backdrop')[0].hidden, true, 'no stuck scrim');
+  assert.equal(document.count('keydown'), 0);
+  assert.equal(document.count('focusin'), 0);
+  press('Escape');
+  assert.equal(sheet.hidden, false);
+});
+
+test('narrowing a docked panel returns to a closed modal sheet that works as before', async () => {
+  const { root } = await setup({ wide: true });
+  const sheet = sheetOf(root);
+  setWide(false);
+  assert.equal(sheet.hidden, true, 'no modal appears unasked');
+  assert.equal(sheet.attributes.role, 'dialog');
+  assert.equal(sheet.attributes['aria-modal'], 'true');
+  assert.equal(root.withClass('coach-grabber')[0].hidden, false);
+  assert.ok(root.button('Close'));
+  document.dispatch(OPEN_EVENT);
+  assert.equal(root.withClass('coach-backdrop')[0].hidden, false);
+  assert.ok(document.activeElement === sheet);
+  press('Escape');
+  assert.equal(sheet.hidden, true);
+  assert.equal(document.count('keydown'), 0);
+});
+
+test('switching width back and forth leaves no listeners, and a panel that left the page stops listening to the width', async () => {
+  const { root } = await setup();
+  document.dispatch(OPEN_EVENT);
+  setWide(true);
+  setWide(false);
+  document.dispatch(OPEN_EVENT);
+  setWide(true);
+  assert.equal(document.count('keydown'), 0);
+  assert.equal(document.count('focusin'), 0);
+  assert.equal(listenerCount(), 1, 'one width listener for the one live panel (earlier tests panels already left)');
+  root.remove();
+  setWide(false);
+  assert.equal(listenerCount(), 0, 'a panel that left the page removes its width listener');
 });

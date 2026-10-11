@@ -17,6 +17,7 @@ export class FakeNode {
   get textContent() { return this.ownText + this.children.map((c) => c.textContent).join(''); }
   get isConnected() { let node = this; while (node.parent) node = node.parent; return node === this.doc.body; }
   setAttribute(name, value) { this.attributes[name] = value; }
+  removeAttribute(name) { delete this.attributes[name]; }
   append(...nodes) {
     nodes.forEach((node) => {
       const child = typeof node === 'string' ? Object.assign(new FakeNode('#text', this.doc), { ownText: node }) : node;
@@ -44,7 +45,25 @@ class Target {
   dispatch(type, event = {}) { [...(this.handlers[type] ?? [])].forEach((fn) => fn(event)); }
 }
 
-// Installs globalThis.document and globalThis.window; returns { body, banner, document, window }.
+// window.matchMedia stand-in: every query answers with one shared "wide" flag (narrow by default). setWide(flag) changes it and
+// fires 'change' on the lists that are still listening, as a resized browser does; listenerCount() is how many are.
+function createMatchMedia() {
+  const lists = new Set();
+  let wide = false;
+  const matchMedia = () => {
+    const list = new Target();
+    Object.defineProperty(list, 'matches', { get: () => wide });
+    lists.add(list);
+    return list;
+  };
+  return {
+    matchMedia,
+    setWide(flag) { wide = flag; [...lists].forEach((list) => list.dispatch('change', { matches: wide })); },
+    listenerCount: () => [...lists].reduce((total, list) => total + list.count('change'), 0),
+  };
+}
+
+// Installs globalThis.document and globalThis.window; returns { body, banner, document, window, setWide, listenerCount }.
 export function installFakeDom() {
   const doc = Object.assign(new Target(), { body: null });
   doc.createElement = (tag) => new FakeNode(tag, doc);
@@ -56,9 +75,11 @@ export function installFakeDom() {
   doc.querySelector = () => null; // no stylesheet is ever "already loaded"
   doc.getElementById = (id) => (id === 'banner' ? banner : null);
   const win = Object.assign(new Target(), { location: { search: '', hash: '' } });
+  const { matchMedia, setWide, listenerCount } = createMatchMedia();
+  win.matchMedia = matchMedia;
   globalThis.document = doc;
   globalThis.window = win;
-  return { body: doc.body, banner, document: doc, window: win };
+  return { body: doc.body, banner, document: doc, window: win, setWide, listenerCount };
 }
 
 export const space = (extra = {}) => ({ code: 'Space', repeat: false, target: null, preventDefault() {}, ...extra });

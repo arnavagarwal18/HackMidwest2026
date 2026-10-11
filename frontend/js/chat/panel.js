@@ -1,4 +1,5 @@
-// The coach panel: a sheet that is closed until 'coach:open' is dispatched on the document. It holds the coach's opening line,
+// The coach panel: on narrow screens a bottom sheet that is closed until 'coach:open' is dispatched on the document; from WIDE_QUERY up
+// a docked side panel that is visible from the start, where 'coach:open' expands it again after a collapse. It holds the coach's opening line,
 // suggested-question chips, the transcript, the pending-reply state and the question box.
 // deps: { sessionId, take, getChat, sendChat, reportError, timeoutMs, timers, mountCoachSwitch } so tests can run it without a back end.
 // mountCoachSwitch({ menu, status }, { onCoachChanged }) is optional: it puts the 'Coach: Standard' menu in `menu` and the
@@ -13,6 +14,7 @@ import { renderTranscript } from './transcript.js';
 
 const STYLE_HREF = 'css/coach.css';
 export const OPEN_EVENT = 'coach:open';
+export const WIDE_QUERY = '(min-width: 901px)'; // the docked layout; keep in step with the Results grid
 const THINKING_TEXT = 'The coach is thinking…';
 
 // Returns { setResults, whenReady, open, close, isOpen }. setResults({ jumpContext, feedback }) is called by the results screen once
@@ -29,7 +31,7 @@ export function createChatPanel(root, deps) {
   let coach = null; // the Coach menu controller, once mounted
   let coachMode = null; // the mode of the latest feedback or instructor turn
 
-  const sheet = createSheet({ title: 'Coach' });
+  const sheet = createSheet({ title: 'Coach', initialFocus: () => input });
   const title = element('span', 'Coach', 'coach-title'); // shown until the style menu is mounted
   const menuSlot = element('div', '', 'coach-menu-slot');
   const statusSlot = element('div', '', 'coach-status');
@@ -46,10 +48,10 @@ export function createChatPanel(root, deps) {
   sheet.footer.append(form);
   root.replaceChildren(...sheet.nodes);
 
-  // A jump closes the sheet first so the bar it points at is in view.
+  // A jump closes the modal sheet first so the bar it points at is in view; the docked panel sits beside the bars and stays.
   const sameTake = (turn) => {
     if (turn.take_id !== take || !jumpContext) return null;
-    return { ...jumpContext, jumper: { jumpTo: (place) => { sheet.close(); jumpContext.jumper.jumpTo(place); } } };
+    return { ...jumpContext, jumper: { jumpTo: (place) => { if (!sheet.isDocked()) sheet.close(); jumpContext.jumper.jumpTo(place); } } };
   };
 
   function redraw() {
@@ -80,6 +82,7 @@ export function createChatPanel(root, deps) {
     if (pending) return;
     const problem = validateMessage(text);
     if (problem) return reportError(new Error(problem));
+    const hadFocus = sheet.contains(document.activeElement);
     setPending(true);
     try {
       const reply = await withTimeout(sendChat(sessionId, text.trim(), take), timeoutMs, TIMEOUT_MESSAGE, timers);
@@ -91,7 +94,9 @@ export function createChatPanel(root, deps) {
       reportError(err); // the typed text stays in the box
     } finally {
       setPending(false);
-      if (sheet.isOpen() && !sheet.contains(document.activeElement)) input.focus?.(); // the browser dropped focus when the box was disabled
+      // The browser dropped focus when the box was disabled. The sheet always takes it back; the docked panel only if focus was inside it.
+      const wantsFocus = sheet.isDocked() ? hadFocus : sheet.isOpen();
+      if (wantsFocus && !sheet.contains(document.activeElement)) input.focus?.();
     }
   }
 
@@ -116,6 +121,15 @@ export function createChatPanel(root, deps) {
       }, reportError)
     : Promise.resolve();
 
+  // The layout follows the screen width, also while the window is resized. The listener leaves with the panel, like the one below.
+  const wide = window.matchMedia?.(WIDE_QUERY) ?? null;
+  const onWidthChange = () => {
+    if (!root.isConnected) return wide.removeEventListener('change', onWidthChange);
+    sheet.setDocked(wide.matches);
+  };
+  sheet.setDocked(Boolean(wide?.matches));
+  wide?.addEventListener('change', onWidthChange);
+
   // One listener per panel; the results screen builds a new panel each visit, so a panel that left the page stops listening.
   const onOpenRequest = () => {
     if (!root.isConnected) return document.removeEventListener(OPEN_EVENT, onOpenRequest);
@@ -128,6 +142,7 @@ export function createChatPanel(root, deps) {
     open: sheet.open,
     close: sheet.close,
     isOpen: sheet.isOpen,
+    isDocked: sheet.isDocked,
     setResults({ jumpContext: context = null, feedback = null } = {}) {
       jumpContext = context;
       opening = openingTurn(feedback, take);
