@@ -184,12 +184,3 @@ test('Ask coach (#ask-coach) dispatches coach:open on the document', () => {
   askCoach.click();
   assert.deepEqual(opened, ['coach:open']);
 });
-
-test('a bar with 0 expected notes (past the end of the take) is not listed or counted, even with a problem or an extra note', async () => {
-  const { problemBars } = await import('../js/results/bars.js');
-  const { problemBarCounts } = await import('../js/results/bar_kinds.js');
-  const past = { bar: 23, expected: 0, ok: 0, wrong: 0, missed: 0, extra: 2, uncertain: 0 };
-  const withPast = { ...analysis, bars: [...analysis.bars, past], problems: [{ kind: 'notes', bars: [2, 23], score: 0.9 }] };
-  assert.deepEqual(problemBars(withPast).map((b) => b.bar), [2]);
-  assert.equal(problemBarCounts(withPast).total, 1);
-});

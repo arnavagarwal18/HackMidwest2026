@@ -11,16 +11,10 @@ function barScores(problems) {
   return scores;
 }
 
-// The bars with at least one expected note: the back end also sends bars past the end of what was played (expected 0), which
-// would read "0 of 0 right". Every list, count and box of bars goes through this.
-export function playedBars(analysis) {
-  return (analysis.bars ?? []).filter((bar) => bar.expected > 0);
-}
-
 // Bars that any problem covers or that have a mistake, ordered by their worst problem score (then by bar number).
 export function problemBars(analysis) {
   const scores = barScores(analysis.problems ?? []);
-  return playedBars(analysis)
+  return (analysis.bars ?? [])
     .filter((bar) => scores.has(bar.bar) || hasMistakes(bar))
     .sort((a, b) => (scores.get(b.bar) ?? 0) - (scores.get(a.bar) ?? 0) || a.bar - b.bar);
 }
