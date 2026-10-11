@@ -10,42 +10,45 @@
   <link rel="stylesheet" href="../../css/components.css">
   <style>
     /* ---- Palette: every colour on this page comes from the --c-* variables below. ----
-       Palettes (?palette=a|b|c, set on html[data-palette]) override only these variables. a is the default.
-       The :root block after it maps the design system's own tokens (app.css, components.css) onto them. */
-    :root, html[data-palette="a"] {
-      --c-bg: #f7f6f2;              /* page */
-      --c-surface: #ffffff;         /* inputs, menu, sheet items */
-      --c-surface-2: #ecebe7;       /* hover, note strip */
-      --c-ink: #1f1c18;             /* primary text */
-      --c-ink-soft: #4a4844;        /* secondary text */
-      --c-line: #d9d8d4;            /* hairlines */
-      --c-line-strong: #8a8378;     /* control edges, unselected box edge */
-      --c-accent: #7a5208;          /* primary button, focus ring */
-      --c-accent-ink: #ffffff;      /* text on the primary button */
-      --c-accent-hover: #664506;
-      --c-focus-text: #a65300;      /* "Focus here" and the weakest score */
-      --c-good-border: #1f7a4d;  --c-good-fill: #cee2d8;
-      --c-close-border: #1f5fa8; --c-close-fill: #cedcec;
-      --c-off-border: #a65300;   --c-off-fill: #ebd9c7;
-      --c-bar-ink: #1f1c18;         /* number and word inside a bar box */
-      --c-bar-selected: #1f1c18;    /* outline of the selected bar */
-      --c-media-bg: #14110d;        /* player poster */
-      --c-on-media: #ffffff;        /* player text */
-      --c-play-bg: #ffffff;  --c-play-ink: #14110d;
-      --c-scrubber: #f0c15a;
-      --c-scrim: rgb(0 0 0 / 0.35); /* dim behind the bottom sheet */
-      --c-shadow: 31 28 24;         /* r g b of the sheet and menu shadow */
+       Palettes (?palette=a|b|c, set on html[data-palette]) override only the per-palette variables; a is the default.
+       The :root block after them maps the design system's own tokens (app.css, components.css) onto the --c-* ones. */
+    :root, html[data-palette="a"] { /* a: Paper & Sky */
+      --c-bg: #f5f5f7; --c-surface: #ffffff; --c-ink: #1d1d1f; --c-ink-soft: #6e6e73; --c-line: #e5e5ea;
+      --c-accent: #0066cc; --c-accent-ink: #ffffff;
+      --c-scrim: rgb(29 29 31 / 0.3); --c-shadow: 29 29 31;
     }
-    html[data-palette="b"] { /* placeholder: same as a */ }
-    html[data-palette="c"] { /* placeholder: same as a */ }
+    html[data-palette="b"] { /* b: Warm Linen */
+      --c-bg: #faf8f5; --c-surface: #ffffff; --c-ink: #2b2a28; --c-ink-soft: #6b6760; --c-line: #ece7e0;
+      --c-accent: #3d5a80; --c-accent-ink: #ffffff;
+      --c-scrim: rgb(43 42 40 / 0.3); --c-shadow: 43 42 40;
+    }
+    html[data-palette="c"] { /* c: Mist Iris */
+      --c-bg: #f4f6fb; --c-surface: #ffffff; --c-ink: #1f2433; --c-ink-soft: #5b6478; --c-line: #e3e7f0;
+      --c-accent: #5b5bd6; --c-accent-ink: #ffffff;
+      --c-scrim: rgb(31 36 51 / 0.3); --c-shadow: 31 36 51;
+    }
+    /* The same in every palette: the status colours (a soft fill with a stronger 1px border) and what is derived from the per-palette ones */
+    :root {
+      --c-good-fill: #cdefd8;  --c-good-border: #30a46c;
+      --c-okay-fill: #fbe7b5;  --c-okay-border: #e2a336;
+      --c-work-fill: #f9d0ce;  --c-work-border: #e5484d;
+      --c-line-strong: var(--c-ink-soft);   /* the edge of a control (chip, input): needs 3:1 */
+      --c-focus-text: var(--c-accent);      /* "Focus here" and the weakest score */
+      --c-bar-ink: var(--c-ink);            /* the number and word inside a bar box */
+      --c-bar-selected: var(--c-accent);    /* the outline of the selected bar */
+      --c-media-bg: var(--c-line);          /* the player poster: a soft tone, not black */
+      --c-on-media: var(--c-ink);
+      --c-play-bg: var(--c-accent);  --c-play-ink: var(--c-accent-ink);
+      --c-scrubber: var(--c-accent);
+    }
 
     :root {
       color-scheme: light;
-      --bg: var(--c-bg); --surface: var(--c-surface); --surface-2: var(--c-surface-2);
+      --bg: var(--c-bg); --surface: var(--c-surface); --surface-2: var(--c-line);
       --ink: var(--c-ink); --muted: var(--c-ink-soft); --soft-ink: var(--c-ink-soft);
       --line: var(--c-line); --line-strong: var(--c-line-strong);
-      --accent: var(--c-accent); --primary: var(--c-accent); --primary-ink: var(--c-accent-ink); --primary-hover: var(--c-accent-hover);
-      --ok: var(--c-good-border); --flat: var(--c-close-border); --sharp: var(--c-off-border); --error: var(--c-off-border);
+      --accent: var(--c-accent); --primary: var(--c-accent); --primary-ink: var(--c-accent-ink); --primary-hover: var(--c-accent);
+      --ok: var(--c-good-border); --flat: var(--c-okay-border); --sharp: var(--c-work-border); --error: var(--c-work-border);
       --media-bg: var(--c-media-bg); --on-media: var(--c-on-media); --on-media-accent: var(--c-scrubber);
       --shadow-color: var(--c-shadow);
     }
@@ -80,12 +83,12 @@
     .bars-head h2 { margin-top: 0; }
     .bars-head p { margin: 0; color: var(--soft-ink); }
     .bar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
-    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0; border: 2px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--c-bar-ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
+    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--c-bar-ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
     .bar-box .num { font-size: 18px; font-weight: 700; }
     .bar-box .word { font-size: var(--fs-caption); font-weight: 600; }
     .bar-box[data-level="good"] { border-color: var(--c-good-border); background: var(--c-good-fill); }
-    .bar-box[data-level="ok"]   { border-color: var(--c-close-border); background: var(--c-close-fill); }
-    .bar-box[data-level="off"]  { border-color: var(--c-off-border); background: var(--c-off-fill); }
+    .bar-box[data-level="okay"]   { border-color: var(--c-okay-border); background: var(--c-okay-fill); }
+    .bar-box[data-level="work"]  { border-color: var(--c-work-border); background: var(--c-work-fill); }
     .bar-box[aria-pressed="true"] { outline: 3px solid var(--c-bar-selected); outline-offset: 2px; }
     .legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) 0 0; color: var(--ink); font-size: var(--fs-body); }
     .detail { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
@@ -182,7 +185,7 @@
             <p>Pick a bar to see what happened in it.</p>
           </div>
           <ul class="bar-row" id="bar-row" role="list"></ul>
-          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Close</b> a small slip</span><span><b>Off</b> needs work</span></p>
+          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Okay</b> a small slip</span><span><b>Work</b> = needs work</span></p>
           <div class="detail" id="detail" aria-live="polite"></div>
         </section>
 
@@ -236,19 +239,19 @@
     const BARS = [
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
-      { level: 'ok',   notes: ['Pitch: one note was a little flat (about 20 cents).', 'Rhythm: on the beat.', 'Tempo: steady.'] },
-      { level: 'ok',   notes: ['Pitch: in tune.', 'Rhythm: the second note came in early.', 'Tempo: steady.'] },
-      { level: 'off',  notes: ['Pitch: the last note was sharp, so it sounded off.', 'Rhythm: the third beat came in late.', 'Tempo: you slowed down towards the end of the bar.'] },
+      { level: 'okay',   notes: ['Pitch: one note was a little flat (about 20 cents).', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'okay',   notes: ['Pitch: in tune.', 'Rhythm: the second note came in early.', 'Tempo: steady.'] },
+      { level: 'work',  notes: ['Pitch: the last note was sharp, so it sounded off.', 'Rhythm: the third beat came in late.', 'Tempo: you slowed down towards the end of the bar.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
-      { level: 'off',  notes: ['Pitch: in tune.', 'Rhythm: three of five notes landed late, by about a tenth of a second.', 'Tempo: you rushed the first beat, then dragged.'] },
-      { level: 'off',  notes: ['Pitch: one note was flat.', 'Rhythm: two notes landed late.', 'Tempo: steady.'] },
+      { level: 'work',  notes: ['Pitch: in tune.', 'Rhythm: three of five notes landed late, by about a tenth of a second.', 'Tempo: you rushed the first beat, then dragged.'] },
+      { level: 'work',  notes: ['Pitch: one note was flat.', 'Rhythm: two notes landed late.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
-      { level: 'ok',   notes: ['Pitch: in tune.', 'Rhythm: the last note was a touch late.', 'Tempo: steady.'] },
+      { level: 'okay',   notes: ['Pitch: in tune.', 'Rhythm: the last note was a touch late.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
     ];
-    const LABEL = { good: 'Good', ok: 'Close', off: 'Off' };
-    const WORD = { good: 'good', ok: 'close', off: 'off' };
+    const LABEL = { good: 'Good', okay: 'Okay', work: 'Work' }; // short, to fit the box; the heading and aria-label spell out "needs work"
+    const WORD = { good: 'good', okay: 'okay', work: 'needs work' };
 
     const row = document.getElementById('bar-row');
     const detail = document.getElementById('detail');

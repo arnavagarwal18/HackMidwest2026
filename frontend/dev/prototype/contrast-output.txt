@@ -1,0 +1,53 @@
+
+Palette a: Paper & Sky
+pair                                            ratio  need  result
+text / bg                                       15.46  4.5   ok
+text / surface                                  16.83  4.5   ok
+secondary / bg                                   4.66  4.5   ok
+secondary / surface                              5.07  4.5   ok
+white / accent (button text)                     5.57  4.5   ok
+accent / surface (Focus here text)               5.57  4.5   ok
+accent / bg (Focus here text)                    5.11  4.5   ok
+accent / border (play button on player, ui)      4.43  3.0   ok
+text on good fill                               13.57  4.5   ok
+good border / surface (ui)                       3.16  3.0   ok
+text on okay fill                               13.78  4.5   ok
+okay border / surface (ui)                       2.20  3.0   FLAG
+text on work fill                               11.97  4.5   ok
+work border / surface (ui)                       3.91  3.0   ok
+
+Palette b: Warm Linen
+pair                                            ratio  need  result
+text / bg                                       13.53  4.5   ok
+text / surface                                  14.34  4.5   ok
+secondary / bg                                   5.31  4.5   ok
+secondary / surface                              5.62  4.5   ok
+white / accent (button text)                     7.06  4.5   ok
+accent / surface (Focus here text)               7.06  4.5   ok
+accent / bg (Focus here text)                    6.66  4.5   ok
+accent / border (play button on player, ui)      5.74  3.0   ok
+text on good fill                               11.56  4.5   ok
+good border / surface (ui)                       3.16  3.0   ok
+text on okay fill                               11.74  4.5   ok
+okay border / surface (ui)                       2.20  3.0   FLAG
+text on work fill                               10.20  4.5   ok
+work border / surface (ui)                       3.91  3.0   ok
+
+Palette c: Mist Iris
+pair                                            ratio  need  result
+text / bg                                       14.30  4.5   ok
+text / surface                                  15.46  4.5   ok
+secondary / bg                                   5.49  4.5   ok
+secondary / surface                              5.93  4.5   ok
+white / accent (button text)                     5.37  4.5   ok
+accent / surface (Focus here text)               5.37  4.5   ok
+accent / bg (Focus here text)                    4.96  4.5   ok
+accent / border (play button on player, ui)      4.33  3.0   ok
+text on good fill                               12.47  4.5   ok
+good border / surface (ui)                       3.16  3.0   ok
+text on okay fill                               12.66  4.5   ok
+okay border / surface (ui)                       2.20  3.0   FLAG
+text on work fill                               11.00  4.5   ok
+work border / surface (ui)                       3.91  3.0   ok
+
+3 pair(s) flagged
