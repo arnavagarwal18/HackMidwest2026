@@ -1,5 +1,36 @@
 /* Start and Score screens. Loaded by js/score/ui.js loadScoreStyles(). */
 
+/* Start hero: the heading and button beside a staff of notes drawn in brass. */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: center;
+  overflow: hidden;
+  padding: var(--s7) var(--s6);
+  background: radial-gradient(120% 90% at 100% 0%, var(--brass-soft), transparent 60%), var(--surface);
+  border-radius: 24px;
+  box-shadow: var(--shadow-2);
+}
+.hero .eyebrow { margin: 0; color: var(--brass-ink); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.hero h1 { margin: var(--s2) 0 var(--s3); font-size: clamp(2.2rem, 6vw, 3.4rem); }
+.hero .lead { max-width: 28rem; margin: 0 0 var(--s5); color: var(--ink-2); font-size: var(--fs-lg); }
+.hero p:last-child { margin: 0; }
+.hero-staff {
+  aspect-ratio: 2 / 1;
+  background: var(--brass);
+  opacity: 0.9;
+  -webkit-mask: var(--staff-art) center / contain no-repeat;
+  mask: var(--staff-art) center / contain no-repeat;
+  --staff-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 160' fill='none' stroke='%23000'%3E%3Cg stroke-width='1.4' opacity='.45'%3E%3Cpath d='M0 40h320M0 60h320M0 80h320M0 100h320M0 120h320'/%3E%3C/g%3E%3Cg fill='%23000' stroke='none'%3E%3Cellipse cx='60' cy='110' rx='9' ry='6.5' transform='rotate(-20 60 110)'/%3E%3Cellipse cx='115' cy='90' rx='9' ry='6.5' transform='rotate(-20 115 90)'/%3E%3Cellipse cx='170' cy='70' rx='9' ry='6.5' transform='rotate(-20 170 70)'/%3E%3Cellipse cx='225' cy='80' rx='9' ry='6.5' transform='rotate(-20 225 80)'/%3E%3Cellipse cx='280' cy='50' rx='9' ry='6.5' transform='rotate(-20 280 50)'/%3E%3C/g%3E%3Cg stroke-width='2.2'%3E%3Cpath d='M68 108V58M123 88V38M162 72v50M217 82v50M272 52v50'/%3E%3C/g%3E%3Cg stroke-width='1.6' opacity='.6'%3E%3Cpath d='M200 40v80M318 40v80'/%3E%3C/g%3E%3C/svg%3E");
+}
+@media (max-width: 40rem) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding: var(--s6) var(--s4); }
+  .hero-staff { order: -1; width: min(100%, 180px); justify-self: center; }
+  .hero button { width: 100%; }
+}
+
 .tabs {
   display: flex;
   gap: 2px;

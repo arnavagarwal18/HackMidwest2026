@@ -38,11 +38,24 @@ export function driftText(bar) {
   return `${bar.drift}${pct}`;
 }
 
+// How much of the bar was played right, as a whole percentage (0 to 100).
+function rightPercent(bar) {
+  return bar.expected ? Math.round((100 * bar.ok) / bar.expected) : 0;
+}
+
+// A thin bar under the counts that fills with the share of notes played right; the counts say the same in words.
+function renderMeter(bar) {
+  const meter = element('div', '', 'meter', { 'aria-hidden': 'true' });
+  meter.append(element('i', '', '', { style: `width: ${rightPercent(bar)}%` }));
+  return meter;
+}
+
 function barRow(bar) {
   const row = element('li', '', 'bar-row', { id: `bar-row-${bar.bar}`, 'data-bar': String(bar.bar), tabindex: '-1' });
   row.append(element('strong', `Bar ${bar.bar}`), element('span', countsText(bar), 'bar-counts'));
   const drift = driftText(bar);
   if (drift) row.append(element('span', drift, `bar-drift drift-${bar.drift}`));
+  row.append(renderMeter(bar));
   return row;
 }
 

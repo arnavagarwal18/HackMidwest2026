@@ -10,6 +10,7 @@ import { buildMeasurementIndex } from './measurements.js';
 import { createMediaPlayer, isVideoTake } from './media.js';
 import { renderPlan, renderTraceLink } from './plan.js';
 import { renderSentenceList } from './sentences.js';
+import { renderStatStrip } from './stats.js';
 import { renderStopped } from './status.js';
 import { renderTranspositionControl } from './transposition.js';
 
@@ -63,6 +64,8 @@ export function renderDone(view, data, context) {
   view.replaceChildren(element('h1', 'Results'));
   if (context.note) view.append(element('p', context.note, 'notice autokey-note', { role: 'status' }));
   if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
+  const stats = renderStatStrip(analysis);
+  if (stats) view.append(stats);
   const tier1 = analysis.tier1 ?? [];
   if (tier1.length) view.append(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
   const coach = coachSentences(feedback, tier1);

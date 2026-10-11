@@ -87,17 +87,20 @@ nav a.current { background: var(--surface); color: var(--ink); box-shadow: var(-
 nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0.6em; }
 
 @media (max-width: 40rem) {
-  header { flex-wrap: wrap; gap: var(--s2); padding: var(--s2) var(--s4); }
-  nav { /* a full-width strip that scrolls sideways, faded at both ends */
+  header { position: static; flex-wrap: wrap; gap: var(--s2); padding: var(--s2) var(--s4); }
+  nav { /* a full-width strip of four tabs a row, so every tab shows with no sideways scrolling */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     width: calc(100% + 2 * var(--s4));
+    max-width: none;
     margin: 0 calc(-1 * var(--s4));
     padding: var(--s2) var(--s4) 0;
     background: none;
     border-width: 1px 0 0;
     border-radius: 0;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent);
-    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent);
+    overflow: visible;
   }
+  nav a { justify-content: center; min-height: 36px; padding: 0 var(--s1); }
 }
 
 main { max-width: 62rem; margin: 0 auto; padding: var(--s5) var(--s5) var(--s7); }

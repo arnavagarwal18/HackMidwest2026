@@ -5,16 +5,30 @@ import { button, element } from '../dom.js';
 import { renderMediaError } from '../media_error.js';
 import {
   STILL_WORKING_TEXT, TOO_LONG_TEXT, barsText, firstRepText, ladderView, nextRepText, notCountedMessages,
-  passMarkText, streakDots, streakLabel, tempoChangeText,
+  passMarkText, streakDots, streakLabel, tempoChangeText, tempoProgressPercent,
 } from './model.js';
 
-function renderCard(exercise) {
+// A read-only dial: the current tempo, and how far along the way to the target it is. The text of the card says the same in words.
+function renderTempoDial(exercise, xstate) {
+  const dial = element('div', '', 'tempo-dial', { 'aria-hidden': 'true', style: `--dial-progress: ${tempoProgressPercent(exercise, xstate)}%` });
+  const face = element('div');
+  face.append(
+    element('span', String(xstate.current_bpm), 'bpm'),
+    element('span', 'BPM now', 'unit'),
+    element('span', `of ${exercise.target_bpm}`, 'dial-target'),
+  );
+  dial.append(face);
+  return dial;
+}
+
+function renderCard(exercise, xstate) {
   const card = element('section', '', 'exercise-card');
   card.append(
     element('h1', exercise.title),
     element('p', exercise.text),
     element('p', `${barsText(exercise)}, from ${exercise.start_bpm} to ${exercise.target_bpm} BPM`, 'muted'),
     element('p', `To pass a rep: ${passMarkText(exercise.pass_mark)}.`, 'pass-mark'),
+    renderTempoDial(exercise, xstate),
   );
   return card;
 }
@@ -150,7 +164,7 @@ function renderVerdictWithDone(model, handlers) {
 export function renderTrainer(root, model, handlers) {
   const view = element('section', '', 'trainer');
   if (model.exercise) {
-    view.append(renderCard(model.exercise), renderStreak(model.exercise, model.xstate), renderLadder(model.exercise, model.xstate));
+    view.append(renderCard(model.exercise, model.xstate), renderStreak(model.exercise, model.xstate), renderLadder(model.exercise, model.xstate));
   }
   view.append(renderPanel(model, handlers));
   root.replaceChildren(view);

@@ -53,6 +53,13 @@ export function ladderView(exercise, exerciseState) {
   });
 }
 
+// How far the current tempo is from start to target, as a whole percentage (0 to 100), for the tempo dial.
+export function tempoProgressPercent({ start_bpm: start, target_bpm: target }, exerciseState) {
+  if (target <= start) return 100;
+  const fraction = (exerciseState.current_bpm - start) / (target - start);
+  return Math.round(Math.min(1, Math.max(0, fraction)) * 100);
+}
+
 // One dot per rep needed: true = a pass in the streak.
 export function streakDots(streak, repsToPass) {
   return Array.from({ length: repsToPass }, (_, index) => index < streak);

@@ -37,12 +37,23 @@ button.sentence-text:hover { color: var(--brass-ink); text-decoration: underline
 .chip:hover { background: var(--brass-soft); border-color: var(--brass); }
 .chip-unknown { display: inline-flex; border: 1px dashed var(--muted); color: var(--muted); background: none; }
 
-.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); padding: var(--s3); border: 1px solid transparent; border-radius: var(--r-sm); }
+.bar-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--s2) var(--s3); padding: var(--s3); border: 1px solid transparent; border-radius: var(--r-sm); }
 .bar-row + .bar-row { margin-top: var(--s1); }
 .bar-row strong { font-family: var(--font-display); font-size: var(--fs-lg); }
 .bar-row.highlighted { background: var(--brass-soft); border-color: var(--brass); }
-.bar-drift { color: var(--muted); font-size: var(--fs-sm); }
+.bar-row .meter { grid-column: 2 / -1; grid-row: 2; }
+.meter { height: 6px; overflow: hidden; border-radius: 3px; background: var(--surface-2); }
+.meter > i { display: block; height: 100%; border-radius: 3px; background: var(--good); }
+.bar-drift { white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
 .bar-drift.drift-rushing, .bar-drift.drift-dragging { color: var(--error); }
+
+.score-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
+.stat { padding: var(--s4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.stat .num { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 600; line-height: 1.1; white-space: nowrap; }
+.stat .lbl { color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; }
+.stat.good .num { color: var(--good); }
+.stat.bad .num { color: var(--bad); }
+@media (max-width: 40rem) { .stat { padding: var(--s3); } .stat .num { font-size: var(--fs-lg); } }
 
 .results-media { margin: var(--s4) 0; }
 .video-stage { position: relative; display: inline-block; max-width: 100%; border-radius: var(--r-md); overflow: hidden; background: #0e0f13; }
