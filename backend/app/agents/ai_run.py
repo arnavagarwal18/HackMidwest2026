@@ -47,7 +47,8 @@ def context_and_tools(session_id: str, take: dict, history: list[dict]) -> tuple
     return build_context(session_id, take["take_id"], **sources), make_tools(session_id, take["take_id"], **sources)
 
 
-async def _run(session_id: str, take: dict, history: list[dict], holder: RunHolder, trace: Trace) -> None:
+async def run_agents(session_id: str, take: dict, history: list[dict], holder: RunHolder, trace: Trace) -> None:
+    """The Orchestrator run under the time limit; raises on a model failure or timeout (run_ai_feedback catches it)."""
     ctx, tools = context_and_tools(session_id, take, history)
     orchestrator = build_orchestrator(new_model(), tools, ctx, holder, trace)
     await asyncio.wait_for(orchestrator.invoke_async(ORCHESTRATOR_REQUEST.format(take_id=take["take_id"])), TIME_LIMIT_S)
@@ -87,7 +88,7 @@ def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Tra
     """
     holder, failure = RunHolder(), None
     try:
-        asyncio.run(_run(session_id, take, history, holder, trace))
+        asyncio.run(run_agents(session_id, take, history, holder, trace))
     except Exception as exc:
         failure = exc
         log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)

@@ -10,12 +10,14 @@ from botocore.exceptions import (
     SSOError,
     TokenRetrievalError,
 )
+from strands.types.exceptions import ModelThrottledException
 
 from app.agents.config import ConfigError, Settings
 
 CONFIG_FIX = "Setup step: edit backend/.env (copy backend/.env.example first if you have no backend/.env)."
 CREDENTIAL_ERRORS = (NoCredentialsError, PartialCredentialsError, ProfileNotFound, TokenRetrievalError, SSOError)
 TIMEOUT_ERRORS = (ConnectTimeoutError, ReadTimeoutError, EndpointConnectionError)
+THROTTLE_CODES = {"ThrottlingException", "TooManyRequestsException", "ServiceQuotaExceededException"}
 ACCESS_DENIED_CODES = {"AccessDeniedException", "UnrecognizedClientException", "ExpiredTokenException", "ExpiredToken"}
 
 
@@ -43,6 +45,11 @@ def _explain(exc: BaseException, step: str, model_id: str, settings: Settings) -
         return (
             f"AWS credentials were not found or have expired. Run `{_profile_check(settings)}` to check; "
             "if it fails, sign in again (aws sso login) or set up the profile (aws configure)."
+        )
+    if isinstance(exc, ModelThrottledException) or (isinstance(exc, ClientError) and exc.response.get("Error", {}).get("Code") in THROTTLE_CODES):
+        return (
+            f"Bedrock throttled the {step} request to {model_id}: the account's quota or rate limit is used up for now. "
+            "Wait, or ask for a higher Bedrock quota; this was not retried."
         )
     if isinstance(exc, TIMEOUT_ERRORS):
         return (
