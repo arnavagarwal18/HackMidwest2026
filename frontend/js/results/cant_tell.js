@@ -4,7 +4,7 @@ import { element } from '../dom.js';
 import { renderPlan, renderTraceLink } from './plan.js';
 import { percent } from './scores.js';
 import { renderStopped } from './status.js';
-import { renderTranspositionControl } from './transposition.js';
+import { keyLabel, renderTranspositionControl } from './transposition.js';
 
 const CANT_TELL_DEFAULT_TEXT = "I couldn't tell how that went from this recording. Play it again slowly and clearly, and I'll listen once more.";
 export const NEXT_ACTIONS = {
@@ -33,9 +33,9 @@ export function nextAction(analysis) {
 // The key control is always there; it is the one filled button only when the notes did not match (low_match), else Record again is.
 const choosesKey = (analysis) => analysis.cant_tell_reason === 'low_match';
 
-export function renderCantTell(view, { analysis, feedback, plan }, { sessionId, rerun, note }) {
+export function renderCantTell(view, { analysis, feedback, plan }, { sessionId, rerun }) {
   const extra = element('div', '', 'cant-tell-extra');
-  if (note) extra.append(element('p', note, 'autokey-note'));
+  extra.append(element('p', keyLabel(analysis.transposition), 'key-summary'));
   const heard = heardText(analysis);
   if (heard) extra.append(element('p', heard, 'heard-summary'));
   extra.append(element('p', nextAction(analysis), 'next-action'));

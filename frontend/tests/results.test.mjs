@@ -74,7 +74,7 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.equal(await count(page, '.fallback-notice'), 0);
   assert.match((await text(page, '.headline'))[0], /\w/, 'a headline sentence leads the summary');
   assert.deepEqual(await text(page, '.score-strip .lbl:not(.detail)'), ['Pitch', 'Rhythm', 'Bars to fix']);
-  assert.deepEqual(await text(page, '.detect-text'), ['Heard: in the written key · bars 3–4']);
+  assert.deepEqual(await text(page, '.detect-text'), ['Key: 0, instrument default · bars 3–4']);
   assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), true);
   await click(page, '.detect-change');
   assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), false);
@@ -161,6 +161,7 @@ await test("a can't-tell take shows the message, the transposition control and R
   assert.match((await text(page, '.stopped-message'))[0], /couldn't tell/);
   assert.deepEqual(await page.eval(`(() => { const o = [...document.querySelectorAll('#transposition-select option')]; return [o.length, o[0].value, o.at(-1).value]; })()`), [25, '-12', '12']);
   assert.equal(await count(page, 'button.record-again'), 1);
+  assert.deepEqual(await text(page, '.key-summary'), ['Key: 0, instrument default']);
   assert.deepEqual(await text(page, '.heard-summary'), ['What I heard: best match to the score 21%.']);
   assert.match((await text(page, '.next-action'))[0], /closer to the microphone/); // the mock take is few_pairs
   assert.deepEqual(await text(page, 'button.primary'), ['Record again'], 'one next action, filled');
@@ -171,6 +172,7 @@ await test("a can't-tell take shows the message, the transposition control and R
   await page.waitFor(`import('/js/mock.js').then((m) => m.mockRequestLog.some((r) => r.method === 'POST' && r.path === '/sessions/sess_mock1/transposition' && r.body?.semitones === 3))`);
   await page.waitFor(`window.__stages.filter((s) => s === 'Hearing notes...').length >= 1 && document.querySelector('#banner').textContent.includes('Transposition set to +3')`);
   await page.waitFor(`document.querySelector('.stopped-message')`); // still can't tell in the mock, so the control is back
+  assert.deepEqual(await text(page, '.key-summary'), ['Key: +3, set by you'], 'the analysis after the change names the key and who set it');
 });
 
 await test('the wait screen lists the steps with Cancel, which goes back to recording', async (open) => {

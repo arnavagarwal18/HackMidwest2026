@@ -6,14 +6,23 @@ import { button, element } from '../dom.js';
 
 export const TRANSPOSITION_RANGE = 12;
 
-const optionLabel = (semitones) => (semitones > 0 ? `+${semitones}` : String(semitones));
+const signed = (semitones) => (semitones > 0 ? `+${semitones}` : String(semitones));
+
+// Where the back end's key came from (config SOURCE_*), in the words the learner sees.
+export const SOURCE_WORDS = { detected: 'detected', user: 'set by you', file: 'from the score', default: 'instrument default' };
+
+// "Key: -4, detected" for analysis.transposition ({ semitones, source }); the source is left out when it is not one we know.
+export function keyLabel(transposition) {
+  const source = SOURCE_WORDS[transposition?.source];
+  return `Key: ${signed(transposition?.semitones ?? 0)}${source ? `, ${source}` : ''}`;
+}
 
 // onChanged(semitones) runs after the back end accepted the change. primary: draw the button as the screen's main action.
 export function renderTranspositionControl({ sessionId, current = 0, onChanged, primary = false }) {
   const wrapper = element('div', '', 'transposition');
   const select = element('select', '', '', { id: 'transposition-select', 'aria-label': 'Transposition in semitones' });
   for (let semitones = -TRANSPOSITION_RANGE; semitones <= TRANSPOSITION_RANGE; semitones += 1) {
-    const option = element('option', optionLabel(semitones), '', { value: String(semitones) });
+    const option = element('option', signed(semitones), '', { value: String(semitones) });
     option.selected = semitones === current;
     select.append(option);
   }

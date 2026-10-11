@@ -8,7 +8,8 @@ const dom = installFakeDom();
 dom.window.location.search = '?mock=1';
 
 const { headline, percent, pitchScore, rhythmScore } = await import('../js/results/scores.js');
-const { barRange, barsText, detectionText, keyText } = await import('../js/results/detection.js');
+const { keyLabel } = await import('../js/results/transposition.js');
+const { barRange, barsText, detectionText } = await import('../js/results/detection.js');
 const { heardText, nextAction, NEXT_ACTIONS } = await import('../js/results/cant_tell.js');
 const { currentStep, renderStepList, WAIT_STEPS } = await import('../js/results/wait_steps.js');
 const { STAGES } = await import('../js/results/load.js');
@@ -48,16 +49,22 @@ test('the summary has the headline, a pitch score and a rhythm score as separate
   assert.equal(renderStatStrip({ bars: [] }), null);
 });
 
-test('the detection chip says the key in semitones and the bars, and drops what is unknown', () => {
-  assert.equal(keyText(-4), '4 semitones down');
-  assert.equal(keyText(1), '1 semitone up');
-  assert.equal(keyText(0), 'in the written key');
+test('the key label says the key and where it came from, in plain words', () => {
+  assert.equal(keyLabel({ semitones: -4, source: 'detected' }), 'Key: -4, detected');
+  assert.equal(keyLabel({ semitones: 3, source: 'user' }), 'Key: +3, set by you');
+  assert.equal(keyLabel({ semitones: 2, source: 'file' }), 'Key: +2, from the score');
+  assert.equal(keyLabel({ semitones: 0, source: 'default' }), 'Key: 0, instrument default');
+  assert.equal(keyLabel({ semitones: -2, source: 'something_new' }), 'Key: -2', 'an unknown source is left out');
+  assert.equal(keyLabel(null), 'Key: 0');
+});
+
+test('the detection chip says the key and the bars, and drops what is unknown', () => {
   assert.deepEqual(barRange({ bars: [{ bar: 3 }, { bar: 8 }] }), { from: 3, to: 8 });
   assert.deepEqual(barRange({ bars: [] }, { bar_from: 1, bar_to: 8 }), { from: 1, to: 8 });
   assert.equal(barRange({ bars: [] }, { bar_from: null, bar_to: null }), null);
   assert.equal(barsText({ from: 2, to: 2 }), 'bar 2');
-  assert.equal(detectionText({ transposition: { semitones: -4 }, bars: [{ bar: 1 }, { bar: 8 }] }), 'Heard: 4 semitones down · bars 1–8');
-  assert.equal(detectionText({ transposition: { semitones: 2 }, bars: [] }, {}), 'Heard: 2 semitones up');
+  assert.equal(detectionText({ transposition: { semitones: -4, source: 'detected' }, bars: [{ bar: 1 }, { bar: 8 }] }), 'Key: -4, detected · bars 1–8');
+  assert.equal(detectionText({ transposition: { semitones: 2, source: 'user' }, bars: [] }, {}), 'Key: +2, set by you');
 });
 
 test("can't tell says what was heard and picks one next action from the reason", () => {

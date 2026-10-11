@@ -39,7 +39,7 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [x] Merge or delete branch origin/task/TASK-17
 
 ## Rikhil (MacBook Air M5, 16 GB): front end and full run
-- [ ] Decide whether frontend/js/results/autokey_run.js writeFeedbackAgain (5 retries on HTTP 409) is still needed now that the server does the key search; remove it if not (LLD-3 r4-C)
+- [x] Decide whether frontend/js/results/autokey_run.js writeFeedbackAgain (5 retries on HTTP 409) is still needed now that the server does the key search; remove it if not (LLD-3 r4-C)
 - [ ] After Arnav's live checks pass: one full end-to-end run with AI on (photo, confirm score, record take, feedback, plan, chat) on a laptop with AWS access
 - [ ] Push fixes for every screen that breaks
 

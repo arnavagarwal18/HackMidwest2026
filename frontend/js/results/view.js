@@ -43,7 +43,7 @@ function sentenceSection(title, className, sentences, jumpContext, options) {
   return section;
 }
 
-// data: { analysis, feedback, plan }. context: { sessionId, take, rerun, note }; note is the one line the automatic key search leaves.
+// data: { analysis, feedback, plan }. context: { sessionId, take, rerun }.
 // Returns the jump context ({ index, jumper }) and the pieces later features attach to.
 export function renderDone(view, data, context) {
   const { analysis, feedback, plan } = data;
@@ -58,7 +58,6 @@ export function renderDone(view, data, context) {
   const barStrip = createBarStrip(analysis, { ...jumpContext, renderActions });
 
   view.replaceChildren(element('h1', 'Results'));
-  if (context.note) view.append(element('p', context.note, 'notice autokey-note', { role: 'status' }));
   if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
   view.append(renderDetectionChip(analysis, { sessionId: context.sessionId, onChanged: context.rerun }));
   const stats = renderStatStrip(analysis);

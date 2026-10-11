@@ -87,7 +87,7 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .stat .detail { font-size: var(--fs-sm); }
 .results > .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }
 .detect-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
-.heard-summary, .next-action { margin: 0 0 var(--sp-2); }
+.key-summary, .heard-summary, .next-action { margin: 0 0 var(--sp-2); }
 .next-action { font-weight: 600; }
 
 /* Bar strip: one cell per bar, tinted by result and carrying a glyph. Each cell takes its tone token for the edge and a light tint of it for the fill; the text stays ink. */

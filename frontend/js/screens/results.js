@@ -3,8 +3,6 @@ import { state } from '../state.js';
 import { element } from '../dom.js';
 import { fetchResultsOnce, stageLabel, STAGES } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
-import { shouldAutoKey } from '../results/autokey.js';
-import { claimAutoKey, runAutoKey } from '../results/autokey_run.js';
 import { refreshAfterKeyChange } from '../results/rerun.js';
 import { mountOverlay } from '../results/overlay.js';
 import { renderRequestFailed, renderTooLong, renderWorking } from '../results/status.js';
@@ -14,49 +12,29 @@ import { render as renderChat } from './chat.js';
 // Results for one take: poll the analysis, then show the six parts (see results/view.js).
 // The Instructor chat panel sits beside the results; chat.js owns its own panel element.
 export async function render(root, params) {
-  let { take } = params; // becomes a new take when the automatic search matched another bar range
+  const { take } = params;
   const sessionId = state.session_id ?? 'no-session';
   state.current_take_id = take;
   const view = element('section', '', 'results');
   const chatPanel = element('aside', '', 'chat-panel');
   root.className = 'with-chat';
   root.append(view, chatPanel);
-  let chat = renderChat(chatPanel, { take });
+  const chat = renderChat(chatPanel, { take });
 
   const isActive = () => view.isConnected; // false once the router has moved to another screen
   let overlay = null; // the body-lines overlay of the finished take on screen (none for mic takes)
-  const show = (result, note = null) => {
+  const show = (result) => {
     overlay?.destroy();
     overlay = null;
     if (result.analysis.status === 'failed') {
       chat.setResults({});
       return renderFailed(view, result.analysis);
     }
-    const rendered = renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition, note });
+    const rendered = renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition });
     overlay = rendered?.player ? mountOverlay(rendered, { sessionId, take }) : null; // a can't-tell take has no player
     overlay?.onAnalysis(result.analysis);
     chat.setResults({ jumpContext: rendered ? { index: rendered.index, jumper: rendered.jumper } : null, feedback: result.feedback });
   };
-
-  // A can't-tell take whose notes hardly matched is tried in other keys once; anything else is shown as it is.
-  async function showOrFindKey(result) {
-    if (!shouldAutoKey(result.analysis) || !claimAutoKey(sessionId, take)) return show(result);
-    const original = result.analysis.transposition?.semitones ?? 0;
-    const upload = state.last_take_upload?.take_id === take ? state.last_take_upload : null; // gone after a reload
-    const found = await runAutoKey({ view, sessionId, take, original, analysis: result.analysis, upload, isActive });
-    if (!isActive()) return;
-    if (found.outcome !== 'found') return show(result, found.note);
-    if (found.take !== take) switchToTake(found.take);
-    show(found.result, found.note);
-  }
-
-  // The search matched a new take (the recording re-sent for other bars): the screen, the chat and the address follow it.
-  function switchToTake(newTake) {
-    take = newTake;
-    state.current_take_id = newTake;
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#/results/${encodeURIComponent(newTake)}`);
-    chat = renderChat(chatPanel, { take });
-  }
 
   function failRequest(err) {
     if (!isActive()) return;
@@ -68,21 +46,21 @@ export async function render(root, params) {
     try {
       const result = await fetchResultsOnce(sessionId, take);
       if (!isActive()) return;
-      if (result.done) await showOrFindKey(result);
+      if (result.done) show(result);
       else renderTooLong(view, stageLabel(result.analysis), checkAgain);
     } catch (err) {
       failRequest(err);
     }
   }
 
-  // The user chose a key by hand: wait for the re-check, write the feedback again, and show it (no automatic search on top).
+  // The user chose a key by hand: wait for the back end to check the take again and rebuild its feedback, and show them.
   async function restartAfterTransposition(semitones) {
-    claimAutoKey(sessionId, take);
+    const previousFeedbackId = state.current_feedback_id;
     const setTo = `Transposition set to ${semitones > 0 ? '+' : ''}${semitones}`;
     showNotice(`${setTo}; checking your take again.`);
     renderWorking(view, STAGES.processing, false);
     try {
-      const refreshed = await refreshAfterKeyChange({ sessionId, take, semitones, isActive });
+      const refreshed = await refreshAfterKeyChange({ sessionId, take, semitones, previousFeedbackId, isActive });
       if (!isActive()) return;
       if (refreshed.outcome === 'done') {
         showNotice(`${setTo}; your take was checked again.`); // the 'checking' notice must not outlive the check
@@ -103,7 +81,7 @@ export async function render(root, params) {
         isActive,
         onTick: ({ result, slow }) => renderWorking(view, stageLabel(result.analysis), slow),
       });
-      if (polled.outcome === 'done') await showOrFindKey(polled.result);
+      if (polled.outcome === 'done') show(polled.result);
       else if (polled.outcome === 'timeout') renderTooLong(view, stageLabel(polled.result.analysis), checkAgain);
     } catch (err) {
       failRequest(err);
