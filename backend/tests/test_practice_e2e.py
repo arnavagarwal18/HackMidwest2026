@@ -13,7 +13,7 @@ TESTDATA = Path(__file__).parents[2] / "testdata"
 SHEET, VIDEO = TESTDATA / "trumpet_video1_sheet.webp", TESTDATA / "trumpet_video1.mp4"
 HEAVY_MODULES = ("homr", "librosa", "soundfile", "imageio_ffmpeg", "cv2")
 
-EXERCISE_ID = "ex2"
+EXERCISE_ID = "ex1"  # bars 7-8, the take's top tier-1 problem since r4 (second before)
 EXERCISE_SETTINGS = {"bar_from": 7, "bar_to": 8, "start_bpm": 62, "target_bpm": 90, "step_bpm": 4, "reps_to_pass": 2}
 PASS_MARK = {"max_errors": 0, "max_mean_timing_ms": 50, "form_rule": None}
 START_BPM, STEPPED_BPM = 62, 66
