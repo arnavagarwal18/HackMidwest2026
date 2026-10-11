@@ -1,4 +1,4 @@
-// The take setup form: the tempo stepper and the "Add camera" toggle up front; bars, count-in and metronome under "More options".
+// The take setup form: the tempo stepper, the "Add camera" toggle, bars, count-in and metronome (Play shows it inside its Options).
 // Its values are read on demand, so a banner or a failed upload never clears what the learner typed.
 import { button, el } from '../score/ui.js';
 import { COUNT_IN_RANGE, TEMPO_RANGE } from './setup.js';
@@ -17,7 +17,7 @@ function numberField(label, name, value, { min, max, step = 1 }) {
 export function createTakeForm({ setup, bars, onKindChange, onTempoChange = () => {} }) {
   const barFrom = numberField('Bar from', 'bar_from', setup.bar_from, { min: 1, max: bars });
   const barTo = numberField('Bar to', 'bar_to', setup.bar_to, { min: 1, max: bars });
-  const tempo = numberField('Tempo (beats per minute)', 'tempo_bpm', setup.tempo_bpm, { ...TEMPO_RANGE, step: 'any' });
+  const tempo = numberField('Tempo (bpm)', 'tempo_bpm', setup.tempo_bpm, { ...TEMPO_RANGE, step: 'any' });
   const countIn = numberField('Count-in (beats)', 'count_in_beats', setup.count_in_beats, COUNT_IN_RANGE);
   const camera = el('input', { attrs: { type: 'checkbox', name: 'add_camera' } });
   camera.checked = setup.kind === 'video';
@@ -46,20 +46,16 @@ export function createTakeForm({ setup, bars, onKindChange, onTempoChange = () =
   const tempoRow = el('div', { className: 'tempo-stepper', children: [tempo.row, slower, faster] });
 
   const inputs = [barFrom.input, barTo.input, tempo.input, countIn.input, camera, metronome, slower, faster];
-  const moreOptions = el('details', {
-    className: 'take-more',
+  const element = el('form', {
+    className: 'take-form',
+    attrs: { novalidate: '' },
     children: [
-      el('summary', { text: 'More options' }),
+      tempoRow,
+      el('label', { className: 'choice', children: [camera, ' Add camera'] }),
       el('div', { className: 'field-row', children: [barFrom.row, barTo.row, countIn.row] }),
       el('label', { className: 'choice', children: [metronome, ' Metronome clicks during the take'] }),
       el('p', { text: HEADPHONES_NOTE, className: 'muted' }),
     ],
-  });
-
-  const element = el('form', {
-    className: 'take-form',
-    attrs: { novalidate: '' },
-    children: [tempoRow, el('label', { className: 'choice', children: [camera, ' Add camera'] }), moreOptions],
   });
   element.addEventListener('submit', (event) => event.preventDefault());
 

@@ -12,7 +12,7 @@ import { button, el, loadScoreStyles } from '../score/ui.js';
 import { createCameraPanel } from '../take/camera_panel.js';
 import { rememberSentTake, sendTakeFile } from '../take/send.js';
 import { initialSetup, kindOfFile, validateSetup } from '../take/setup.js';
-import { playHeader, recordArea, setupCard, uploadCard } from '../take/layout.js';
+import { optionsDisclosure, playHeader, recordArea } from '../take/layout.js';
 import { createTakeForm } from '../take/take_form.js';
 import { UPLOAD_ACCEPT, uploadTypeProblem } from '../take/upload_types.js';
 
@@ -315,7 +315,6 @@ export async function render(root, _params, isCurrent = () => true) {
 
   root.append(
     playHeader(score.title || 'Play'),
-    setupCard([pickerSlot, form.element]),
     camera.element,
     recordArea({
       problem,
@@ -324,10 +323,11 @@ export async function render(root, _params, isCurrent = () => true) {
       meterBox,
       status,
     }),
-    uploadCard([
-      el('p', { className: 'muted', text: 'Or upload an existing audio or video file. It is sent with the tempo above.' }),
-      fileInput,
-      el('p', { children: [el('a', { text: 'Fine-tune for your room and microphone (optional)', attrs: { href: '#/calibrate' } })] }),
+    optionsDisclosure([
+      pickerSlot,
+      form.element,
+      el('label', { className: 'field', children: [el('span', { text: 'Upload a recording instead' }), fileInput] }),
+      el('a', { text: 'Calibrate for your room and microphone', className: 'take-link', attrs: { href: '#/calibrate' } }),
     ]),
   );
   setMode('idle');
