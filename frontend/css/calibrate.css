@@ -1,13 +1,19 @@
 /* Calibration screen. Loaded by js/screens/calibrate.js. */
-.calibrate-intro { margin-bottom: 1rem; }
-.calibrate-qr { width: 11rem; max-width: 60%; margin: 0.5rem 0; border: 1px solid #e4e4e0; border-radius: 6px; overflow: hidden; }
+.calibrate-intro > p:first-child { margin-top: 0; }
+.calibrate-qr { width: 11rem; max-width: 60%; margin: var(--s2) 0; background: #fff; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; }
 .calibrate-qr svg { display: block; width: 100%; height: auto; }
-.calibrate-address { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
-.calibrate-steps { padding-left: 0; list-style: none; display: grid; gap: 0.5rem; }
-.calibrate-step { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.calibrate-address { font-family: var(--font-mono); font-size: var(--fs-sm); word-break: break-all; }
+.calibrate-notes { margin: 0; padding-left: var(--s5); }
+
+.calibrate-steps { margin: 0; list-style: none; }
+.calibrate-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.calibrate-step:first-child { border-top: 0; padding-top: 0; }
+.calibrate-step:last-child { padding-bottom: 0; }
 .calibrate-prompt { flex: 1 1 18rem; }
+.calibrate-status { font-size: var(--fs-sm); }
 .calibrate-meter meter { width: 12rem; }
-.calibrate-failures { padding-left: 0; list-style: none; display: grid; gap: 0.4rem; }
-.calibrate-failures li { display: flex; align-items: center; gap: 0.75rem; color: var(--error); font-weight: 600; }
-.calibrate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.calibrate-done { padding: 0.5rem 0.75rem; background: #d1fadf; color: #05603a; border-radius: 6px; }
+
+.calibrate-failures { padding-left: 0; list-style: none; display: grid; gap: var(--s2); }
+.calibrate-failures li { display: flex; align-items: center; gap: var(--s3); color: var(--bad); font-weight: 600; }
+.calibrate-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.calibrate-done { padding: var(--s3); background: var(--good-soft); color: var(--good); border-radius: var(--r-sm); font-weight: 600; }

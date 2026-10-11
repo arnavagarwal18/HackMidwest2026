@@ -1,21 +1,24 @@
 /* Take setup screen. Loaded by js/screens/take.js. */
-.take-form { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
-.field-row { display: flex; flex-wrap: wrap; gap: 1rem; }
-.field { display: grid; gap: 0.25rem; }
-.field input[type="number"] { width: 9rem; padding: 0.3rem 0.5rem; font: inherit; }
-.take-form fieldset { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; border: 1px solid #e4e4e0; border-radius: 6px; }
-.take-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.take-form { display: grid; gap: var(--s4); }
+.field-row { display: flex; flex-wrap: wrap; gap: var(--s4); }
+.field { display: grid; gap: var(--s1); }
+.field input[type="number"] { width: 9rem; }
+.choice { display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap); }
+.take-form fieldset { display: flex; flex-wrap: wrap; gap: 0 var(--s5); margin: 0; padding: var(--s2) var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); }
+.take-form legend { padding: 0 var(--s2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.take-form p { margin: 0; }
+.take-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .take-meter meter { width: 12rem; }
 
-.camera-panel { margin-bottom: 1rem; max-width: 40rem; }
-.camera-stage { position: relative; aspect-ratio: 16 / 9; background: #101828; border-radius: 6px; overflow: hidden; }
+.camera-panel { max-width: 40rem; }
+.camera-stage { position: relative; aspect-ratio: 16 / 9; margin-bottom: var(--s3); background: #101828; border-radius: var(--r-md); overflow: hidden; }
 .camera-stage video { width: 100%; height: 100%; object-fit: cover; }
 .camera-guide-host { position: absolute; inset: 0; pointer-events: none; }
 .camera-guide { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 0.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .camera-guide .guide-instrument { stroke: #fec84b; stroke-dasharray: 2 1.5; }
-.camera-badge { display: inline-block; margin: 0.5rem 0 0; padding: 0.15rem 0.75rem; border-radius: 999px; font-weight: 600; }
+.camera-badge { display: inline-block; margin: var(--s2) 0 0; padding: 2px var(--s3); border-radius: var(--r-pill); font-weight: 600; }
 .camera-badge[hidden] { display: none; }
-.camera-ok { background: #d1fadf; color: #05603a; }
-.camera-warn { background: #fef0c7; color: #93370d; }
-.camera-note { margin: 0.25rem 0 0; font-size: 0.9rem; }
-.media-error { padding: 0.75rem 1rem; margin-bottom: 1rem; background: var(--error-bg); color: var(--error); border-radius: 6px; }
+.camera-ok { background: var(--good-soft); color: var(--good); }
+.camera-warn { background: var(--warn-soft); color: var(--warn); }
+.camera-note { margin: var(--s1) 0 0; font-size: var(--fs-sm); }
+.media-error { padding: var(--s3) var(--s4); background: var(--bad-soft); color: var(--bad); border-radius: var(--r-sm); }
