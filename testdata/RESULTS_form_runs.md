@@ -120,3 +120,43 @@ Front measures (head_drop, neck_ratio, torso_lean, elbow gaps) are also taken in
 | neNzJCDWH-E | download failed: [youtube] neNzJCDWH-E: This video is not available |
 
 Caveats (added by hand after the run; re-running the script regenerates the section above without them): the tails are noisy. In the pooled front table torso_lean reaches 69 degrees at p95 and 132 at p99, and neck_ratio 1.48 at p99, while the medians of the per-video p99 are 8.6 degrees and 0.74. Likely (an inference, not verified frame by frame) a few videos where the hips are cropped or occluded and the tracker still reports them above the 0.5 visibility cut, so fixed limits should be taken from the per-video medians or the p5/p50/p95 columns rather than the pooled p1/p99. Each video has one view (the median ratio over its first 120 s), so a video that cuts between a front and a side camera is counted wholly in one view. The 12 "no visible player" skips were not looked at, so whether they are title cards, ensembles or a player too small for the tracker is unverified. The side-view bell_proxy is negative throughout (median -52 degrees, p99 -9): the wrist midpoint sits below the mouth in these videos, so use it as a relative measure.
+
+## Good posture clips (owner, 2026-10-11)
+
+Clips: `testdata/form/good_posture_1_general.mp4` (115.6 s), `good_posture_2.mp4` (90.8 s), `good_posture_3.mp4` (164.3 s), all 1920x1080 at 24 fps, 17 to 29 MB. The owner says all three show very good trumpet playing and very good posture, so the expected result is zero form problems and every flag is a false positive.
+Run (per clip): `dump_face_readings.py`'s steps (notes transcribed from the clip's audio, face read inside the notes, whole video analysed at 10 fps with no time limit) plus `check_camera_frame` on frames at 10, 30, 50, 70 and 90% of the clip; scratch script, not committed. The app's own path (`form.run`, as `test_form_real_video.py` runs it) gave the same flags where it got to run, but stops tracking after 90 s of run time (see Time limit below).
+
+| Item | good_posture_1_general | good_posture_2 | good_posture_3 |
+|---|---|---|---|
+| Notes transcribed | 274 (9.1 to 112.5 s, 66.4 s of notes) | 130 (8.5 to 87.5 s, 48.7 s) | 438 (5.4 to 158.0 s, 103.4 s) |
+| Detected view | `front`, view_ratio 1.743 | `front`, view_ratio 1.726 | `front`, view_ratio 1.904 |
+| Camera check (5 frames) | not ok on all 5: `too_small` (shoulders narrower than 15% of the width) | not ok on all 5: first (9.1 s) no person found (all points missing), the other 4 `too_small` | not ok on all 5: `hips` not visible, nothing else |
+| Tracking | 1064 / 1156 frames | 811 / 908 | 1543 / 1643 |
+| Baseline | defaulted (neck 0.55, head_drop -0.05) | defaulted | defaulted |
+| face_quality | 0.993 inside notes (662/667), 0.915 over all frames | 0.971 (471/485), 0.876 | 1.000 (1032/1032), 0.939 |
+| `shoulders_raised` | not flagged | not flagged | not flagged |
+| `slouching` | not flagged | not flagged | `not_visible` (hips out of frame) |
+| `trumpet_head_down` | FLAGGED 8 times | FLAGGED 4 times | FLAGGED 4 times |
+| `trumpet_elbows_pinned` | not flagged | not flagged | `not_visible` |
+| `trumpet_cheeks_puffed` | not flagged | not flagged | not flagged |
+| `trumpet_smile_embouchure` | not flagged | not flagged | not flagged |
+
+The only flag on any clip is `trumpet_head_down` (head_drop above baseline + 0.15). Every one is a false positive, all barely over the line:
+
+| Clip | Flag times (s) | Measured value (peak) | Threshold |
+|---|---|---|---|
+| good_posture_1_general | 8.1-10.4, 12.4-15.2, 16.1-17.3, 72.0-73.7, 76.4-77.4, 94.1-95.6, 98.1-99.5, 102.6-103.9 | 0.103 to 0.113 | 0.100 |
+| good_posture_2 | 7.6-9.8, 12.3-13.9, 30.3-31.3, 33.2-36.2 | 0.103 to 0.109 | 0.100 |
+| good_posture_3 | 19.7-21.1, 22.6-24.1, 29.5-31.1, 43.1-44.9 | 0.112 to 0.129 | 0.100 |
+
+Likely cause (measured): the baseline is the default. The baseline is the median over the first 2 s of the clip, and none of the three has a tracked person that early (first frame with a head_drop reading: 6.1 s, 5.5 s, 5.0 s; the player is still getting into position), so `head_drop` defaults to -0.05 and the threshold becomes 0.10. These players' own head_drop sits at median 0.086, 0.083 and 0.064 over the whole clip (p90 0.104, 0.101, 0.098; share of frames above 0.10: 15%, 11%, 9%). So the default baseline is about 0.1 to 0.14 lower than the players' normal, and a normal head position crosses the threshold now and then. Against a baseline of their own median the threshold would be about 0.23, and none of the three would flag (max head_drop 0.124, 0.123, 0.166). Not tried in code: no app code was changed. Inference, not verified: the same default would hit any clip where the player is not in frame for the first 2 s.
+
+False positives found:
+- good_posture_1_general: 8 `trumpet_head_down` flags (default baseline; peak 0.113 vs 0.100).
+- good_posture_2: 4 `trumpet_head_down` flags (default baseline; peak 0.109 vs 0.100).
+- good_posture_3: 4 `trumpet_head_down` flags (default baseline; peak 0.129 vs 0.100); `slouching` and `trumpet_elbows_pinned` were skipped as `not_visible`, not judged.
+
+Other things noticed, not changed:
+- Camera check: it says "not ok" on every sampled frame of all three clips, though the owner calls the posture and playing very good. Clips 1 and 2: `too_small` (shoulders under 15% of the width of a 1920x1080 frame); clip 3: hips not in frame.
+- Time limit: `form.run` gives up tracking after 90 s of run time (`TIME_LIMIT_S`), so how much of a long clip it checks depends on machine load. In the expectations test, good_posture_1_general was checked for its first 97 s (`warning: partial: first 97 s checked`), and good_posture_3 for its first 52 s in one run and its first 146 s in another; good_posture_2 was checked in full. The face rules were skipped as `not_visible` in that test path (face_quality None), because the test's take has no transcribed notes to gate the face on.
+- `testdata/form_expectations.json`: the three clips are listed in `good_form` with `known_false_positive` set (`trumpet_head_down`), and `test_form_real_video.py` runs such an entry as a strict expected failure: the suite stays green, and goes red (XPASS) once the false flag is gone, which is the cue to remove the field.

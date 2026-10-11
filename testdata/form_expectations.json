@@ -5,7 +5,10 @@
   "flag_time_tolerance_s": 1.0,
   "good_form": [
     {"file": "trumpet_video1.mp4", "note": "ordinary practice take, not acted; expect no flags"},
-    {"file": "trumpet_video2.mp4", "note": "ordinary practice take, not acted; expect no flags"}
+    {"file": "trumpet_video2.mp4", "note": "ordinary practice take, not acted; expect no flags"},
+    {"file": "form/good_posture_1_general.mp4", "problems": [], "known_false_positive": "trumpet_head_down flags 8 times (peak 0.113 vs 0.100): the baseline defaults to head_drop -0.05 because no person is tracked in the first 2 s; see RESULTS_form_runs.md", "note": "owner (2026-10-11): very good playing and very good posture, 115.6 s; expect no flags"},
+    {"file": "form/good_posture_2.mp4", "problems": [], "known_false_positive": "trumpet_head_down flags 4 times (peak 0.109 vs 0.100): default baseline, no person tracked in the first 2 s; see RESULTS_form_runs.md", "note": "owner (2026-10-11): very good playing and very good posture, 90.8 s; expect no flags"},
+    {"file": "form/good_posture_3.mp4", "problems": [], "known_false_positive": "trumpet_head_down flags 4 times (peak 0.129 vs 0.100): default baseline, no person tracked in the first 2 s; see RESULTS_form_runs.md", "note": "owner (2026-10-11): very good playing and very good posture, 164.3 s; expect no flags"}
   ],
   "views": [
     {"file": "form/take5_ode_form_front.mp4", "view": "front"},
