@@ -6,7 +6,7 @@ Reads testdata/youtube/manifest.csv, and for each downloaded video (one at a tim
 tracks it with app.form.track.track_video at --fps for the first --cap-s seconds of video, detects the view (front or side) with
 app.form.view, skips it if no pose is found in more than 70% of the sampled frames, and takes the absolute (not baseline-relative)
 posture measures of app.form.measures / side_measures plus the bell-angle proxy (defined in posture_stats_measures.py) on
-every tracked frame. Writes testdata/youtube/posture_stats.csv (one row per video x measure: 1st/5th/50th/95th/99th percentiles)
+every tracked frame. Writes testdata/youtube/posture_stats.csv (one row per video x measure: 1st/5th/50th/95th/99th percentiles), each video's rows as soon as it is done,
 and the "Good-posture statistics (YouTube set)" section of testdata/RESULTS_form_runs.md.
 """
 import argparse
@@ -126,14 +126,6 @@ def process_manifest_row(row: dict, cap_s: float) -> VideoStats:
         return skipped(video_id, f"analysis error: {type(e).__name__}: {e}")
 
 
-def write_stats_csv(all_stats: list[VideoStats]) -> None:
-    with STATS_CSV.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=STATS_FIELDS)
-        writer.writeheader()
-        for stats in all_stats:
-            writer.writerows(stats_rows(stats))
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--fps", type=float, default=DEFAULT_FPS, help="sample rate in frames per second of video")
@@ -146,12 +138,16 @@ def main() -> int:
     with MANIFEST_CSV.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))[:args.limit]
     all_stats = []
-    for number, row in enumerate(rows, 1):
-        stats = process_manifest_row(row, args.cap_s)
-        log.info("[%d/%d] %s: %s", number, len(rows), row["id"], stats.skip_reason or f"{stats.view}, {stats.frames_tracked}/{stats.frames_sampled} frames")
-        all_stats.append(stats)
-        gc.collect()  # the landmarker was closed by track_video; drop its frames before the next video
-    write_stats_csv(all_stats)
+    with STATS_CSV.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=STATS_FIELDS)
+        writer.writeheader()
+        for number, row in enumerate(rows, 1):
+            stats = process_manifest_row(row, args.cap_s)
+            log.info("[%d/%d] %s: %s", number, len(rows), row["id"], stats.skip_reason or f"{stats.view}, {stats.frames_tracked}/{stats.frames_sampled} frames")
+            writer.writerows(stats_rows(stats))
+            f.flush()  # each video's rows reach the disk as soon as it is done, so a crash loses nothing earlier
+            all_stats.append(stats)
+            gc.collect()  # the landmarker was closed by track_video; drop its frames before the next video
     write_results_section(RESULTS_MD, all_stats, args.fps, args.cap_s)
     log.info("wrote %s and the results section of %s", STATS_CSV, RESULTS_MD)
     return 0
