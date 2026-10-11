@@ -20,6 +20,7 @@ function freshState() {
       metronome_on: false,
     },
     current_take_id: null,
+    last_take_upload: null, // { take_id, file, fields } of the last take sent: kept in memory only, so other bars can be tried
     current_feedback_id: null,
     current_exercise_id: null,
   };

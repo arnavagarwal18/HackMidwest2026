@@ -216,12 +216,14 @@ export async function render(root, _params, isCurrent = () => true) {
     if (!setup) return false;
     setMode('sending');
     try {
-      const answer = await uploadTake(state.session_id, file, takeFields(setup, { kind, source, downbeatS }));
+      const fields = takeFields(setup, { kind, source, downbeatS });
+      const answer = await uploadTake(state.session_id, file, fields);
       if (disposed) { // the learner left while it uploaded: do not pull them back to the results
         console.warn(`Take ${answer.take_id} finished uploading after leaving the take screen.`);
         return true;
       }
       state.current_take_id = answer.take_id;
+      state.last_take_upload = { take_id: answer.take_id, file, fields };
       state.take_setup = { ...setup };
       window.location.hash = `#/results/${encodeURIComponent(answer.take_id)}`;
       return true;

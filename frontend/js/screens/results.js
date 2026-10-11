@@ -13,14 +13,15 @@ import { render as renderChat } from './chat.js';
 
 // Results for one take: poll the analysis, then show the six parts (see results/view.js).
 // The Instructor chat panel sits beside the results; chat.js owns its own panel element.
-export async function render(root, { take }) {
+export async function render(root, params) {
+  let { take } = params; // becomes a new take when the automatic search matched another bar range
   const sessionId = state.session_id ?? 'no-session';
   state.current_take_id = take;
   const view = element('section', '', 'results');
   const chatPanel = element('aside', '', 'chat-panel');
   root.className = 'with-chat';
   root.append(view, chatPanel);
-  const chat = renderChat(chatPanel, { take });
+  let chat = renderChat(chatPanel, { take });
 
   const isActive = () => view.isConnected; // false once the router has moved to another screen
   let overlay = null; // the body-lines overlay of the finished take on screen (none for mic takes)
@@ -41,10 +42,20 @@ export async function render(root, { take }) {
   async function showOrFindKey(result) {
     if (!shouldAutoKey(result.analysis) || !claimAutoKey(sessionId, take)) return show(result);
     const original = result.analysis.transposition?.semitones ?? 0;
-    const found = await runAutoKey({ view, sessionId, take, original, isActive });
+    const upload = state.last_take_upload?.take_id === take ? state.last_take_upload : null; // gone after a reload
+    const found = await runAutoKey({ view, sessionId, take, original, analysis: result.analysis, upload, isActive });
     if (!isActive()) return;
-    if (found.outcome === 'found') show(found.result, found.note);
-    else show(result, found.note);
+    if (found.outcome !== 'found') return show(result, found.note);
+    if (found.take !== take) switchToTake(found.take);
+    show(found.result, found.note);
+  }
+
+  // The search matched a new take (the recording re-sent for other bars): the screen, the chat and the address follow it.
+  function switchToTake(newTake) {
+    take = newTake;
+    state.current_take_id = newTake;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#/results/${encodeURIComponent(newTake)}`);
+    chat = renderChat(chatPanel, { take });
   }
 
   function failRequest(err) {

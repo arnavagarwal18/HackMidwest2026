@@ -15,11 +15,14 @@ export function renderWorking(view, stage, slow) {
   view.replaceChildren(element('h1', 'Results'), panel);
 }
 
-// The automatic key search: 'Checking other keys… 3/12' with a Cancel button that puts the original key back.
-export function renderKeySearch(view, { tried, total }, onCancel) {
+// The automatic search: 'Trying bars 1–8' (only while other bars are tried) and 'Trying key -4 (3 of 24)', with a
+// Cancel button that puts the original key back. progress: { bars?: { from, to }, semitones?, tried?, total? }.
+export function renderKeySearch(view, { bars, semitones, tried, total }, onCancel) {
   const panel = element('div', '', 'results-status key-search', { role: 'status' });
   const cancel = button('Cancel', () => { cancel.disabled = true; onCancel(); }, 'cancel-key-search');
-  panel.append(element('p', `Checking other keys… ${tried}/${total}`, 'stage'), cancel);
+  if (bars) panel.append(element('p', `Trying bars ${bars.from}–${bars.to}`, 'stage bars-stage'));
+  if (semitones !== undefined) panel.append(element('p', `Trying key ${semitones > 0 ? '+' : ''}${semitones} (${tried} of ${total})`, 'stage key-stage'));
+  panel.append(cancel);
   view.replaceChildren(element('h1', 'Results'), panel);
 }
 

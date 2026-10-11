@@ -1,16 +1,18 @@
-// Runs the automatic key search for one can't-tell take against the back end, and always puts the original key back
-// unless a working one was found. Each try is one POST .../transposition (which re-diagnoses the session's takes in the
-// background, with no AI call) and polling GET .../analysis until the take shows the new key. Only a found key costs an
-// AI call: the feedback is written again, because a rerun does not do it.
-import { ApiError, getAnalysis, requestFeedback, setTransposition } from '../api.js';
+// Runs the automatic search for one can't-tell take against the back end, and always puts the original key back
+// unless a working one was found. Each key try is one POST .../transposition (which re-diagnoses the session's takes in
+// the background, with no AI call) and polling GET .../analysis until the take shows the new key. If no key fits the
+// uploaded bars, the recording is uploaded again for the first and second half of them (autokey_windows.js).
+// Only the take that is shown costs an AI call: its feedback is written again, because a rerun does not do it.
+import { ApiError, requestFeedback, setTransposition } from '../api.js';
 import { showError } from '../banner.js';
 import { isRequestCancelled } from '../request_cancelled.js';
-import { STAGES, unwrapFeedback } from './load.js';
-import { foundMessage, NONE_FOUND_MESSAGE, searchKeys } from './autokey.js';
-import { pollThresholds, pollUntilDone, wait } from './polling.js';
+import { fetchResultsOnce, STAGES, unwrapFeedback } from './load.js';
+import { createBestKey, foundMessage, keyOrder, NONE_FOUND_MESSAGE, searchKeys } from './autokey.js';
+import { barWindows, foundWindowMessage, MAX_TOTAL_RERUNS, NO_FILE_MESSAGE, searchBarWindows } from './autokey_windows.js';
+import { wait } from './polling.js';
 import { renderKeySearch, renderWorking } from './status.js';
+import { uploadWindowTake, waitForAnalysis } from './take_wait.js';
 
-export const KEY_POLL_MS = 300; // a rerun of one take is quick, so poll faster than the 1 s default
 export const FEEDBACK_TRIES = 5; // POST .../feedback answers 409 while the take is still being re-checked
 export const FEEDBACK_RETRY_MS = 1000;
 export const KEY_TIMEOUT_TEXT = 'Checking another key took too long, so your original key was put back.';
@@ -25,27 +27,10 @@ export function claimAutoKey(sessionId, take) {
   return true;
 }
 
-const keyThresholds = () => {
-  const thresholds = pollThresholds();
-  return { ...thresholds, intervalMs: Math.min(thresholds.intervalMs, KEY_POLL_MS) };
-};
-
 // Waits until the rerun has really finished: the take is 'done' again with a diagnosis made under `semitones`.
-// (While it runs the take can be in another status, and then the analysis shows the session's key but no diagnosis.)
 // Resolves to the poll result ({ outcome, result }).
-export function waitForKey(sessionId, take, semitones, isActive) {
-  return pollUntilDone({
-    isActive,
-    thresholds: keyThresholds(),
-    onTick: () => {},
-    fetchOnce: async () => {
-      const analysis = await getAnalysis(sessionId, take);
-      if (analysis.status === 'failed') throw new Error(analysis.error?.message ?? 'The take could not be checked.');
-      const rerunFinished = analysis.status === 'done' && analysis.alignment_quality != null;
-      return { done: rerunFinished && analysis.transposition?.semitones === semitones, analysis };
-    },
-  });
-}
+export const waitForKey = (sessionId, take, semitones, isActive) =>
+  waitForAnalysis(sessionId, take, (analysis) => analysis.transposition?.semitones === semitones, isActive);
 
 // Sets the key and waits until the take's analysis shows it. Resolves to that analysis, or null when stopped.
 async function tryKey(sessionId, take, semitones, isActive) {
@@ -81,24 +66,71 @@ export async function writeFeedbackAgain(sessionId, take, analysis, isActive) {
   }
 }
 
-// view: the results element. original: the take's key before the search. isActive(): false once the user left the screen.
-// Resolves to { outcome: 'found', result, note } | { outcome: 'none', note } | { outcome: 'cancelled' } | { outcome: 'error' }.
-// result is { done, analysis, feedback, plan }. On error the banner has already shown why.
-export async function runAutoKey({ view, sessionId, take, original, isActive }) {
+// The feedback of the take to show: one that matched on its upload already has it (the back end wrote it); one that
+// matched after a key change needs it written again.
+async function feedbackFor(sessionId, found, isActive) {
+  if (!found.rerun) {
+    const written = await fetchResultsOnce(sessionId, found.take);
+    if (written.done) return written;
+  }
+  return writeFeedbackAgain(sessionId, found.take, found.analysis, isActive);
+}
+
+// The search proper: the keys on the uploaded bars, then (when the recording is still here) the two halves of the bars.
+// Resolves to { outcome: 'found', take, semitones, analysis, rerun, note } | { outcome: 'none', note? } | { outcome: 'cancelled' }.
+async function findMatch({ sessionId, take, original, analysis, upload, isActive, onProgress }) {
+  const bestKey = createBestKey();
+  bestKey.note(original, analysis);
+  let reruns = 0;
+  const first = await searchKeys({
+    keys: keyOrder({ around: original, analysis }),
+    isActive,
+    onProgress,
+    tryKey: async (semitones) => {
+      reruns += 1;
+      const tried = await tryKey(sessionId, take, semitones, isActive);
+      if (tried) bestKey.note(semitones, tried);
+      return tried;
+    },
+  });
+  if (first.outcome === 'found') return { ...first, take, rerun: true, note: foundMessage(original, first.semitones) };
+  if (first.outcome === 'cancelled') return first;
+  if (!upload) return { outcome: 'none', note: NO_FILE_MESSAGE };
+
+  const windows = barWindows(upload.fields.bar_from, upload.fields.bar_to);
+  const found = await searchBarWindows({
+    windows,
+    original,
+    bestKey,
+    rerunsLeft: MAX_TOTAL_RERUNS - reruns,
+    isActive,
+    onProgress,
+    uploadWindow: (bars) => uploadWindowTake(sessionId, upload, bars, isActive),
+    tryKey: (target, semitones) => tryKey(sessionId, target, semitones, isActive),
+  });
+  if (found.outcome !== 'found') return found.outcome === 'none' ? { ...found, note: NONE_FOUND_MESSAGE } : found;
+  return { ...found, note: foundWindowMessage(found.bars, found.semitones) };
+}
+
+// view: the results element. take, original, analysis: the can't-tell take, its key and its analysis. upload: { file, fields }
+// of that take's upload while the page still holds it, else null. isActive(): false once the user left the screen.
+// Resolves to { outcome: 'found', result, note, take } | { outcome: 'none', note } | { outcome: 'cancelled' } | { outcome: 'error' }.
+// result is { done, analysis, feedback, plan } of the take to show, which is a new take when another bar range matched.
+// On error the banner has already shown why.
+export async function runAutoKey({ view, sessionId, take, original, analysis, upload = null, isActive }) {
   let cancelled = false;
   const searching = () => isActive() && !cancelled;
   const outcome = await (async () => {
     try {
-      const search = await searchKeys({
-        original,
+      const search = await findMatch({
+        sessionId, take, original, analysis, upload,
         isActive: searching,
-        tryKey: (semitones) => tryKey(sessionId, take, semitones, searching),
         onProgress: (progress) => renderKeySearch(view, progress, () => { cancelled = true; }),
       });
       if (search.outcome !== 'found') return search;
       renderWorking(view, STAGES.feedback, false);
-      const result = await writeFeedbackAgain(sessionId, take, search.analysis, isActive);
-      return { outcome: 'found', result, note: foundMessage(original, search.semitones) };
+      const result = await feedbackFor(sessionId, search, isActive);
+      return { outcome: 'found', result, note: search.note, take: search.take };
     } catch (err) {
       if (!isRequestCancelled(err)) {
         console.error(`Automatic key search failed for ${sessionId}/${take}:`, err);
@@ -109,5 +141,5 @@ export async function runAutoKey({ view, sessionId, take, original, isActive }) 
   })();
   if (outcome.outcome === 'found') return outcome;
   await restoreKey(sessionId, take, original, isActive);
-  return outcome.outcome === 'none' ? { ...outcome, note: NONE_FOUND_MESSAGE } : outcome;
+  return outcome.outcome === 'none' ? { outcome: 'none', note: outcome.note ?? NONE_FOUND_MESSAGE } : outcome;
 }
