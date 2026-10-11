@@ -10,11 +10,12 @@ const MOCK_DELAY_MS = 150;
 
 export const MOCK_MEDIA_URL = 'mock/take_media_long.wav'; // 12 s, so a jump to a few seconds in has somewhere to land
 
-// Requests the mock has answered, oldest first: { method, path, body } (body only when it is JSON). Tests read this.
+// Requests the mock has answered, oldest first: { method, path, body, form } (body when it is JSON, form when it is multipart:
+// its fields by name, files as the File objects themselves). Tests read this.
 export const mockRequestLog = [];
 
 const ROUTES = [
-  { method: 'POST', pattern: '/sessions', file: 'post_sessions' },
+  { method: 'POST', pattern: '/sessions', file: 'post_sessions', resets: 'upload' },
   { method: 'GET', pattern: '/sessions/:id', file: 'get_session' },
   { method: 'GET', pattern: '/builtins', file: 'get_builtins' },
   { method: 'POST', pattern: '/sessions/:id/score/photo', file: 'post_score_photo', resets: 'score_status' },
@@ -65,10 +66,15 @@ const TAKE_VARIANTS = {
 // URL switches that change an answer: ?calibration=failed makes the first POST .../calibration answer 422 calibration_failed
 // (then it succeeds, as after a Retry). Read when asked, so tests can change window.location.search.
 const FAILED_CALIBRATION = { group: 'calibration', processingFile: 'error_calibration_failed', polls: 1 };
-const calibrationVariant = () => new URLSearchParams(window.location.search).get('calibration');
+const searchSwitch = (name) => new URLSearchParams(window.location.search).get(name);
+const calibrationVariant = () => searchSwitch('calibration');
+
+// ?scan=failed makes every photo read fail (the demo upload's built-in fallback); ?upload=failed makes the first POST .../takes answer
+// 500 (then it succeeds, as after a Retry).
+const FAILED_UPLOAD = { group: 'upload', processingFile: 'error_take_upload_failed', polls: 1 };
 
 // error_*.json files stand for a failed response; most are a 404, these have their own status.
-const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409 };
+const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409, error_take_upload_failed: 500 };
 
 // Exercise ids that change what the exercise routes answer, so the loop trainer can be tried in each state.
 // ex_fail / ex_not_counted: the rep is a FAIL / does not count. ex_complete: one pass from the target, and the rep completes it.
@@ -109,6 +115,8 @@ export function mockFileFor(method, path, requestBody) {
   const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1] ?? requestBody?.take_id;
   const exerciseId = /\/exercises\/([^/]+)/.exec(pathOnly)?.[1];
   const finalFile = (TAKE_VARIANTS[takeId] ?? EXERCISE_VARIANTS[exerciseId])?.[route.file] ?? route.file;
+  if (route.file === 'get_score_status' && searchSwitch('scan') === 'failed') return 'get_score_status_scan_failed';
+  if (route.file === 'post_takes' && searchSwitch('upload') === 'failed') return pollFile({ poll: FAILED_UPLOAD }, pathOnly, finalFile);
   if (route.poll) return pollFile(route, pathOnly, finalFile);
   if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
     return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);
@@ -120,7 +128,8 @@ export function mockFileFor(method, path, requestBody) {
 
 // Returns the same { ok, status, body } shape as a real response, or null when no mock exists.
 export async function mockResponse(method, path, requestBody) {
-  mockRequestLog.push({ method, path, body: requestBody instanceof FormData ? undefined : requestBody });
+  const isForm = requestBody instanceof FormData;
+  mockRequestLog.push({ method, path, body: isForm ? undefined : requestBody, form: isForm ? Object.fromEntries(requestBody.entries()) : undefined });
   if (method === 'POST' && path.endsWith('/transposition')) rememberMockTransposition(requestBody);
   const file = mockFileFor(method, path, requestBody);
   if (!file) return null;

@@ -39,8 +39,8 @@ export const skipCalibration = (id) => postJson(`${sess(id)}/calibration/skip`);
 export const getCalibration = (id) => get(`${sess(id)}/calibration`);
 
 // ---- Takes and analysis (LLD-2, LLD-3) ----
-// fields: { kind, source, bar_from, bar_to, tempo_bpm, count_in_beats, downbeat_s }
-export const uploadTake = (id, file, fields) => postForm(`${sess(id)}/takes`, { file }, fields);
+// fields: { kind, source, bar_from, bar_to, tempo_bpm, count_in_beats, downbeat_s }; onProgress({ loaded, total }) is optional.
+export const uploadTake = (id, file, fields, onProgress) => postForm(`${sess(id)}/takes`, { file }, fields, onProgress);
 export const takeMediaUrl = (id, take) => (MOCK_MODE ? MOCK_MEDIA_URL : `${API_BASE}${sess(id)}/takes/${encodeURIComponent(take)}/media`);
 export const getAnalysis = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/analysis`); // poll until status is 'done' or 'failed'
 export const setTransposition = (id, semitones) => postJson(`${sess(id)}/transposition`, { semitones });

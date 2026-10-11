@@ -1,13 +1,14 @@
 // Play (#/take): the tempo and one big Record button; record (or upload a file), send it, open the results.
 // See "Take setup" in frontend/README.md. The pieces live in js/take/.
-import { checkCamera, getScore, uploadTake } from '../api.js';
+import { checkCamera, getScore } from '../api.js';
 import { clearBanner, reportError, showNotice } from '../banner.js';
 import { rememberCamera, rememberTempo, setupWithPrefs } from '../play/prefs.js';
 import { getAudioContext, openStream, recordTake, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { state } from '../state.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
 import { createCameraPanel } from '../take/camera_panel.js';
-import { initialSetup, kindOfFile, takeFields, validateSetup } from '../take/setup.js';
+import { rememberSentTake, sendTakeFile } from '../take/send.js';
+import { initialSetup, kindOfFile, validateSetup } from '../take/setup.js';
 import { createTakeForm } from '../take/take_form.js';
 import { UPLOAD_ACCEPT, uploadTypeProblem } from '../take/upload_types.js';
 
@@ -236,15 +237,12 @@ export async function render(root, _params, isCurrent = () => true) {
     if (!setup) return false;
     setMode('sending');
     try {
-      const fields = takeFields(setup, { kind, source, downbeatS });
-      const answer = await uploadTake(state.session_id, file, fields);
+      const answer = await sendTakeFile(file, setup, { kind, source, downbeatS });
       if (disposed) { // the learner left while it uploaded: do not pull them back to the results
         console.warn(`Take ${answer.take_id} finished uploading after leaving the take screen.`);
         return true;
       }
-      state.current_take_id = answer.take_id;
-      state.take_setup = { ...setup };
-      window.location.hash = `#/results/${encodeURIComponent(answer.take_id)}`;
+      window.location.hash = rememberSentTake(answer, setup);
       return true;
     } catch (err) {
       if (disposed) {

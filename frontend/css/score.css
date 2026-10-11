@@ -42,3 +42,6 @@
 /* Play's piece line: the title and a "Change piece" chip beside it. */
 .piece-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .piece-line h1 { margin: 0; }
+
+/* Demo upload (#/demo): the video upload progress line. */
+.demo-progress progress { width: min(100%, 24rem); vertical-align: middle; }

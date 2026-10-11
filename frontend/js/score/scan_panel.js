@@ -8,10 +8,14 @@ import { pollScoreStatus } from './poll.js';
 import { button, el, runGuarded } from './ui.js';
 
 // onConfirmed() runs after the score is confirmed; onRescan() sends the learner back to the photo tab.
-// pollOptions lets a test shorten the waits.
-export function createScanPanel({ onConfirmed, onRescan, onChooseFile, pollOptions = {} }) {
+// pollOptions lets a test shorten the waits. The demo upload passes onScanFailure(status) to take over a scan that failed or
+// came back with no bars (instead of the "Try another photo" buttons).
+export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFailure, pollOptions = {} }) {
   const root = el('section', { className: 'scan-panel', attrs: { 'aria-live': 'polite' } });
   let generation = 0; // a newer result or a clear() makes older polling stop
+
+  // A scanned photo with no bars is only a failure for a caller that handles failures itself (the demo upload).
+  const scanFailed = (status) => status.score_error || (onScanFailure && status.score_status === 'scanned' && !status.bars);
 
   const clear = () => {
     generation += 1;
@@ -21,7 +25,7 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, pollOptio
   // Shows what a status or a score upload answered. `source` is 'photo', 'file' or 'builtin'.
   async function show(status, source) {
     clear();
-    if (status.score_error) return showScanError(status);
+    if (scanFailed(status)) return (onScanFailure ?? showScanError)(status);
     if (status.score_status === 'scanning') return poll(source);
     if (status.score_status === 'scanned') return showReview(status, source);
   }

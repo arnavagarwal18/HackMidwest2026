@@ -17,7 +17,13 @@ export class FakeNode {
   get textContent() { return this.ownText + this.children.map((c) => c.textContent).join(''); }
   get isConnected() { let node = this; while (node.parent) node = node.parent; return node === this.doc.body; }
   setAttribute(name, value) { this.attributes[name] = value; }
-  append(...nodes) { nodes.forEach((node) => { node.parent = this; this.children.push(node); }); }
+  append(...nodes) {
+    nodes.forEach((node) => {
+      const child = typeof node === 'string' ? Object.assign(new FakeNode('#text', this.doc), { ownText: node }) : node;
+      child.parent = this;
+      this.children.push(child);
+    });
+  }
   replaceChildren(...nodes) { this.children.forEach((c) => { c.parent = null; }); this.children = []; this.append(...nodes); }
   remove() { if (this.parent) { this.parent.children = this.parent.children.filter((c) => c !== this); this.parent = null; } }
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
@@ -44,6 +50,8 @@ export function installFakeDom() {
   const banner = doc.createElement('div');
   banner.hidden = true;
   doc.body.append(banner);
+  doc.head = doc.createElement('head');
+  doc.querySelector = () => null; // no stylesheet is ever "already loaded"
   doc.getElementById = (id) => (id === 'banner' ? banner : null);
   const win = Object.assign(new Target(), { location: { search: '', hash: '' } });
   globalThis.document = doc;

@@ -11,6 +11,7 @@ const ROUTES = [
   { pattern: '/exercise/:ex', screen: 'exercise' },
   { pattern: '/progress', screen: 'progress' },
   { pattern: '/trace/:fb', screen: 'trace' },
+  { pattern: '/demo', screen: 'demo' }, // hidden: not in the nav (see screens/demo.js)
 ].map((route) => ({
   ...route,
   names: [...route.pattern.matchAll(/:(\w+)/g)].map((m) => m[1]),

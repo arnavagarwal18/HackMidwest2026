@@ -39,6 +39,12 @@ export class FakeNode {
   hasText(text) { return this.textContent.includes(text); }
 }
 
+// A stand-in for fetch that answers `mock/<file>.json` from the frontend folder (what mock mode asks for).
+export async function fetchMockFile(url) {
+  const body = readFileSync(join(FRONTEND_DIR, url), 'utf8');
+  return { ok: true, status: 200, json: async () => JSON.parse(body) };
+}
+
 // Installs fake window/document/audio globals. `search` is the page's query string. Returns the pieces tests drive.
 export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000', micError = null, holdMic = false } = {}) {
   const realSetTimeout = globalThis.setTimeout;
@@ -99,10 +105,7 @@ export function installFakeBrowser({ search = '?mock=1', host = '127.0.0.1:8000'
     start() { this.state = 'recording'; env.clipsStarted += 1; queueMicrotask(() => this.emit('start')); }
     stop() { this.state = 'inactive'; this.emit('dataavailable', { data: new Blob(['audio']) }); this.emit('stop'); }
   };
-  globalThis.fetch = async (url) => {
-    const body = readFileSync(join(FRONTEND_DIR, url), 'utf8');
-    return { ok: true, status: 200, json: async () => JSON.parse(body) };
-  };
+  globalThis.fetch = fetchMockFile;
   env.leave = () => handlers.splice(0).forEach((handler) => handler());
   env.restore = () => { globalThis.setTimeout = realSetTimeout; };
   return env;

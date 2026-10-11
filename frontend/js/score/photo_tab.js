@@ -4,10 +4,11 @@ import { reportError } from '../banner.js';
 import { Cropper } from '../crop.js';
 import { button, el, runGuarded } from './ui.js';
 
+export const PHOTO_ACCEPT = 'image/*';
 const UNREADABLE_PHOTO = "This browser can't open that photo. Try a JPEG or PNG picture.";
 
 function fileInput(label, capture) {
-  const input = el('input', { attrs: { type: 'file', accept: 'image/*' } });
+  const input = el('input', { attrs: { type: 'file', accept: PHOTO_ACCEPT } });
   if (capture) input.setAttribute('capture', 'environment');
   return { input, label: el('label', { className: 'file-pick', children: [`${label} `, input] }) };
 }

@@ -15,9 +15,10 @@ function isDeepLink(hash) {
 }
 
 // Returns { hash, notice, error } for the router to start on; the router shows the notice or error.
-// A confirmed session stays on a deep link; in mock mode a deep link with no stored session starts the mock session, so each screen can
+// #/demo always stays where it is. A confirmed session stays on a deep link; in mock mode a deep link with no stored session starts the mock session, so each screen can
 // be opened directly.
 export async function resumeSession(currentHash) {
+  if (matchRoute(currentHash)?.screen === 'demo') return { hash: currentHash, notice: null, error: null }; // the demo opens its own session
   const sessionId = loadStoredSessionId() ?? (MOCK_MODE && isDeepLink(currentHash) ? MOCK_SESSION_ID : null);
   if (!sessionId) return { hash: '#/start', notice: null, error: null };
 

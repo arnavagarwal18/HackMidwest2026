@@ -9,7 +9,7 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 | --- | --- |
 | `index.html` | The single page: header nav (Play `#/take`, Progress `#/progress` only; other screens are reached in context), red/blue banner strip (`#banner`), screen mount (`#screen`). |
 | `css/app.css` | All styles. |
-| `js/router.js` | Hash router. Maps `#/start`, `#/score`, `#/calibrate`, `#/take`, `#/results/:take`, `#/exercise/:ex`, `#/progress`, `#/trace/:fb` to `js/screens/<name>.js` and calls its `render(root, params)`. |
+| `js/router.js` | Hash router. Maps `#/start`, `#/score`, `#/calibrate`, `#/take`, `#/results/:take`, `#/exercise/:ex`, `#/progress`, `#/trace/:fb` (and the hidden `#/demo`) to `js/screens/<name>.js` and calls its `render(root, params)`. |
 | `js/screens/*.js` | One module per screen, each exporting `render(root, params)`. Today they are placeholders (`placeholder.js` prints the saved response of each call the real screen will make). `chat.js` is the Instructor panel (logic in `js/chat/`: `model.js` checks and limits, `transcript.js` drawing, `panel.js` the panel); `results.js` renders it beside the results. |
 | `js/results/*.js` | The results screen's parts (see "Results screen" below). `js/dom.js` has the small DOM helpers they share. |
 | `js/api.js` | One named function per back-end route (see the file). Screens call these, never `fetch`. |
@@ -62,6 +62,18 @@ Mock mode stores its session id under a separate localStorage key. In mock mode 
 
 Shapes that LLD-5 does not pin down are guesses in the mocks (`Claim` objects, `Extra`, and the `{ feedback, plan }`
 wrapper of the feedback response); the screen coders should correct them when the back end lands.
+
+## Demo upload (`#/demo`)
+
+For live demos, open `http://127.0.0.1:8000/#/demo` (not in the nav; ordinary users never see it). Choose a sheet-music photo and a
+video, press Start, and the app runs the normal flow: a new session, `POST .../score/photo`, the normal scan check where you press
+Confirm (the only manual step), the video as the take (kind from the file, the Play screen's defaults for bars, tempo and
+count-in), then the normal `#/results/:take` screen, where feedback, plan and chat work as usual. The video upload shows its
+progress. If the photo cannot be read (or has no bars, or you press Rescan) a message offers "Read the photo again" or a built-in
+score, and the same video goes on automatically. A failed step shows its reason with a Retry button and is logged to the browser console.
+Code: `js/screens/demo.js` (screen), `js/demo/` (`flow.js` the sequence, `view.js`, `picks.js`, `progress.js`); the take upload is
+shared with Play in `js/take/send.js`, and upload progress comes from `js/xhr.js` through the `onProgress` argument of `http.js`.
+Mock mode: `?mock=1&scan=failed` makes every photo read fail, `?mock=1&upload=failed` makes the first take upload answer 500.
 
 ## Recording and metronome
 

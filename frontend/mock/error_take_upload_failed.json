@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "storage_error",
+    "message": "The server could not save the video. Check that the disk has room, then retry."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "score_status": "none",
+  "score_error": "scan_failed",
+  "score_error_message": "We couldn't read this photo: the music reader did not answer.",
+  "bars": null,
+  "doubtful_bars": [],
+  "double_checked": false,
+  "warnings": []
+}
