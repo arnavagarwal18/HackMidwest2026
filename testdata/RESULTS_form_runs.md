@@ -121,6 +121,22 @@ Front measures (head_drop, neck_ratio, torso_lean, elbow gaps) are also taken in
 
 Caveats (added by hand after the run; re-running the script regenerates the section above without them): the tails are noisy. In the pooled front table torso_lean reaches 69 degrees at p95 and 132 at p99, and neck_ratio 1.48 at p99, while the medians of the per-video p99 are 8.6 degrees and 0.74. Likely (an inference, not verified frame by frame) a few videos where the hips are cropped or occluded and the tracker still reports them above the 0.5 visibility cut, so fixed limits should be taken from the per-video medians or the p5/p50/p95 columns rather than the pooled p1/p99. Each video has one view (the median ratio over its first 120 s), so a video that cuts between a front and a side camera is counted wholly in one view. The 12 "no visible player" skips were not looked at, so whether they are title cards, ensembles or a player too small for the tracker is unverified. The side-view bell_proxy is negative throughout (median -52 degrees, p99 -9): the wrist midpoint sits below the mouth in these videos, so use it as a relative measure.
 
+## Posture stats: full video length vs the 120 s cap (2026-10-11)
+
+Same script and settings as above (5 fps) with `--cap-s 100000`, run in batches of 10 manifest rows (one python process each, peak ~420 MB); per-video percentiles are in `testdata/youtube/posture_stats_full.csv`, the 120 s ones stay in `posture_stats.csv`. The same 70 videos are used and the same 20 skipped. Each measure's median over its videos of the per-video p1 and p99, then the largest single-video change in either:
+
+| Measure | Videos | Median p1: 120 s | Median p1: full | Median p99: 120 s | Median p99: full | Largest per-video shift (p1 / p99) |
+|---|---|---|---|---|---|---|
+| head_pitch | 17 | 3.67 | 3.72 | 29.12 | 28.25 | 83.29 / 53.42 |
+| head_drop | 70 | 0.02 | 0.02 | 0.17 | 0.18 | 1.90 / 1.53 |
+| neck_ratio | 70 | 0.49 | 0.49 | 0.86 | 0.95 | 0.60 / 8.25 |
+| neck_side | 17 | 0.07 | 0.13 | 0.21 | 0.23 | 0.29 / 0.04 |
+| torso_lean | 58 | 0.20 | 0.19 | 9.18 | 16.53 | 10.75 / 96.40 |
+| side_torso_lean | 16 | 2.41 | 1.27 | 13.24 | 23.39 | 2.19 / 34.11 |
+| elbow_gap_left | 58 | 0.14 | 0.11 | 0.78 | 0.88 | 0.33 / 16.97 |
+| elbow_gap_right | 57 | 0.23 | 0.21 | 0.86 | 0.95 | 0.89 / 15.26 |
+| bell_proxy | 66 | 0.28 | 0.28 | 1.14 | 1.30 | 93.18 / 247.77 |
+
 ## Good posture clips (owner, 2026-10-11)
 
 Clips: `testdata/form/good_posture_1_general.mp4` (115.6 s), `good_posture_2.mp4` (90.8 s), `good_posture_3.mp4` (164.3 s), all 1920x1080 at 24 fps, 17 to 29 MB. The owner says all three show very good trumpet playing and very good posture, so the expected result is zero form problems and every flag is a false positive.
