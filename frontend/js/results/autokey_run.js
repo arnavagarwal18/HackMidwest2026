@@ -33,7 +33,7 @@ const keyThresholds = () => {
 // Waits until the rerun has really finished: the take is 'done' again with a diagnosis made under `semitones`.
 // (While it runs the take can be in another status, and then the analysis shows the session's key but no diagnosis.)
 // Resolves to the poll result ({ outcome, result }).
-function waitForKey(sessionId, take, semitones, isActive) {
+export function waitForKey(sessionId, take, semitones, isActive) {
   return pollUntilDone({
     isActive,
     thresholds: keyThresholds(),
@@ -69,7 +69,7 @@ async function restoreKey(sessionId, take, original, isActive) {
 }
 
 // The feedback for the new key (a rerun leaves the old can't-tell feedback). A 409 means the back end is not ready: try again.
-async function writeFeedbackAgain(sessionId, take, analysis, isActive) {
+export async function writeFeedbackAgain(sessionId, take, analysis, isActive) {
   for (let attempt = 1; ; attempt += 1) {
     try {
       return { done: true, analysis, ...unwrapFeedback(await requestFeedback(sessionId, take)) };

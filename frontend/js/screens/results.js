@@ -5,6 +5,7 @@ import { fetchResultsOnce, stageLabel, STAGES } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
 import { shouldAutoKey } from '../results/autokey.js';
 import { claimAutoKey, runAutoKey } from '../results/autokey_run.js';
+import { refreshAfterKeyChange } from '../results/rerun.js';
 import { mountOverlay } from '../results/overlay.js';
 import { renderRequestFailed, renderTooLong, renderWorking } from '../results/status.js';
 import { renderDone, renderFailed } from '../results/view.js';
@@ -63,9 +64,23 @@ export async function render(root, { take }) {
     }
   }
 
-  function restartAfterTransposition(semitones) {
-    showNotice(`Transposition set to ${semitones > 0 ? '+' : ''}${semitones}; checking your take again.`);
-    return start();
+  // The user chose a key by hand: wait for the re-check, write the feedback again, and show it (no automatic search on top).
+  async function restartAfterTransposition(semitones) {
+    claimAutoKey(sessionId, take);
+    const setTo = `Transposition set to ${semitones > 0 ? '+' : ''}${semitones}`;
+    showNotice(`${setTo}; checking your take again.`);
+    renderWorking(view, STAGES.processing, false);
+    try {
+      const refreshed = await refreshAfterKeyChange({ sessionId, take, semitones, isActive });
+      if (refreshed.outcome === 'done') {
+        showNotice(`${setTo}; your take was checked again.`); // the 'checking' notice must not outlive the check
+        show(refreshed.result);
+      } else if (refreshed.outcome === 'timeout') {
+        renderTooLong(view, STAGES.transcribed, checkAgain);
+      }
+    } catch (err) {
+      failRequest(err);
+    }
   }
 
   async function start() {
