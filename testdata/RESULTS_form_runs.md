@@ -381,3 +381,23 @@ Totals (19 keys, 72 flags in 16 of the 20 videos):
 - Extra 65, on 15 videos. Most are on talking heads that the review found to show no posture fault (no hips in frame, so the torso and shoulder rules have little to go on): `1CH0EqpWM6U` has 11 flags (`trumpet_head_down` at 166.5-181.2 s, the stretch the review says frames do not confirm), `KSizitxb9ik` 7, `tsyKFlBsqZY` 6 (two people in frame), `JEzh4lyPriM` 6 (not a trumpet). `shoulders_raised` has no key anywhere and flags 12 times, so it is the least supported rule on this set; `trumpet_head_down` flags 17 extra times for 2 found.
 - No flags at all: `92M9zflsh-M`, `z9YjzBBIF78`, `O58aoxi2t64`, `k2tBufHUIEg`. `trumpet_bell_angle`, `trumpet_elbows_pinned` and `trumpet_elbows_wide` are skipped as not_visible in most front-view videos, as the table shows.
 - Run time: about 0.4 s per second of video (35 s for the 85 s `KSizitxb9ik`); the 21-video batch took about 30 minutes on the Windows laptop.
+
+## Extra flags judged (2026-10-11)
+
+Method: the 65 flags in `testdata/youtube/fault_flags.csv` that match no answer key in `fault_keys.csv` (20 of 21 videos analysed; `FSsO_-LrqE4` unavailable; the 65 flags fall on 15 of them). For each flag, 3 frames from its window were judged with an image model as REAL (a fault the key missed), FALSE (tracker error, camera angle, not playing) or UNCLEAR. `backend/app/form/config.py` was not changed. Per-flag verdicts are in `testdata/youtube/fault_extras_judged.csv`.
+
+| Rule | Flags | REAL | FALSE | UNCLEAR | FALSE: not_playing | FALSE: tracker_error | FALSE: camera_angle |
+|---|---|---|---|---|---|---|---|
+| `slouching` | 19 | 0 | 17 | 2 | 11 | 6 | 0 |
+| `trumpet_head_down` | 17 | 0 | 16 | 1 | 10 | 6 | 0 |
+| `trumpet_bell_angle` | 13 | 0 | 12 | 1 | 12 | 0 | 0 |
+| `shoulders_raised` | 12 | 0 | 12 | 0 | 9 | 3 | 0 |
+| `trumpet_elbows_pinned` | 3 | 0 | 3 | 0 | 3 | 0 | 0 |
+| `trumpet_elbows_wide` | 1 | 0 | 1 | 0 | 0 | 0 | 1 |
+| **All** | **65** | **0** | **61** | **4** | **45** | **15** | **1** |
+
+- Main cause of false flags: `not_playing` (45 of 61). The tracker scores people talking, holding the trumpet low, buzzing only the mouthpiece, or with no trumpet. Next is `tracker_error` (15).
+- Slouching rows 44-45 show a static banner with no person, so the frames may not match the video time.
+- Slouching rows 54-59 show a tuba or euphonium player, not a trumpet.
+- No REAL misses were found, so the answer key holds. The 4 UNCLEAR rows could not be settled from the frames.
+- Suggestion only, not a change: gate the posture rules on "playing" (trumpet raised to the mouth).
