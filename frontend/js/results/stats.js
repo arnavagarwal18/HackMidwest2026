@@ -4,12 +4,16 @@ import { stat } from '../ui/components.js';
 import { countsDetail, problemBarCounts } from './bar_kinds.js';
 import { headline, percent, pitchScore, rhythmScore, STRONG_PITCH, STRONG_RHYTHM } from './scores.js';
 
+const LEGACY_TONES = { ok: 'good', error: 'bad' };
+
 function scoreStat(value, label, tone, detail = '') {
   const box = stat(value, label, tone);
   const [valueNode, labelNode] = box.children;
-  valueNode.className += ' num'; // the older names stay: tests look the tiles up by them
+  // The older class names stay (num, lbl, detail, good, bad): tests look the tiles up by them.
+  valueNode.className += ' num';
   labelNode.className += ' lbl';
-  if (detail) box.append(element('span', detail, 'stat-note'));
+  if (LEGACY_TONES[tone]) box.className += ` ${LEGACY_TONES[tone]}`;
+  if (detail) box.append(element('span', detail, 'stat-note detail'));
   return box;
 }
 
