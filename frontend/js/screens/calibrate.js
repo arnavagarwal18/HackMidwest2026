@@ -4,15 +4,13 @@ import { getReferenceNotes, skipCalibration, submitCalibration } from '../api.js
 import { clearBanner, reportError, showError } from '../banner.js';
 import { button, element } from '../dom.js';
 import { findBaseAddress, toneUrl } from '../calibrate/address.js';
-import { CLICK_AFTER_S, DELAY_SECONDS, NOTE_COUNT, REF_SECONDS, createClipStore } from '../calibrate/clips.js';
+import { CLICK_AFTER_S, DELAY_SECONDS, REF_SECONDS, createClipStore } from '../calibrate/clips.js';
 import { renderIntro } from '../calibrate/intro.js';
 import { clipProblemFromError, failuresFromError, renderFailureList, renderSendRetry } from '../calibrate/problems.js';
 import { ANOTHER_TRY, createStepRow } from '../calibrate/steps.js';
 import { openStream, recordClip, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { loadScoreStyles } from '../score/ui.js';
 import { state } from '../state.js';
-import { card } from '../ui/card.js';
-import { badge } from '../ui/components.js';
 import { flowHeader } from '../ui/flow_header.js';
 
 const STYLE_HREF = 'css/calibrate.css';
@@ -45,7 +43,7 @@ export async function render(root, _params, isCurrent = () => true) {
   const mediaProblem = element('div');
   const meterBox = element('div', '', 'calibrate-meter');
   const failureBox = element('div', '', 'calibrate-problems');
-  const resultBox = element('div');
+  const resultBox = element('div', '', 'calibrate-result');
   const sendRetryBox = element('div');
   const refRows = notes.map((note, i) => createStepRow({
     prompt: `Play ${note.name} on your other device now`, buttonLabel: `Record ${note.name} (${REF_SECONDS} s)`,
@@ -57,20 +55,33 @@ export async function render(root, _params, isCurrent = () => true) {
   });
   const instrumentRows = notes.map((note, i) => createStepRow({
     prompt: `Play ${note.name} on your instrument`, buttonLabel: `Record ${note.name} (${REF_SECONDS} s)`,
-    onRecord: () => recordInstrumentNote(i),
+    onRecord: () => recordInstrumentNote(i), optional: true,
   }));
   const sendButton = button('Send calibration', sendCalibration, 'btn btn-primary primary');
   const skipButton = button('Skip calibration', skip, 'btn btn-ghost');
-  const actions = card({
-    className: 'calibrate-finish',
-    title: 'Send it',
-    body: [element('p', 'Send your recordings to finish. Short on time? You can skip and calibrate later.', 'muted')],
-    footer: [skipButton, sendButton],
-  });
+  const requiredRows = [...refRows, delayRow]; // one of these is on screen at a time: the first not recorded yet
+  const stepLine = element('p', '', 'calibrate-progress muted');
+  const intro = element('details', '', 'calibrate-tone', { open: '' });
+  intro.append(element('summary', 'Open the tone page on your phone'), renderIntro({ notes, url: toneUrl(base, state.instrument), addressNote }));
+  const optionalBox = element('details', '', 'calibrate-optional');
+  const actions = element('p', '', 'calibrate-actions');
+  actions.append(sendButton, skipButton);
+  const flow = element('div', '', 'calibrate-flow');
   const everyButton = () => [...refRows, delayRow, ...instrumentRows].map((row) => row.button)
     .concat(sendButton, skipButton, failureButtons, sendRetryButton ?? []);
 
+  // Progressive disclosure: the tone page while the notes are recorded, one step at a time, Send once everything needed is in.
+  function showCurrentStep() {
+    const current = requiredRows.findIndex((_, i) => !(i < refRows.length ? clips.hasRef(i) : clips.hasClick()));
+    requiredRows.forEach((row, i) => { row.element.hidden = i !== current; });
+    stepLine.textContent = current === -1 ? 'All recorded. Send it to finish.' : `Step ${current + 1} of ${requiredRows.length}`;
+    intro.hidden = clips.allRefs();
+    optionalBox.hidden = current !== -1;
+    sendButton.hidden = !clips.ready();
+  }
+
   function refresh() {
+    showCurrentStep();
     refRows.forEach((row, i) => { row.button.disabled = busy; row.setStatus(clips.hasRef(i) ? 'Recorded' : failureStatus(i)); });
     delayRow.button.disabled = busy || !clips.allRefs();
     delayRow.setStatus(clips.hasClick() ? 'Recorded' : needAnotherTry.has('click') ? ANOTHER_TRY : 'Not recorded yet');
@@ -189,13 +200,11 @@ export async function render(root, _params, isCurrent = () => true) {
   }
 
   function showResult(profile) {
-    resultBox.replaceChildren(card({
-      className: 'calibrate-result',
-      title: 'Calibration complete',
-      status: badge('Done', 'ok'),
-      body: [element('p', `Calibrated: pitch offset ${profile.pitch_offset_cents} cents, delay ${profile.latency_ms} ms.`, 'calibrate-done', { role: 'status' })],
-      footer: [button('Continue to the take screen', () => { window.location.hash = NEXT_HASH; }, 'btn btn-primary primary')],
-    }));
+    flow.hidden = true;
+    resultBox.replaceChildren(
+      element('p', `Calibrated: pitch offset ${profile.pitch_offset_cents} cents, delay ${profile.latency_ms} ms.`, 'calibrate-done', { role: 'status' }),
+      button('Continue to the take screen', () => { window.location.hash = NEXT_HASH; }, 'btn btn-primary primary'),
+    );
   }
 
   async function skip() {
@@ -226,21 +235,10 @@ export async function render(root, _params, isCurrent = () => true) {
     list.append(...rows.map((row) => row.element));
     return list;
   };
-  // The stepper: three numbered stages, each a card with its own badge.
-  const stage = (title, status, body) => card({ className: 'calibrate-stage', title, status: badge(status, 'neutral'), body });
-  const stepper = element('ol', '', 'calibrate-stepper');
-  stepper.append(...[
-    stage(`Play each note (${NOTE_COUNT})`, 'Other device', [stepList(refRows), mediaProblem, meterBox, failureBox]),
-    stage('Delay test', 'This laptop', [stepList([delayRow])]),
-    stage('Your instrument', 'Optional', [element('p', 'Now play the same notes on your instrument.', 'muted'), stepList(instrumentRows)]),
-  ].map((item) => { const li = element('li'); li.append(item); return li; }));
-  root.append(
-    flowHeader({ title: 'Calibrate', subtitle: 'This lets the app adjust to this room and your microphone. It takes about a minute.', currentStep: 1 }),
-    card({ title: 'Open the tone page', body: [renderIntro({ notes, url: toneUrl(base, state.instrument), addressNote })] }),
-    stepper,
-    actions,
-    sendRetryBox,
-    resultBox,
-  );
+  optionalBox.append(element('summary', 'Also record your instrument (optional)'), stepList(instrumentRows));
+  flow.append(stepLine, intro, stepList(requiredRows), mediaProblem, meterBox, failureBox, optionalBox, actions);
+  const screen = element('section', '', 'calibrate');
+  screen.append(flowHeader({ title: 'Calibrate' }), flow, sendRetryBox, resultBox);
+  root.append(screen);
   refresh();
 }

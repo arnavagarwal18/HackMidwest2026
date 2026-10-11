@@ -1,39 +1,46 @@
-/* Calibration screen. Loaded by js/screens/calibrate.js. The page header, cards, badges and buttons come from components.css. */
+/* Calibration screen. Loaded by js/screens/calibrate.js. One step at a time on one left edge: no cards, no badges.
+   app.css gives every top-level block of main a card surface; the screen wrapper opts out. */
+.calibrate { padding: 0; background: none; border: 0; box-shadow: none; display: grid; gap: var(--sp-3); }
+.calibrate > *, .calibrate-flow > * { margin: 0; }
+.calibrate-flow { display: grid; gap: var(--sp-3); }
+.calibrate [hidden] { display: none; }
 
-/* The tone-page card: the QR code beside the address, the notes as small pills. */
+/* The tone page: a disclosure that is open at the start; the QR code beside the address, the notes as one plain line. */
+.calibrate-tone > summary, .calibrate-optional > summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; color: var(--muted); font-weight: 600; }
 .calibrate-intro { display: grid; grid-template-columns: 11rem 1fr; gap: var(--sp-1) var(--sp-4); align-items: start; }
 .calibrate-intro > * { grid-column: 2; margin: 0 0 var(--sp-2); }
 .calibrate-intro > .calibrate-qr { grid-column: 1; grid-row: 1 / span 5; width: 100%; max-width: none; margin: 0; }
 .calibrate-qr { background: var(--qr-bg); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .calibrate-qr svg { display: block; width: 100%; height: auto; }
 .calibrate-address { font-family: var(--font-mono); font-size: var(--fs-sm); word-break: break-all; }
-.calibrate-notes { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
-.calibrate-notes li { padding: 2px var(--sp-3); border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; }
+.calibrate-notes { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-sm); }
 @media (max-width: 40rem) {
   .calibrate-intro { grid-template-columns: 1fr; }
   .calibrate-intro > *, .calibrate-intro > .calibrate-qr { grid-column: 1; grid-row: auto; }
   .calibrate-intro > .calibrate-qr { width: 11rem; max-width: 60%; }
 }
 
-/* The stepper: three stage cards in a column, each with a brass edge. */
-.calibrate-stepper { display: grid; gap: var(--sp-3); margin: var(--sp-3) 0; padding: 0; list-style: none; }
-.calibrate-stage { border-left: 4px solid var(--brass); }
-
+/* The current step: its prompt, one big Record button, and what happened (only when there is something to say). */
 .calibrate-steps { margin: 0; padding: 0; list-style: none; }
-.calibrate-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
-.calibrate-step:first-child { border-top: 0; padding-top: 0; }
-.calibrate-step:last-child { padding-bottom: 0; }
-.calibrate-prompt { flex: 1 1 18rem; }
-.calibrate-step > .btn { min-width: 13rem; }
+.calibrate-step { display: grid; gap: var(--sp-2); padding: var(--sp-2) 0; }
+.calibrate-optional .calibrate-step { border-top: 1px solid var(--line); }
+.calibrate-step > .btn { min-height: 56px; font-size: var(--fs-lg); }
+.calibrate-optional .calibrate-step > .btn { min-height: var(--tap); font-size: var(--fs-md); }
+.calibrate-status { margin: 0; font-size: var(--fs-sm); }
+.calibrate-status.is-warn { color: var(--sharp); font-weight: 600; }
+.calibrate-progress { font-size: var(--fs-sm); }
 .calibrate-meter meter { width: 12rem; }
-.calibrate-stage .card-body > * + * { margin-top: var(--sp-3); }
+.calibrate-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.calibrate-actions .btn { min-height: var(--tap); }
+.calibrate-actions .btn-ghost { padding-inline: 0; }
+@media (max-width: 40rem) { .calibrate-step > .btn { width: 100%; } }
 
 /* Notes to play again: shown only while there are some. */
-.calibrate-problems:not(:empty) { padding: var(--sp-3); background: var(--error-soft); border-radius: var(--radius); }
+.calibrate-problems:not(:empty) { padding-left: var(--sp-3); border-left: 4px solid var(--error); }
 .calibrate-problems > p { margin: 0 0 var(--sp-2); font-weight: 600; }
 .calibrate-failures { padding-left: 0; margin: 0; list-style: none; display: grid; gap: var(--sp-2); }
 .calibrate-failures li { display: flex; align-items: center; gap: var(--sp-3); color: var(--error); font-weight: 600; }
+.calibrate-failures .btn { min-height: var(--tap); }
 
-.calibrate-finish, .calibrate-result { margin-top: var(--sp-3); }
-.calibrate-result { border-left: 4px solid var(--ok); }
+.calibrate-result { display: grid; gap: var(--sp-3); }
 .calibrate-done { margin: 0; color: var(--ok); font-weight: 600; }

@@ -2,7 +2,6 @@
 import { uploadScorePhoto } from '../api.js';
 import { reportError } from '../banner.js';
 import { Cropper } from '../crop.js';
-import { card } from '../ui/card.js';
 import { button, el, runGuarded } from './ui.js';
 
 export const PHOTO_ACCEPT = 'image/*';
@@ -20,7 +19,7 @@ export function createPhotoTab({ submit }) {
   const cropper = new Cropper(canvas);
   const take = fileInput('Take a photo', true);
   const choose = fileInput('Choose a photo', false);
-  const whole = button('Use the whole photo', () => cropper.clearRect(), 'btn btn-secondary');
+  const whole = button('Use the whole photo', () => cropper.clearRect(), 'btn btn-ghost');
   const send = button('Read this music', () => runGuarded([send, whole], async () => {
     const jpeg = await cropper.exportJpeg();
     await submit((sessionId) => uploadScorePhoto(sessionId, jpeg), 'photo');
@@ -42,8 +41,5 @@ export function createPhotoTab({ submit }) {
     input.addEventListener('change', () => input.files[0] && loadPhoto(input.files[0]));
   });
 
-  return card({
-    title: 'Photograph your music',
-    body: [el('p', { className: 'file-picks', children: [take.label, ' ', choose.label] }), stage],
-  });
+  return el('div', { children: [el('p', { className: 'file-picks', children: [take.label, ' ', choose.label] }), stage] });
 }

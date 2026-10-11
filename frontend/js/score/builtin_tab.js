@@ -1,10 +1,9 @@
-// Built-in tab: pick one of the pieces that ship with the app for this instrument.
+// Built-in tab: pick one of the pieces that ship with the app for this instrument, as plain rows (title, one quiet detail line, Play).
 import { getBuiltins } from '../api.js';
 import { reportError } from '../banner.js';
 import { state } from '../state.js';
 import { INSTRUMENT } from './session.js';
-import { badge, emptyState, skeleton } from '../ui/components.js';
-import { card } from '../ui/card.js';
+import { emptyState, skeleton } from '../ui/components.js';
 import { button, el, runGuarded } from './ui.js';
 
 // choose(piece) picks and confirms the piece; its errors reach the red banner through runGuarded.
@@ -24,10 +23,10 @@ export function createBuiltinTab({ choose }) {
   }
 
   function pieceRow(piece) {
-    const play = button('Play', () => runGuarded([play], () => choose(piece)), 'btn btn-primary primary');
-    const meta = [`${piece.bars} bars`, ...(piece.tempo_bpm ? [`${piece.tempo_bpm} bpm`] : [])].join(' \u00b7 ');
-    const details = el('div', { className: 'piece-meta', children: [...(piece.instrument ? [badge(piece.instrument, 'neutral')] : []), el('span', { text: meta, className: 'muted' })] });
-    return el('li', { children: [card({ className: 'piece-card', title: piece.title, body: [details], footer: [play] })] });
+    const play = button('Play', () => runGuarded([play], () => choose(piece)), 'btn btn-ghost');
+    const detail = [`${piece.bars} bars`, ...(piece.tempo_bpm ? [`${piece.tempo_bpm} bpm`] : [])].join(' · ');
+    const text = el('div', { className: 'piece-text', children: [el('strong', { text: piece.title }), el('span', { text: detail, className: 'muted' })] });
+    return el('li', { className: 'piece-row', children: [text, play] });
   }
 
   load();

@@ -54,13 +54,14 @@ export async function render(root) {
     tabs.forEach((tab) => { tab.body.hidden = tab.id !== id; });
   }
 
-  root.append(flowHeader({ title: 'Change piece', subtitle: 'Pick a built-in piece, or bring your own music as a file or a photo.', currentStep: 0 }));
-  if (state.score.status === 'confirmed') root.append(el('p', { text: CONFIRMED_NOTICE, className: 'muted' }));
-  root.append(
-    el('div', { className: 'segmented', attrs: { role: 'tablist' }, children: tabButtons }),
+  const confirmedNotice = state.score.status === 'confirmed' ? [el('p', { text: CONFIRMED_NOTICE, className: 'muted' })] : [];
+  root.append(el('section', { className: 'score-screen', children: [
+    flowHeader({ title: 'Change piece' }),
+    ...confirmedNotice,
+    el('div', { className: 'score-tabs', attrs: { role: 'tablist' }, children: tabButtons }),
     ...tabs.map((tab) => tab.body),
     panel.element,
-  );
+  ] }));
   selectTab(hasScanInProgress() ? 'photo' : 'builtin');
   await showExistingScan(panel);
 }
