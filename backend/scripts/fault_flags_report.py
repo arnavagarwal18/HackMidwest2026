@@ -1,8 +1,8 @@
-"""The per-video match table for testdata/RESULTS_form_runs.md, from fault_flags.py's CSV and the draft answer keys.
+"""The per-video match table for testdata/RESULTS_form_runs.md, from fault_flags.py's CSV and the answer keys.
 
 Usage (from the repo root): backend/.venv/Scripts/python backend/scripts/fault_flags_report.py > table.md
 
-Keys are testdata/youtube/fault_keys_from_draft.csv: the faults named in the DRAFT lines of fault_candidates_reviewed.csv, one row per
+Keys are testdata/youtube/fault_keys.csv: the faults named in the fault lines of fault_candidates_reviewed.csv (all treated as keys, per Xavier), one row per
 fault (rule, start-end s, slack). A flag of the same rule that comes within slack_s of a key's times finds that key; a key with no such
 flag is missed (or "not run" when its rule was skipped, needs the face reading, which this run does not make, or lies past the analysed part); a flag that finds no
 key is extra. Prints one row per video, then found / missed / extra / not run per rule.
@@ -15,7 +15,7 @@ from pathlib import Path
 YOUTUBE_DIR = Path(__file__).parents[2] / "testdata" / "youtube"
 FLAGS_CSV = YOUTUBE_DIR / "fault_flags.csv"
 MANIFEST_CSV = YOUTUBE_DIR / "fault_manifest.csv"
-KEYS_CSV = YOUTUBE_DIR / "fault_keys_from_draft.csv"
+KEYS_CSV = YOUTUBE_DIR / "fault_keys.csv"
 NOT_VISIBLE = "not_visible"
 FACE_RULES = {"trumpet_cheeks_puffed", "trumpet_smile_embouchure"}  # judged from the face reading, which this run does not make
 OUTCOMES = ("found", "missed", "extra", "not run")
@@ -77,7 +77,7 @@ def main() -> int:
         by_video[row["id"]].append(row)
     for key in read_csv(KEYS_CSV):
         keys_by_video[key["id"]].append(key)
-    print("| Video | Length s | View | Flags (rule start-end, severity) | Rules skipped as not_visible | Against the draft keys |")
+    print("| Video | Length s | View | Flags (rule start-end, severity) | Rules skipped as not_visible | Against the answer keys |")
     print("|---|---|---|---|---|---|")
     for video in read_csv(MANIFEST_CSV):
         rows = by_video.get(video["id"])

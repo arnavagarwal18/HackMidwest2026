@@ -1,0 +1,8 @@
+id,rule,start_s,end_s,slack_s,source
+qFmhhHTn810,trumpet_bell_angle,478,511,2,reviewed line: bell drooping below the mouthpiece ~478-511 s while playing
+fnvwOqXv8fs,trumpet_bell_angle,56,77,3,reviewed line: bell slightly drooping while playing ~56-77 s
+fnvwOqXv8fs,trumpet_head_down,56,77,3,reviewed line: head forward / tilted down toward the horn ~56-77 s
+EaTvWPsHDQ8,trumpet_head_down,53,64,2,reviewed line: head dropped 53-64 s (frame at 56 s: head tilted down)
+EaTvWPsHDQ8,slouching,53,64,2,reviewed line: upper body leaning forward 53-64 s
+AmpggAjW9bk,trumpet_head_down,21,31,2,reviewed line: head dropped / looking down ~21-31 s (frame at 22 s)
+k2tBufHUIEg,trumpet_cheeks_puffed,6,24,2,reviewed line: cheeks puffed ~6-24 s (close-ups at 6 12 16 24 s)
