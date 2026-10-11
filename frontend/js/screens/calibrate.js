@@ -85,7 +85,8 @@ export async function render(root, _params, isCurrent = () => true) {
   }
 
   // Runs one recording: mic open, level meter, the clip. Returns the clip, or null (the problem is already on screen).
-  async function capture(options) {
+  // recordAgain is the row's own record function: a mic problem's Try again runs it, so the new clip is stored like any other.
+  async function capture(options, recordAgain) {
     busy = true;
     refresh();
     mediaProblem.replaceChildren();
@@ -104,7 +105,7 @@ export async function render(root, _params, isCurrent = () => true) {
       return await recordClip({ stream, ...options });
     } catch (err) {
       if (disposed) return null;
-      if (err.name === 'MediaAccessError') renderMediaError(mediaProblem, err, { onTryAgain: () => capture(options) });
+      if (err.name === 'MediaAccessError') renderMediaError(mediaProblem, err, { onTryAgain: recordAgain });
       else reportError(err);
       return null;
     } finally {
@@ -116,7 +117,7 @@ export async function render(root, _params, isCurrent = () => true) {
 
   async function recordNote(index) {
     refRows[index].setStatus(`Recording: play ${notes[index].name} now`);
-    const clip = await capture({ durationS: REF_SECONDS });
+    const clip = await capture({ durationS: REF_SECONDS }, () => recordNote(index));
     if (!clip || disposed) return;
     clips.setRef(index, clip);
     showFailures(failures.filter((failure) => failure.index !== index));
@@ -125,14 +126,14 @@ export async function render(root, _params, isCurrent = () => true) {
 
   async function recordDelay() {
     delayRow.setStatus('Recording: listen for the click');
-    const clip = await capture({ durationS: DELAY_SECONDS, clickAfterS: CLICK_AFTER_S });
+    const clip = await capture({ durationS: DELAY_SECONDS, clickAfterS: CLICK_AFTER_S }, recordDelay);
     if (clip && !disposed) { clips.setClick(clip); needAnotherTry.delete('click'); }
     refresh();
   }
 
   async function recordInstrumentNote(index) {
     instrumentRows[index].setStatus(`Recording: play ${notes[index].name} now`);
-    const clip = await capture({ durationS: REF_SECONDS });
+    const clip = await capture({ durationS: REF_SECONDS }, () => recordInstrumentNote(index));
     if (clip && !disposed) { clips.setInstrument(index, clip); needAnotherTry.delete(`inst_${index}`); }
     refresh();
   }

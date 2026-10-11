@@ -316,3 +316,29 @@ test('clipProblemFromError: names the clip for 422/415 answers that mention one,
   assert.equal(clipProblemFromError(new ApiError('calibration_failed', 'ref_1 not heard', 422), NOTES), null);
   assert.equal(clipProblemFromError(null, NOTES), null);
 });
+
+test('a clip recorded after a mic-error Try again is stored, and the screen goes on from there', async () => {
+  const fresh = installFakeBrowser();
+  const { mediaDevices } = navigator;
+  const openMic = mediaDevices.getUserMedia;
+  let micBlocked = true;
+  mediaDevices.getUserMedia = async () => {
+    if (micBlocked) throw Object.assign(new Error('denied'), { name: 'NotAllowedError' });
+    return openMic();
+  };
+  const root = await startScreen('?mock=1', 'sess_micretry');
+  await root.button(/^Record Bb3/).click();
+  assert.ok(root.hasText('Chrome is blocking the mic'));
+  assert.equal(root.button(/^Record the delay test/).disabled, true);
+  micBlocked = false; // the learner allows the mic in Chrome, then presses Try again
+  await root.button('Try again').click();
+  assert.ok(root.hasText('Recorded'), 'the clip recorded by Try again is stored');
+  await root.button(/^Record F4 \(3 s\)$/).click();
+  await root.button(/^Record Bb4 \(3 s\)$/).click();
+  assert.equal(root.button(/^Record the delay test/).disabled, false, 'with Bb3 stored, the three notes are complete');
+  await root.button(/^Record the delay test/).click();
+  assert.equal(root.button('Send calibration').disabled, false);
+  await root.button('Send calibration').click();
+  assert.deepEqual(Object.keys(sentFileSets().at(-1)).sort(), ['click', 'ref_0', 'ref_1', 'ref_2']);
+  fresh.leave();
+});
