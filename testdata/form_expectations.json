@@ -7,9 +7,14 @@
     {"file": "trumpet_video1.mp4", "note": "ordinary practice take, not acted; expect no flags"},
     {"file": "trumpet_video2.mp4", "note": "ordinary practice take, not acted; expect no flags"}
   ],
+  "views": [
+    {"file": "form/take5_ode_form_front.mp4", "view": "front"},
+    {"file": "form/take5_ode_form_side.mp4", "view": "side"},
+    {"file": "ode_to_joy/ode_to_joy_trumpet11.mp4", "view": "side"}
+  ],
   "acted": [
     {
-      "file": "trumpet_form_acted.mp4",
+      "file": "form/bad_posture_example.mp4",
       "note": "PENDING Xavier's recording: about 3 s of each problem, one after another. Fill in start_s and end_s from the recording, then the test runs.",
       "problems": [
         {"rule": "shoulders_raised", "start_s": null, "end_s": null},

@@ -20,6 +20,8 @@ TOLERANCE_S = EXPECTATIONS["flag_time_tolerance_s"]
 MAX_RUNTIME_S = EXPECTATIONS["max_runtime_s_for_60s_video"]
 SCORE_BARS = [{"bar": n, "start_beat": 4.0 * (n - 1), "beats": 4.0, "notes": []} for n in range(1, 5)]
 BUDGET_VIDEO_S = 60  # the time budget is for a video this long; a longer one gets it in proportion
+WHOLE_VIDEO_NOTES = [{"onset_s": 0.0, "offset_s": 3600.0}]  # one note spanning the video, so the face is read throughout
+FRONT_CLIP, SIDE_CLIP = "form/take5_ode_form_front.mp4", "form/take5_ode_form_side.mp4"
 
 
 def _acted_params() -> list:
@@ -37,12 +39,12 @@ def analysed(sessions_root, monkeypatch):
     """A function that runs form.run on a testdata video as a trumpet take and returns (the stored take, seconds it took)."""
     monkeypatch.setattr("app.diagnosis.rerank", lambda session_id, take_id: None)
 
-    def analyse_video(filename: str):
+    def analyse_video(filename: str, notes: list[dict] | None = None):
         session_id, take_id = add_form_take(instrument=EXPECTATIONS["instrument"], form_status="none")
         folder = store.session_dir(session_id)
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "score.json").write_text(json.dumps({"bars": SCORE_BARS}), encoding="utf-8")
-        update_take(session_id, take_id, bar_from=1, bar_to=len(SCORE_BARS))
+        update_take(session_id, take_id, bar_from=1, bar_to=len(SCORE_BARS), **({"notes": notes} if notes else {}))
         shutil.copy(TESTDATA / filename, folder / f"{take_id}.mp4")
         started = time.monotonic()
         form.run(session_id, take_id)
@@ -78,3 +80,31 @@ def test_each_acted_problem_is_flagged_when_it_was_acted(analysed, acted):
                 and abs(flag["end_s"] - problem["end_s"]) <= TOLERANCE_S]
         assert near, f"{problem} not flagged within {TOLERANCE_S} s; flags: {[(f['rule'], f['start_s'], f['end_s']) for f in flags]}"
     assert seconds < _time_budget_s(take)
+
+
+def _skip_if_missing(filename: str) -> None:
+    if not (TESTDATA / filename).exists():
+        pytest.skip(f"{filename} is not in testdata/")
+
+
+@pytest.mark.parametrize("entry", EXPECTATIONS["views"], ids=lambda entry: entry["file"])
+def test_each_clip_is_read_as_the_view_it_was_filmed_from(analysed, entry):
+    _skip_if_missing(entry["file"])
+    take, _ = analysed(entry["file"])
+    assert take["form_status"] == "done", take["form"]["error"]
+    assert take["form"]["view"] == entry["view"], f"view_ratio {take['form']['view_ratio']}"
+
+
+def test_the_side_take_finishes_and_lists_the_rules_it_skipped(analysed):
+    _skip_if_missing(SIDE_CLIP)
+    take, _ = analysed(SIDE_CLIP)
+    assert take["form_status"] == "done", take["form"]["error"]
+    assert take["form"]["rules_skipped"], "a side view always skips the elbows rule at least"
+
+
+def test_the_front_take_is_tracked_and_its_face_is_read(analysed):
+    _skip_if_missing(FRONT_CLIP)
+    take, _ = analysed(FRONT_CLIP, WHOLE_VIDEO_NOTES)
+    assert take["form_status"] == "done", take["form"]["error"]
+    assert take["form"]["tracking_quality"] > 0.8
+    assert take["form"]["face_quality"] > 0.5

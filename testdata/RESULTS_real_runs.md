@@ -64,3 +64,18 @@ Fix: `transcribe.py` also starts a new note at any level minimum at least `LEVEL
 | Hot Cross Buns, `--bpm 83` | 0.941, 16 ok / 1 wrong / 0 missed | 1.000, 17 ok / 0 / 0, 0 extras; `form_status` still failed |
 
 Extras went up by 3 on video1 and video2 (more splits inside long notes); ok notes rose and missed notes fell on both. The "before" figures are from the earlier runs above (main 3250d86), not a rerun of debb837. Backend suite: 940 passed, 2 skipped.
+
+## Real-video form checks at VIEW_SIDE_MAX 1.7 (2026-10-11)
+`VIEW_SIDE_MAX` is 1.7, fitted on three clips (side 1.36, Ode 1.48, front 1.96). Numbers below are the previous worker's measurements; the view of the three `views` clips and the take5 front tracking/face thresholds were re-run on this branch (`AI_ENABLED=false`, all passing). Flag counts are not asserted by the tests.
+
+| Clip | View (ratio) | tracking / face | Flags | Skipped rules | Time |
+|---|---|---|---|---|---|
+| `form/take5_ode_form_front.mp4` | front 1.957 | 1.0 / 1.0 | 10 (shoulders_raised x5, elbows_pinned x5) | none | 14.1 s |
+| `form/take5_ode_form_side.mp4` | side 1.361 | 1.0 / 0.65 | none | slouching `not_visible`, elbows `not_for_view` | 16.9 s |
+| `ode_to_joy/ode_to_joy_trumpet11.mp4` | side 1.479 | 0.949 / 0.947 | slouching at 1.8-3.1 s and 6.7-8.7 s | | 18.1 s |
+| `trumpet_video1.mp4` | front 3.334 | | none | | 26.0 s |
+| `trumpet_video2.mp4` | front 3.543 | | none | | 25.6 s |
+| `form/bad_posture_example.mp4` | front 2.461 | 1.0 / | none | slouching and elbows `not_visible` | 3.5 s |
+
+- The take5 side clip should be re-recorded with the hips in frame (slouching cannot be judged without them).
+- The acted clip `form/bad_posture_example.mp4` currently flags nothing and has no fault times in `form_expectations.json`, so its test skips until Xavier or Caleb supplies the times.
