@@ -82,7 +82,7 @@
 .chip-sm { padding: 0 var(--sp-2); font-size: var(--fs-caption); }
 .chip-selected { background: var(--surface-2); border-color: var(--ink); }
 
-/* ---------- Badge: a status as a word and a small dot. The colour is only the dot, so it never stands alone ---------- */
+/* ---------- Badge: a status as a word and a small dot; a coloured one has a soft fill and a 1px border, the word in the ink colour, so colour never stands alone ---------- */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -93,10 +93,14 @@
 }
 
 .badge::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--line-strong); }
-.badge-ok::before, .badge-done::before { background: var(--ok); }
-.badge-warn::before { background: var(--sharp); }
-.badge-error::before { background: var(--error); }
+.badge-ok::before, .badge-done::before { background: var(--good-border); }
+.badge-warn::before { background: var(--okay-border); }
+.badge-error::before { background: var(--work-border); }
 .badge-neutral::before { background: var(--line-strong); }
+.badge-ok, .badge-done, .badge-warn, .badge-error { padding: 0 var(--sp-2); color: var(--ink); border: 1px solid; border-radius: var(--radius-pill); }
+.badge-ok, .badge-done { background: var(--good-fill); border-color: var(--good-border); }
+.badge-warn { background: var(--okay-fill); border-color: var(--okay-border); }
+.badge-error { background: var(--work-fill); border-color: var(--work-border); }
 
 /* ---------- Segmented control: a row of buttons (or labels over radios) where exactly one is on ---------- */
 .segmented {
@@ -114,7 +118,7 @@
   min-height: var(--tap);
   padding: 0 var(--sp-3);
   background: transparent;
-  color: var(--muted);
+  color: var(--ink);
   border: 0;
   border-radius: calc(var(--radius) - 2px);
   font: 600 var(--fs-body)/1.25 var(--font-body);

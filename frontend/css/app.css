@@ -7,26 +7,31 @@
 :root {
   color-scheme: light dark;
 
-  /* Colour - light. Contrast ratios are WCAG 2.x (text needs 4.5:1, non-text 3:1); checked in tests/components.test.mjs. */
-  --bg: #f7f6f2;
+  /* Colour - light, palette "Paper & Sky". Contrast ratios are WCAG 2.x (text needs 4.5:1, non-text 3:1); checked in tests/components.test.mjs. */
+  --bg: #f5f5f7;
   --surface: #ffffff;       /* cards, inputs */
-  --ink: #1f1c18;
-  --muted: #5c564d;         /* secondary text, still 4.5:1 on --bg and --surface-2 */
-  --line-strong: #8a8378;   /* the edge of a control (input, segmented): 3:1 */
-  --accent: #7a5208;        /* the one accent: the primary action, the focus ring */
+  --surface-2: #e5e5ea;     /* hover fills, the segmented track, meters, the media background */
+  --ink: #1d1d1f;
+  --muted: #6e6e73;         /* secondary text, still 4.5:1 on --bg and --surface */
+  --line: #e5e5ea;          /* a decorative hairline, not for text or control edges */
+  --line-strong: #6e6e73;   /* the edge of a control (input, chip, segmented): 3:1 */
+  --accent: #0066cc;        /* the one accent: the primary action, the focus ring */
   --primary: var(--accent);
   --primary-ink: #ffffff;
-  --primary-hover: #664506;
-  --ok: #1f7a4d;            /* in tune */
-  --flat: #1f5fa8;          /* flat / early */
-  --sharp: #a65300;         /* sharp / late */
+  --primary-hover: #0058b0;
+  --ok: #1e7a46;            /* in tune: text-safe green */
+  --flat: #0066cc;          /* flat / early */
+  --sharp: #8a5a00;         /* sharp / late: text-safe amber */
   --error: #b3261e;
   --error-solid: #b3261e;   /* the same red in both modes, behind white text */
   --on-error-solid: #ffffff;
 
-  /* Derived: the hairline and the tints follow the dark mode too */
-  --line: color-mix(in srgb, var(--ink) 14%, var(--bg));   /* a decorative hairline, not for text or control edges */
-  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--bg));
+  /* Status: a soft fill with a 1px border, the text in --ink, and always a word label */
+  --good-fill: #cdefd8;  --good-border: #30a46c;
+  --okay-fill: #fbe7b5;  --okay-border: #b7791f;
+  --work-fill: #f9d0ce;  --work-border: #e5484d;
+
+  /* Derived: the tints follow the dark mode too */
   --brass: var(--accent);   /* the older name for --accent, kept for the screen stylesheets */
   --brass-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
   --ok-soft: color-mix(in srgb, var(--ok) 10%, var(--surface));
@@ -34,10 +39,10 @@
   --sharp-soft: color-mix(in srgb, var(--sharp) 10%, var(--surface));
   --error-soft: color-mix(in srgb, var(--error) 10%, var(--surface));
 
-  /* Media (video, camera, QR): the same in both modes */
-  --media-bg: #14110d;
-  --on-media: rgb(255 255 255 / 0.85);
-  --on-media-accent: #f0c15a;
+  /* Media (video, camera, QR): a soft tone, not black */
+  --media-bg: var(--surface-2);
+  --on-media: var(--ink);
+  --on-media-accent: var(--accent);
   --qr-bg: #ffffff;
 
   /* Type: the system font for everything. Four sizes: caption 13, body 16, headline 20, title 28 (34 on wide screens).
@@ -60,7 +65,7 @@
   --page-pad: var(--sp-4);
 
   /* Elevation: resting cards are flat. Only what floats (toast, banner, overlay) has a soft shadow. */
-  --shadow-color: 31 28 24;
+  --shadow-color: 29 29 31;
   --shadow-1: none;
   --shadow-2: 0 4px 16px rgb(var(--shadow-color) / 0.12);
   --shadow-3: 0 8px 28px rgb(var(--shadow-color) / 0.16);
@@ -80,18 +85,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #161412;
-    --surface: #211e1b;
-    --ink: #f2eee7;
-    --muted: #b5aea3;
-    --line-strong: #7d766b;
-    --accent: #d4a340;
-    --primary-ink: #161412;
-    --primary-hover: #e2b459;
+    --bg: #161618;
+    --surface: #1f1f22;
+    --surface-2: #2c2c30;
+    --ink: #f5f5f7;
+    --muted: #a1a1a6;
+    --line: #38383c;
+    --line-strong: #8e8e93;
+    --accent: #4c9dff;
+    --primary-ink: #0b0b0d;
+    --primary-hover: #6cb0ff;
     --ok: #6cc48b;
-    --flat: #8fb0ef;
-    --sharp: #f0a25c;
+    --flat: #4c9dff;
+    --sharp: #f0b050;
     --error: #f08a80;
+    --good-fill: color-mix(in srgb, var(--good-border) 24%, var(--surface));
+    --okay-fill: color-mix(in srgb, var(--okay-border) 24%, var(--surface));
+    --work-fill: color-mix(in srgb, var(--work-border) 24%, var(--surface));
     --shadow-color: 0 0 0;
   }
 }
@@ -192,7 +202,7 @@ main > * + * { margin-top: var(--sp-3); }
   animation: toast-in var(--dur) var(--ease);
 }
 
-.banner-error { background: var(--error-soft); color: var(--error); }
+.banner-error { background: var(--work-fill); color: var(--ink); border: 1px solid var(--work-border); }
 .banner-notice { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
 .banner button { color: inherit; }
 @media (max-width: 40rem) { .banner { position: static; top: auto; } }

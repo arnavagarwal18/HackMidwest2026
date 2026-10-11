@@ -69,11 +69,11 @@ const luminance = (hex) => {
 const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
 
 for (const [mode, t] of [['light', light], ['dark', dark]]) {
-  const surface2 = mix(t.ink, 5, t.bg);
+  const surface2 = t['surface-2'];
   const soft = (name) => mix(t[name], 10, t.surface);
   const text = [
     ['ink on bg', t.ink, t.bg], ['ink on surface', t.ink, t.surface], ['muted on bg', t.muted, t.bg],
-    ['muted on surface', t.muted, t.surface], ['muted on surface-2 (the unselected segment)', t.muted, surface2],
+    ['muted on surface', t.muted, t.surface], ['ink on surface-2 (the unselected segment)', t.ink, surface2],
     ['ink on surface (the selected segment)', t.ink, t.surface], ['primary-ink on primary', t['primary-ink'], t.accent],
     ['primary-ink on primary-hover', t['primary-ink'], t['primary-hover']], ['white on error-solid', t['on-error-solid'], t['error-solid']],
     ...['ok', 'flat', 'sharp', 'error'].flatMap((n) => [[`${n} on bg`, t[n], t.bg], [`${n} on surface`, t[n], t.surface], [`${n} on its soft tint`, t[n], soft(n)]]),
