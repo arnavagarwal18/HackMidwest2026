@@ -45,8 +45,20 @@ Keys are from `testdata/youtube/fault_keys.csv`; a flag of the same rule within 
 
 Same flags as the 10 fps run in `testdata/youtube/fault_flags.csv` for `EaTvWPsHDQ8`. Videos fetched with `fetch_youtube.py --list testdata/youtube/fault_candidates.csv --only-group "3 Side bad"` and `--only-group "5 Puffed cheeks" --limit 1` (git-ignored in `testdata/youtube/fault_videos/`).
 
+## C. X1 phone photo (run after the video jobs, same server on 8003, AI off)
+
+Input: Xavier's phone photo of a screen showing a MuseScore page (attachment F-9, read from its attachment path, not copied into the repo). `POST /sessions/{id}/score/photo` on a new trumpet session, then polled `/score/status`.
+- Scan time 37.4 s; `score_status` `scanned`, `score_error` null (no error code).
+- Read: "The Star Spangled Banner", key_fifths -2 (2 flats), 3/4, tempo 90 (the app's default is also 90, so the tempo was probably not read from the page; not checked), 34 bars (key: about 33 +-2). Instrument "Voice".
+- Doubtful bars: none. Referee `skipped` / `nothing_to_check`; warning "We couldn't double-check this scan: compare it with your copy before you confirm."
+- Bar 1 (pickup) F4 dotted eighth + D4 sixteenth.
+- Bar 2: Bb3 D4 F4, quarters: matches.
+- Bar 3: Bb4 half, D5 dotted eighth, C5 sixteenth: pitches match (the key lists D5 C5 as quarters; the photo's rhythm was read by eye).
+- Bar 4: Bb4 D4 E4 quarters; the key has Bb4 G4 E-natural: 2 of 3 notes match, the second is D4 not G4.
+- Verdict: key, time signature and bar count are within the key's range and 2 of bars 2-4 match, so PASS.
+
 XAVIER RESULTS (main commit 15a5622)
-X1 phone photo: PENDING (awaiting Xavier's photo)
+X1 phone photo: PASS - scanned in 37 s, status scanned, no error; key 2 flats, 3/4, tempo 90, 34 bars, no doubtful bars; bars 2 and 3 match (pitches), bar 4 has 2 of 3 notes
 X2 confirm: PASS - score file uploaded and confirmed: 16 bars, tempo 100, 4/4 (a score file, not a photo scan)
 X3 posture fault "head down and slouching 53-64 s" on EaTvWPsHDQ8 (found case): PASS - trumpet_head_down 53.3-56.5 s, 59.8-61.2 s; slouching 53.6-54.9 s, 61.5-64.4 s
 X3b posture fault "head down 41-49 s (hedged)" on z9YjzBBIF78 (missed case): FAIL - no head_down flag; only trumpet_smile_embouchure 17.3, 30.3, 43.6 s
