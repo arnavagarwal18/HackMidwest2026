@@ -41,7 +41,7 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .results-media { margin: 0 0 var(--sp-3); }
 .video-stage { position: relative; display: inline-block; max-width: 100%; border-radius: var(--radius-card); overflow: hidden; background: var(--media-bg); }
 .take-video { display: block; max-width: 100%; }
-@media (min-width: 901px) { .take-video { max-height: 200px; } }
+@media (min-width: 901px) { .take-video { max-height: 400px; } } /* twice the former 200px: a 16:9 take shows about 712x400 */
 .take-audio { width: 100%; }
 
 .exercises { display: grid; gap: var(--sp-3); }
@@ -141,6 +141,11 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
    there is no column: the results take the full width. */
 .results-layout, #coach-root { padding: 0; background: none; border: 0; box-shadow: none; }
 @media (min-width: 901px) {
-  .results-layout:has(> #coach-root .coach-sheet.is-docked:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--sp-5); }
+  .results-layout:has(> #coach-root .coach-sheet.is-docked:not([hidden])) {
+    /* The docked coach leaves the results about 584px at 1440 wide, too narrow for the 712px video. The layout grows into the page's
+       side margin to the right (never past the window: no more than the free margin, and a --page-pad gutter stays), keeping its left edge under the header's. */
+    --extra-width: min(8rem, max(0px, calc((100vw - var(--page-w)) / 2)));
+    display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--sp-5); margin-right: calc(-1 * var(--extra-width));
+  }
   .results-layout:has(> #coach-root .coach-sheet.is-docked:not([hidden])) > #coach-root { position: sticky; top: calc(var(--header-h) + var(--sp-3)); margin-top: 0; }
 }

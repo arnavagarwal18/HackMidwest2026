@@ -293,6 +293,26 @@ await test('a mock analysis that never finishes shows Still working, then stops 
   assert.equal(await count(page, '.too-long'), 1);
 });
 
+await test('at 1440 wide the video may be 400px tall and the results column fits it beside the coach; narrower windows and phones do not overflow', async (open) => {
+  const page = await open('take_1');
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await page.waitFor(`document.querySelector('.hero')`);
+  await page.waitFor(`document.querySelector('#overlay-toggle')`);
+  await page.waitFor(`document.querySelector('#coach-root .coach-sheet.is-docked:not([hidden])')`);
+  const box = (selector) => page.eval(`(() => { const r = document.querySelector('${selector}').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })()`);
+  assert.equal(await page.eval(`getComputedStyle(document.querySelector('.take-video')).maxHeight`), '400px', 'the video may be twice the former 200px tall');
+  assert.ok((await box('.results'))[2] >= 712, 'the results column is wide enough for a 712px (16:9, 400px tall) video beside the coach');
+  assert.equal((await box('#coach-root'))[2], 360, 'the coach column keeps its width');
+  assert.deepEqual(await box('.overlay-canvas'), await box('.take-video'), 'the body-lines canvas sits exactly on the video');
+  const overflow = () => page.eval(`document.documentElement.scrollWidth - window.innerWidth`);
+  for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
+    await page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 600 });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.ok(await overflow() <= 0, `no horizontal overflow at ${width}px wide`);
+    assert.ok((await box('.take-video'))[0] + (await box('.take-video'))[2] <= width, `the video stays inside the window at ${width}px wide`);
+  }
+});
+
 cleanUp();
 for (const { name, ok, err } of results) console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : `\n      ${err.stack ?? err}`}`);
 process.exit(results.every((r) => r.ok) ? 0 : 1);
