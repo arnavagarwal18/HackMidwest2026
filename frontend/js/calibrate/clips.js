@@ -14,6 +14,12 @@ export function createClipStore() {
   return {
     setRef(index, clip) { ref[index] = clip; },
     clearRef(index) { ref[index] = null; },
+    // Drops one clip by its upload field name ('ref_1', 'inst_0', 'click') after the server rejected that recording.
+    discard(field) {
+      if (field === 'click') { click = null; return; }
+      const [prefix, index] = field.split('_');
+      (prefix === 'ref' ? ref : instrument)[Number(index)] = null;
+    },
     hasRef: (index) => ref[index] !== null,
     setInstrument(index, clip) { instrument[index] = clip; },
     hasInstrument: (index) => instrument[index] !== null,

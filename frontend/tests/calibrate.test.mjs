@@ -11,7 +11,7 @@ const { mockRequestLog } = await import('../js/mock.js');
 const { recordClip } = await import('../js/record.js');
 const { render } = await import('../js/screens/calibrate.js');
 const { createClipStore } = await import('../js/calibrate/clips.js');
-const { failuresFromError, renderFailureList, problemText } = await import('../js/calibrate/problems.js');
+const { clipProblemFromError, failuresFromError, renderFailureList, problemText } = await import('../js/calibrate/problems.js');
 const { findBaseAddress, toneUrl, LOCALHOST_NOTE } = await import('../js/calibrate/address.js');
 const { renderIntro, FALLBACK_LINE } = await import('../js/calibrate/intro.js');
 const { createQrSvg, qrPath } = await import('../js/calibrate/qr.js');
@@ -24,16 +24,44 @@ const qrLib = (() => {
   return sandbox.qrcode;
 })();
 
-function startScreen(search = '?mock=1') {
+// The mock fails the first POST per session id for ?calibration=failed, so each failing test passes its own session id.
+function startScreen(search = '?mock=1', sessionId = 'sess_mock1') {
   window.location.search = search;
   window.qrcode = qrLib; // index.html loads vendor/qrcode.js as a classic script
   window.location.hash = '#/calibrate';
-  state.session_id = 'sess_mock1';
+  state.session_id = sessionId;
   state.instrument = 'trumpet';
   state.calibration = null;
   mockRequestLog.length = 0;
   const root = new FakeNode('main');
   return render(root).then(() => root);
+}
+
+// The files each POST .../calibration carried, in order (the mock log keeps no form bodies). Every upload starts with its "click" part.
+const sentUploads = [];
+const realAppend = FormData.prototype.append;
+FormData.prototype.append = function append(name, value, ...rest) {
+  if (value instanceof Blob) {
+    if (name === 'click') sentUploads.push({});
+    sentUploads.at(-1)[name] = value;
+  }
+  return realAppend.call(this, name, value, ...rest);
+};
+const sentFileSets = () => sentUploads;
+
+// Makes the first POST .../calibration answer with `error` (the mock serves it for ?calibration=failed; the mock status is 422).
+function failFirstSendWith(error) {
+  const serveMock = globalThis.fetch;
+  globalThis.fetch = async (url) => (url === 'mock/error_calibration_failed.json'
+    ? { ok: true, status: 200, json: async () => ({ error }) } // the mock decides the failure from the file name
+    : serveMock(url));
+}
+
+async function recordAllAndSend(root) {
+  await recordAllNotes(root);
+  await root.button(/^Record the delay test/).click();
+  sentUploads.length = 0;
+  await root.button('Send calibration').click();
 }
 
 async function recordAllNotes(root) {
@@ -191,4 +219,100 @@ test('leaving while the mic permission prompt is open releases the mic once it i
   assert.equal(pending.streams[0].tracks[0].stopped, true);
   assert.equal(pending.clipsStarted, 0, 'no recording starts after leaving');
   assert.equal(pending.banner.hidden, true, 'nothing is reported on the next screen');
+});
+
+test('after a failed send, Try again re-sends the same clips without opening the mic', async () => {
+  const fresh = installFakeBrowser();
+  failFirstSendWith({ code: 'server_error', message: 'The app server had a problem. Please try again.' });
+  const root = await startScreen('?mock=1&calibration=failed', 'sess_retry1');
+  await recordAllAndSend(root);
+  assert.match(fresh.banner.textContent, /had a problem/);
+  assert.ok(root.hasText('Your recordings are kept'));
+  assert.equal(root.button('Send calibration').disabled, false, 'every clip is still in memory');
+  const streamsBefore = fresh.streams.length;
+  const recordingsBefore = fresh.clipsStarted;
+  await root.button('Try again').click();
+  assert.equal(state.calibration.source, 'measured');
+  assert.equal(root.button('Try again'), undefined, 'the retry button goes away once the send worked');
+  assert.equal(fresh.streams.length, streamsBefore, 'the mic is not opened again');
+  assert.equal(fresh.clipsStarted, recordingsBefore, 'nothing is recorded again');
+  const [first, second] = sentFileSets();
+  assert.deepEqual(Object.keys(second).sort(), ['click', 'ref_0', 'ref_1', 'ref_2']);
+  Object.keys(first).forEach((field) => assert.equal(second[field], first[field], `${field} is the very same clip`));
+  fresh.leave();
+});
+
+test('Try again is disabled while the retry is in flight', async () => {
+  const fresh = installFakeBrowser();
+  failFirstSendWith({ code: 'server_error', message: 'The app server had a problem. Please try again.' });
+  const root = await startScreen('?mock=1&calibration=failed', 'sess_retry2');
+  await recordAllAndSend(root);
+  const tryAgain = root.button('Try again');
+  assert.equal(tryAgain.disabled, false);
+  const retrying = tryAgain.click();
+  assert.equal(tryAgain.disabled, true, 'a second press cannot start a second send');
+  assert.equal(root.button('Send calibration').disabled, true);
+  await tryAgain.click(); // ignored: disabled
+  await retrying;
+  assert.equal(sentFileSets().length, 2, 'one failed send and one retry, nothing more');
+  fresh.leave();
+});
+
+test('the Retry buttons of the failed-notes list are disabled while a note is being recorded', async () => {
+  const fresh = installFakeBrowser();
+  const root = await startScreen('?mock=1&calibration=failed', 'sess_retry3');
+  await recordAllAndSend(root);
+  const retryButtons = root.find((n) => n.tagName === 'button' && n.textContent === 'Retry');
+  assert.equal(retryButtons.length, 2);
+  assert.ok(retryButtons.every((retry) => !retry.disabled));
+  const recording = retryButtons[0].click();
+  assert.ok(retryButtons.every((retry) => retry.disabled), 'no second recording while one is running');
+  await recording;
+  fresh.leave();
+});
+
+test('a 422 audio_unreadable asks for that note to be recorded again, not for the same clip to be re-sent', async () => {
+  const fresh = installFakeBrowser();
+  failFirstSendWith({ code: 'audio_unreadable', message: "We couldn't read the recording for ref_1. Record it again." });
+  const root = await startScreen('?mock=1&calibration=failed', 'sess_retry4');
+  await recordAllAndSend(root);
+  assert.match(fresh.banner.textContent, /couldn't use the recording of F4 on your other device\. Please record it again/);
+  assert.ok(root.hasText('F4: recording could not be used'));
+  assert.equal(root.button('Try again'), undefined, 'sending the same bad clip again cannot work');
+  assert.equal(root.button('Send calibration').disabled, true, 'F4 must be recorded again first');
+  assert.ok(root.hasText('Needs another try'));
+  await root.button(/^Record F4 \(3 s\)$/).click();
+  assert.equal(root.button('Send calibration').disabled, false);
+  await root.button('Send calibration').click();
+  assert.equal(state.calibration.source, 'measured');
+  const [, second] = sentFileSets();
+  assert.equal(Object.keys(second).length, 4);
+  fresh.leave();
+});
+
+test('a 422 on the delay test clip asks for the delay test again', async () => {
+  const fresh = installFakeBrowser();
+  failFirstSendWith({ code: 'audio_unreadable', message: "We couldn't read the recording for click. Record it again." });
+  const root = await startScreen('?mock=1&calibration=failed', 'sess_retry5');
+  await recordAllAndSend(root);
+  assert.match(fresh.banner.textContent, /recording of the delay test\. Please record it again/);
+  assert.ok(root.hasText('Needs another try'));
+  assert.equal(root.button('Send calibration').disabled, true);
+  await root.button(/^Record the delay test/).click();
+  assert.equal(root.hasText('Needs another try'), false);
+  await root.button('Send calibration').click();
+  assert.equal(state.calibration.source, 'measured');
+  fresh.leave();
+});
+
+test('clipProblemFromError: names the clip for 422/415 answers that mention one, and nothing else', () => {
+  const unreadable = new ApiError('audio_unreadable', "We couldn't read the recording for inst_2. Record it again.", 422);
+  assert.deepEqual(clipProblemFromError(unreadable, NOTES), {
+    field: 'inst_2', kind: 'inst', index: 2, label: 'Bb4 on your instrument',
+    message: "We couldn't use the recording of Bb4 on your instrument. Please record it again.",
+  });
+  assert.equal(clipProblemFromError(new ApiError('bad_request', 'click_at_s must be a number of seconds.', 422), NOTES), null);
+  assert.equal(clipProblemFromError(new ApiError('server_error', 'ref_1 broke', 500), NOTES), null);
+  assert.equal(clipProblemFromError(new ApiError('calibration_failed', 'ref_1 not heard', 422), NOTES), null);
+  assert.equal(clipProblemFromError(null, NOTES), null);
 });
