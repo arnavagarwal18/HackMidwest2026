@@ -1,4 +1,5 @@
 """The stale-rep sweep: a rep stuck in 'processing' is failed when a new rep is claimed, so it can't block the exercise."""
+import os
 import time
 
 import pytest
@@ -32,10 +33,16 @@ def started(monkeypatch):
     return started
 
 
-def stick_a_rep(session_id: str, take_status: str, age_s: float | None = 5) -> None:
-    """A rep whose RepResult is 'processing' and whose take is in `take_status`, started `age_s` seconds ago (None: no start time)."""
+def stick_a_rep(session_id: str, take_status: str, age_s: float | None = 5, file_age_s: float | None = None) -> None:
+    """A rep whose RepResult is 'processing' and whose take is in `take_status`, started `age_s` seconds ago (None: no start
+    time). With `file_age_s`, the take also has its uploaded file, last written that many seconds ago."""
     started_at = {} if age_s is None else {"started_at": time.time() - age_s}
-    take = add_rep(session_id, STUCK_ID, tempo_bpm=64.0, status=take_status, **started_at)
+    file_name = {} if file_age_s is None else {"file": "t1.wav"}
+    take = add_rep(session_id, STUCK_ID, tempo_bpm=64.0, status=take_status, **started_at, **file_name)
+    if file_age_s is not None:
+        uploaded = store.session_dir(session_id) / "t1.wav"
+        uploaded.write_bytes(b"RIFFdata")
+        os.utime(uploaded, (time.time() - file_age_s,) * 2)
 
     def claim(progress: dict) -> None:
         progress["reps"][STUCK_ID] = processing_rep_result(take)
@@ -87,10 +94,33 @@ def test_a_rep_whose_take_is_live_is_not_swept(client, session_id, started, take
     assert started == []
 
 
-def test_a_live_take_with_no_start_time_is_not_swept(client, session_id, started):
+def test_a_live_take_with_no_start_time_and_no_file_is_not_swept(client, session_id, started):
     stick_a_rep(session_id, "processing", age_s=None)
     assert_error(post_rep(client, session_id), 409, "wrong_state")
     assert read_progress(session_id)["reps"][STUCK_ID]["status"] == "processing"
+
+
+@pytest.mark.parametrize("take_status", ["processing", "diagnosed"])
+def test_an_old_stuck_rep_with_no_start_time_is_dated_by_its_file_and_swept(client, session_id, started, take_status):
+    stick_a_rep(session_id, take_status, age_s=None, file_age_s=STALE_AFTER_S + 1)
+    assert post_rep(client, session_id).status_code == 202
+    assert_swept_with_ladder_unchanged(session_id)
+    assert started == ["t2"]
+
+
+def test_a_young_live_rep_with_no_start_time_is_not_swept(client, session_id, started):
+    stick_a_rep(session_id, "processing", age_s=None, file_age_s=STALE_AFTER_S - 30)
+    assert_error(post_rep(client, session_id), 409, "wrong_state")
+    assert read_progress(session_id)["reps"][STUCK_ID]["status"] == "processing"
+    assert started == []
+
+
+def test_a_processing_rep_with_no_start_time_whose_file_is_gone_is_swept(client, session_id, started, caplog):
+    stick_a_rep(session_id, "processing", age_s=None, file_age_s=5)
+    (store.session_dir(session_id) / "t1.wav").unlink()
+    assert post_rep(client, session_id).status_code == 202
+    assert_swept_with_ladder_unchanged(session_id)
+    assert "counting it as stale" in caplog.text
 
 
 def test_a_new_rep_take_records_when_it_started(client, session_id, started):

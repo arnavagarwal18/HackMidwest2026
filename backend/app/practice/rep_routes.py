@@ -32,7 +32,7 @@ def check_can_start_rep(progress: dict, exercise_id: str) -> None:
 def _check_can_start_after_sweep(session_id: str, exercise_id: str) -> None:
     """The early 409 check on a copy of the progress with stale reps swept, so a stuck rep can't turn the upload away."""
     progress = read_progress(session_id)
-    sweep_stale_reps(progress, store.get(session_id).takes, time.time())
+    sweep_stale_reps(progress, store.get(session_id).takes, time.time(), store.session_dir(session_id))
     check_can_start_rep(progress, exercise_id)
 
 
@@ -45,7 +45,7 @@ def _claim_rep(session_id: str, exercise_id: str, take: dict) -> None:
     takes, now = store.get(session_id).takes, time.time()
 
     def start(progress: dict) -> None:
-        swept = sweep_stale_reps(progress, takes, now)
+        swept = sweep_stale_reps(progress, takes, now, store.session_dir(session_id))
         if swept:
             logger.warning("Swept stale rep(s) of session %s stuck in processing: %s", session_id, ", ".join(swept))
         check_can_start_rep(progress, exercise_id)
