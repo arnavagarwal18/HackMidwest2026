@@ -56,8 +56,7 @@ async function shoot({ name, hash, ready, session, then, act, height = VIEWPORT.
   if (then) { await page.eval(then.run); await page.waitFor(then.ready); }
   if (act) await act(page);
   await new Promise((resolve) => setTimeout(resolve, 800)); // let fonts, fades and polling settle
-  const height = full ? await page.eval('document.documentElement.scrollHeight') : VIEWPORT.height;
-  if (full) await page.send('Emulation.setDeviceMetricsOverride', { ...VIEWPORT, height }); // a tall page is shot whole
+  if (full) await page.send('Emulation.setDeviceMetricsOverride', { ...VIEWPORT, height: await page.eval('document.documentElement.scrollHeight') }); // a tall page is shot whole
   const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
   const file = join(OUT_DIR, `${name}-${scheme}.png`);
   writeFileSync(file, Buffer.from(data, 'base64'));
