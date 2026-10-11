@@ -126,14 +126,21 @@ The key: the back end finds it (`diagnosis/transposition.py`) and the analysis c
 `POST /sessions/{id}/transposition` (source `user`); `results/rerun.js` then waits for the analysis to show the new key and for the
 rebuilt feedback (a new feedback id) and never posts feedback itself. In mock mode a transposition POST has the same effect (`js/mock_transposition.js`).
 
+Layout, top to bottom (`results/view.js`): the recording (`results/media.js`; hidden if it cannot load), the verdict
+(`results/hero.js`: a headline naming the weakest of pitch, rhythm and tempo, each score with what it measures, "Focus here" on the
+weakest, one suggestion, Ask coach and Try again), Bar by bar (`results/strip.js`: one Good / Okay / Needs work button per bar from
+`results/bar_level.js`, arrow keys, Home and End move between them, the worst bar is selected first and its detail from
+`results/bar_detail.js` shows below), Practice next (`renderPracticeNext` in `results/plan.js`), then closed rows: The numbers and
+Detailed feedback. From 901px `#coach-root` is a sticky right column (`.results-layout` in `css/results.css`).
+
 For the overlay and chat coders:
 
 - **Video container:** `#results-media` > `.video-stage` (position: relative) > `<video>`; put the overlay canvas in `.video-stage`.
-  Beside it is an empty `#form-flag-slot` for the form flag list. `view.js`'s `renderDone` returns `{ index, jumper, player, barList, ... }`.
-- **Jumping:** `jumper.jumpTo(place)` moves the media and highlights the bar row. Form flags: `jumpTo(resolveId(flag.id, index))`
+  Beside it is an empty `#form-flag-slot` for the form flag list. `view.js`'s `renderDone` returns `{ index, jumper, player, barStrip, ... }`.
+- **Jumping:** `jumper.jumpTo(place)` moves the media and selects the bar's box in Bar by bar (scrolled into view). Form flags: `jumpTo(resolveId(flag.id, index))`
   seeks to `peak_s` exactly (sentences start 1 s early).
 - **Reusable rendering** (`results/sentences.js`): `renderSentence`, `renderSentenceList`, `renderChip`; they take a jump context
-  `{ index, jumper }` where `index = buildMeasurementIndex(analysis)` (`results/measurements.js`) and `jumper = createJumper({ player, barList })`.
+  `{ index, jumper }` where `index = buildMeasurementIndex(analysis)` (`results/measurements.js`) and `jumper = createJumper({ player, barBoxes })`.
 - The analysis has no `kind`; a take counts as video when `state.take_setup.kind === 'video'` or `form_status !== 'none'`.
 
 Mock takes for trying each state (use them as the take id): `take_1` (video), `take_mic`, `take_fallback`, `take_failed`,

@@ -89,6 +89,7 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .bar-strip-section h2, .practice-next h2 { margin: 0 0 var(--sp-1); }
 .bars-lead { margin: 0; }
 .bar-strip { display: grid; grid-template-columns: repeat(var(--bar-columns), minmax(44px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0 0; }
+@media (min-width: 901px) { .bar-strip { max-width: calc(var(--bar-columns) * 5rem); } } /* a short take keeps small boxes */
 @media (max-width: 900px) { .bar-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: var(--tap); min-height: 56px; padding: var(--sp-1) 2px; border: 2px solid var(--fill-edge); border-radius: var(--radius); background: var(--fill); color: var(--ink); font: inherit; line-height: 1.15; cursor: pointer; }
 .bar-box-num { font-size: var(--fs-md); font-weight: 700; }

@@ -38,7 +38,8 @@ const count = (page, selector) => page.eval(`document.querySelectorAll(${JSON.st
 const click = (page, selector, index = 0) => page.eval(`document.querySelectorAll(${JSON.stringify(selector)})[${index}].click()`);
 const analysisRequests = (page) => page.eval(`import('/js/mock.js').then((m) => m.mockRequestLog.filter((r) => r.method === 'GET' && r.path.endsWith('/analysis')).length)`);
 const mediaTime = (page, tag) => page.eval(`document.querySelector('${tag}').currentTime`);
-const rowInView = (page, bar) => page.eval(`(() => { const r = document.getElementById('bar-row-${bar}').getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; })()`);
+const boxInView = (page, bar) => page.eval(`(() => { const r = document.querySelector('.bar-box[data-bar="${bar}"]').getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; })()`);
+const selectedBars = (page) => page.eval(`[...document.querySelectorAll('.bar-box[aria-pressed="true"]')].map((b) => b.dataset.bar)`);
 
 async function test(name, run) {
   const pages = [];
@@ -54,7 +55,7 @@ async function test(name, run) {
   }
 }
 
-await test('video take renders all six parts and the stages', async (open) => {
+await test('video take renders the recording, verdict, bars, plan and detail rows, and the stages', async (open) => {
   const page = await open('take_1');
   await page.waitFor(`document.querySelector('.results .tier1')`);
   assert.deepEqual((await page.eval('window.__stages')).slice(0, 2), ['Hearing notes...', 'Checking against the score...']);
@@ -63,9 +64,10 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.equal(await count(page, '.tier1 .sentence'), 2);
   assert.equal(await count(page, '.coach .sentence'), 2);
   assert.equal(await count(page, '.results .badge, .results .card'), 0, 'no badges or cards on the results');
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row')].map((r) => r.dataset.bar)`), ['3', '4']);
-  assert.match((await text(page, '#bar-row-3'))[0], /Bar 3.*1 wrong.*1 missed.*1 extra.*steady \(\+?0\.5%\)/);
-  assert.match((await text(page, '#bar-row-4'))[0], /dragging \(-8%\)/);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-box')].map((b) => b.dataset.bar)`), ['3', '4']);
+  assert.match((await text(page, '#bar-detail'))[0], /Bar 3.*1 wrong.*1 missed.*1 extra.*steady \(\+?0\.5%\)/);
+  await click(page, '.bar-box', 1);
+  assert.match((await text(page, '#bar-detail'))[0], /dragging \(-8%\)/);
   assert.equal(await count(page, '.video-stage video[controls]'), 1);
   assert.equal(await count(page, '#form-flag-slot'), 1);
   assert.equal(await page.eval(`document.querySelector('.exercise a').getAttribute('href')`), '#/exercise/ex1');
@@ -83,19 +85,23 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.deepEqual(await text(page, 'button.primary'), ['Ask coach'], 'one filled button on the results');
 });
 
-await test('the first glance is a word, a number, three scores with only the weakest marked in words, one sentence, Ask coach and Try again', async (open) => {
+await test('the recording comes first, then a verdict naming the weak spot, three labelled scores with Focus here on the weakest, one sentence and the buttons', async (open) => {
   const page = await open('take_1');
   await page.waitFor(`document.querySelector('.hero')`);
-  assert.match((await text(page, '.hero-word'))[0], /take|Getting there|Keep at it/);
-  assert.match((await text(page, '.hero-number'))[0], /^\d+%$/);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.mini-label')].map((e) => e.textContent)`), ['Pitch', 'Rhythm', 'Tempo']);
-  assert.equal(await count(page, '.mini-score.weakest'), 1, 'only one score is highlighted');
-  assert.deepEqual(await text(page, '.mini-score.weakest .mini-flag'), ['Weakest'], 'the highlight has a text label, not colour alone');
-  assert.equal(await count(page, '.mini-flag'), 1);
+  assert.equal(await page.eval(`document.querySelector('.results').firstElementChild.id`), 'results-media', 'the recording renders first');
+  assert.equal(await page.eval(`document.querySelector('.results').children[1].className`), 'hero');
+  assert.match((await text(page, '.verdict-title'))[0], / — (pitch|rhythm|tempo) is your weak spot$/);
+  assert.equal(await count(page, '.hero-word, .hero-number'), 0);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.score-name')].map((e) => e.firstChild.textContent)`), ['Pitch', 'Rhythm', 'Tempo']);
+  assert.ok((await text(page, '.score-measure')).every((measure) => /notes|bars|Not measured/.test(measure)), 'each score says what it measures');
+  assert.equal(await count(page, '.score-item.is-focus'), 1, 'only one score is marked');
+  assert.deepEqual(await text(page, '.score-item.is-focus .focus-tag'), ['Focus here'], 'the mark is a word, not colour alone');
+  const weakest = (await page.eval(`document.querySelector('.is-focus .score-name').firstChild.textContent`)).toLowerCase();
+  assert.ok((await text(page, '.verdict-title'))[0].includes(weakest), 'the headline names the marked score');
   assert.equal(await count(page, '.suggestion'), 1);
   assert.deepEqual(await text(page, '.hero .actions button'), ['Ask coach', 'Try again']);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.results details.disclosure')].map((d) => d.open)`), [false, false, false, false, false, false], 'every detail row starts closed');
-  assert.ok(await page.eval(`[...document.querySelectorAll('.hero button, .results summary')].every((e) => e.getBoundingClientRect().height >= 44)`), 'tap targets are at least 44px');
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.results details.disclosure')].map((d) => [d.querySelector('summary').textContent, d.open])`), [['The numbers', false], ['Detailed feedback', false]], 'the remaining detail starts closed');
+  assert.ok(await page.eval(`[...document.querySelectorAll('.hero button, .results summary, .bar-box, .practice-step .btn, .play-bar')].every((e) => e.getBoundingClientRect().height >= 44 && e.getBoundingClientRect().width >= 44)`), 'tap targets are at least 44px');
 });
 
 await test('Ask coach opens the coach sheet through the coach:open event, and Try again goes to the take screen', async (open) => {
@@ -112,47 +118,71 @@ await test('Ask coach opens the coach sheet through the coach:open event, and Tr
   await page.waitFor(`location.hash === '#/take'`);
 });
 
-await test('the bar strip tints and marks every bar, shows the detail on a tap and seeks without moving the list', async (open) => {
+await test('Bar by bar: Good / Okay / Needs work boxes, the worst selected at first; a click shows that bar, arrows move, Play this bar seeks', async (open) => {
   const page = await open('take_1');
-  await page.waitFor(`document.querySelector('.bar-cell')`);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-cell')].map((c) => c.dataset.bar + c.className.replace('bar-cell', ''))`), ['3 tone-sharp', '4 tone-late']);
-  assert.deepEqual(await text(page, '.bar-cell-glyph'), ['↑', '→'], 'a glyph, not only a colour');
-  assert.match(await page.eval(`document.querySelector('.bar-cell').getAttribute('aria-label')`), /^Bar 3: sharp/);
-  assert.equal(await count(page, '#bar-detail .bar-actions'), 0, 'nothing is open until a tap');
-  await click(page, '.bar-cell', 1);
-  await page.waitFor(`document.querySelector('video').currentTime >= 5 && document.querySelector('video').currentTime < 6`);
-  assert.match((await text(page, '#bar-detail'))[0], /late.*Bar 4.*dragging/);
-  assert.equal(await page.eval(`document.querySelectorAll('.bar-cell')[1].getAttribute('aria-pressed')`), 'true');
-  assert.equal(await count(page, '.bar-row.highlighted'), 0, 'a strip tap does not scroll the list');
+  await page.waitFor(`document.querySelector('.bar-box')`);
+  assert.deepEqual(await text(page, '.bar-box-word'), ['Needs work', 'Needs work'], 'a word, not only a colour (bar 4 has 1 of 2 notes right)');
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-box')].map((b) => b.getAttribute('aria-label'))`), ['Bar 3, needs work', 'Bar 4, needs work']);
+  assert.deepEqual(await selectedBars(page), ['3'], 'the worst bar is selected at first');
+  assert.equal(await page.eval(`document.querySelector('video').currentTime`), 0, 'nothing plays on its own');
+  assert.equal(await count(page, '.bar-legend li'), 3);
+  await click(page, '.bar-box', 1);
+  assert.deepEqual(await selectedBars(page), ['4']);
+  assert.match((await text(page, '#bar-detail'))[0], /Bar 4 · Needs work.*late.*Bar 4.*dragging/);
+  assert.notEqual(await page.eval(`getComputedStyle(document.querySelector('.bar-box.selected')).outlineStyle`), 'none', 'the selected box is outlined');
   assert.deepEqual(await text(page, '#bar-detail .loop-bar'), ['Loop this bar']);
+  await page.eval(`document.querySelector('.bar-box[data-bar="4"]').focus()`);
+  await page.eval(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }))`);
+  assert.equal(await page.eval(`document.activeElement.dataset.bar`), '3', 'Home moves to the first box');
+  assert.deepEqual(await selectedBars(page), ['3']);
+  await page.eval(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`);
+  assert.equal(await page.eval(`document.activeElement.dataset.bar`), '4', 'ArrowRight moves to the next box');
+  await click(page, '#bar-detail .play-bar');
+  await page.waitFor(`document.querySelector('video').currentTime >= 5 && document.querySelector('video').currentTime < 6`);
   assert.deepEqual(await text(page, 'button.primary'), ['Ask coach'], 'the bar buttons are not filled');
+});
+
+await test('Practice next lists the plan as steps that go to their bar or open the exercise', async (open) => {
+  const page = await open('take_1');
+  await page.waitFor(`document.querySelector('.practice-next')`);
+  const steps = await count(page, '.practice-step');
+  assert.ok(steps >= 1 && steps <= 3, `${steps} steps`);
+  assert.equal(await page.eval(`document.querySelector('.practice-step a').getAttribute('href')`), '#/exercise/ex1');
+  const goTo = await page.eval(`document.querySelector('.practice-step .go-to-bar')?.textContent ?? ''`);
+  if (goTo) {
+    await click(page, '.practice-step .go-to-bar');
+    assert.deepEqual(await selectedBars(page), [goTo.replace('Go to bar ', '')]);
+  }
 });
 
 await test('Loop this bar opens the plan exercise with the bars and about 75% of the take tempo as a hint; Play again goes to the take screen', async (open) => {
   const page = await open('take_1');
-  await page.waitFor(`document.querySelector('.bar-row .loop-bar')`);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row .loop-bar')].map((a) => a.dataset.bar + a.getAttribute('href'))`), ['3#/exercise/ex1', '4#/exercise/ex1']);
-  await click(page, '.bar-row .loop-bar', 1);
+  await page.waitFor(`document.querySelector('#bar-detail .loop-bar')`);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('#bar-detail .loop-bar')].map((a) => a.dataset.bar + a.getAttribute('href'))`), ['3#/exercise/ex1']);
+  await click(page, '.bar-box', 1);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('#bar-detail .loop-bar')].map((a) => a.dataset.bar + a.getAttribute('href'))`), ['4#/exercise/ex1']);
+  await click(page, '#bar-detail .loop-bar');
   await page.waitFor(`location.hash === '#/exercise/ex1'`);
   await page.waitFor(`document.querySelector('.loop-hint')?.textContent`);
   assert.match((await text(page, '.loop-hint'))[0], /Looping bar 4.*start near 66 BPM/);
   await page.eval(`location.hash = '#/results/take_1'`);
-  await page.waitFor(`document.querySelector('.bar-row .play-again-bar')`);
-  await click(page, '.bar-row .play-again-bar');
+  await page.waitFor(`document.querySelector('#bar-detail .play-again-bar')`);
+  await click(page, '#bar-detail .play-again-bar');
   await page.waitFor(`location.hash === '#/take'`);
 });
 
-await test('clicking a sentence or chip seeks 1 s earlier, highlights and scrolls to the bar row', async (open) => {
+await test('clicking a sentence or chip seeks 1 s earlier, selects the bar box and scrolls it into view', async (open) => {
   const page = await open('take_1', `${FAST}`);
   await page.waitFor(`document.querySelector('.results .tier1')`);
-  await page.eval(`document.querySelector('.results').style.paddingBottom = '2000px'; document.getElementById('bar-row-3').scrollIntoView({ block: 'start' }); window.scrollTo(0, 0)`);
+  await page.eval(`document.querySelector('.results').style.paddingBottom = '2000px'; window.scrollTo(0, document.documentElement.scrollHeight)`);
   await click(page, '.tier1 .sentence-text', 1); // bar 4 at 6.0 s
   await page.waitFor(`document.querySelector('video').currentTime >= 5 && document.querySelector('video').currentTime < 6`);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row.highlighted')].map((r) => r.dataset.bar)`), ['4']);
-  assert.ok(await rowInView(page, 4), 'bar 4 row scrolled into view');
+  assert.deepEqual(await selectedBars(page), ['4']);
+  assert.ok(await boxInView(page, 4), 'bar 4 box scrolled into view');
+  assert.match((await text(page, '#bar-detail'))[0], /Bar 4/, 'the detail shows the bar jumped to');
   await click(page, '.coach .sentence:nth-child(1) .chip'); // n:t1:3:2 -> bar 3 at 4.5 s
   await page.waitFor(`document.querySelector('video').currentTime >= 3.5 && document.querySelector('video').currentTime < 4.5`);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row.highlighted')].map((r) => r.dataset.bar)`), ['3']);
+  assert.deepEqual(await selectedBars(page), ['3']);
   assert.deepEqual(await text(page, '.coach .sentence:nth-child(2) .chip'), ['bar 4']);
   assert.equal(await page.eval(`document.querySelector('video').paused`), false);
 });
@@ -164,7 +194,9 @@ await test('a mic take shows an audio player and jumps in it', async (open) => {
   assert.equal(await count(page, '#form-flag-slot'), 0);
   await click(page, '.tier1 .sentence-text', 0); // bar 3 at 4.5 s
   await page.waitFor(`document.querySelector('audio').currentTime >= 3.5 && document.querySelector('audio').currentTime < 4.5`);
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row.highlighted')].map((r) => r.dataset.bar)`), ['3']);
+  await click(page, '.bar-box', 1);
+  await click(page, '.tier1 .sentence-text', 0);
+  assert.deepEqual(await selectedBars(page), ['3']);
 });
 
 await test('fallback mode says the AI coach is unavailable', async (open) => {
@@ -195,7 +227,7 @@ await test("a can't-tell take shows the message, the transposition control and R
   assert.deepEqual(await text(page, '.heard-summary'), ['What I heard: best match to the score 21%.']);
   assert.match((await text(page, '.next-action'))[0], /closer to the microphone/); // the mock take is few_pairs
   assert.deepEqual(await text(page, 'button.primary'), ['Record again'], 'one next action, filled');
-  assert.equal(await count(page, '.bar-list'), 0);
+  assert.equal(await count(page, '.bar-strip-section'), 0);
   assert.equal(await count(page, '.exercise'), 1, 'the plan is still shown');
   await page.eval(`(() => { const s = document.getElementById('transposition-select'); s.value = '3'; })()`);
   await page.eval(`[...document.querySelectorAll('button')].find((b) => b.textContent === 'Change transposition').click()`);
