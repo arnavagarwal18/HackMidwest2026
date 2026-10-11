@@ -83,7 +83,7 @@ export function createChatPanel(root, deps) {
 
   async function ask(text, { fromInput = false } = {}) {
     if (pending) return;
-    speech.stop();
+    speech.cancel();
     const problem = validateMessage(text);
     if (problem) return reportError(new Error(problem));
     const hadFocus = sheet.contains(document.activeElement);

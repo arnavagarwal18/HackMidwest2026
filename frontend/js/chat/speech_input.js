@@ -1,6 +1,6 @@
 // Voice input for the coach's question box: a mic button that fills the box from the browser's speech recognition.
 // It never sends: the user reads what was heard, edits it and presses Send.
-// createSpeechInput({ input, reportError, win, logger }) -> { element, stop, setDisabled }. `win` and `logger` are for tests.
+// createSpeechInput({ input, reportError, win, logger }) -> { element, stop, cancel, setDisabled }. `win` and `logger` are for tests.
 import { button } from '../dom.js';
 
 export const LANGUAGE = 'en-US';
@@ -82,11 +82,25 @@ export function createSpeechInput({ input, reportError, win = window, logger = c
     recognition?.stop(); // the final result still arrives, then `end` resets the button
   }
 
+  // Used on Send: the heard text is being sent, so late results must not refill the box.
+  function cancel() {
+    if (!recognition) return;
+    const finished = recognition;
+    recognition = null;
+    finished.onresult = finished.onerror = finished.onend = null;
+    setListening(false);
+    try {
+      finished.abort();
+    } catch (err) {
+      logger.warn('Voice input: could not abort listening', err);
+    }
+  }
+
   function toggle() {
     if (unavailable) return fail(unavailable);
     if (recognition) return stop();
     start();
   }
 
-  return { element: mic, stop, setDisabled: (disabled) => { mic.disabled = disabled; } };
+  return { element: mic, stop, cancel, setDisabled: (disabled) => { mic.disabled = disabled; } };
 }

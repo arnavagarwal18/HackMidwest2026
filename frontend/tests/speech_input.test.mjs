@@ -1,7 +1,7 @@
 // Voice input for the coach's question box, with a mocked recognition object (no browser). Run: node --test frontend/tests/speech_input.test.mjs
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { installFakeDom } from './fake_dom.mjs';
+import { installFakeDom, settle } from './fake_dom.mjs';
 
 installFakeDom();
 const { createSpeechInput, ERROR_MESSAGES, UNSUPPORTED_MESSAGE, INSECURE_MESSAGE, LANGUAGE } = await import('../js/chat/speech_input.js');
@@ -11,6 +11,7 @@ class FakeRecognition {
   static instances = [];
   constructor() { this.started = false; this.stopped = false; FakeRecognition.instances.push(this); }
   start() { if (FakeRecognition.startError) throw FakeRecognition.startError; this.started = true; }
+  abort() { this.aborted = true; }
   stop() { this.stopped = true; this.onend?.(); }
   say(parts) { this.onresult?.({ results: parts.map((transcript) => [{ transcript }]) }); }
   fail(error) { this.onerror?.({ error }); this.onend?.(); }
@@ -125,6 +126,59 @@ test('a start() that throws is reported, logged and leaves the button ready', ()
   assert.equal(errors.length, 1);
   assert.equal(warnings.length, 1);
   assert.equal(mic.attributes['aria-pressed'], 'false');
+});
+
+test('cancel (on Send) aborts listening, resets the button, and ignores a late final result', () => {
+  const { input, mic, speech, current, errors } = setup({ value: 'Why' });
+  mic.click();
+  const recognition = current();
+  recognition.say(['was it flat']);
+  input.value = ''; // what the panel does after a successful send
+  speech.cancel();
+  assert.ok(recognition.aborted);
+  assert.equal(mic.attributes['aria-pressed'], 'false');
+  assert.equal(mic.textContent, 'Speak');
+  recognition.say(['was it flat today']); // a late final result
+  recognition.fail('aborted');
+  recognition.onend?.();
+  assert.equal(input.value, '', 'the sent text does not come back');
+  assert.deepEqual(errors, []);
+  mic.click();
+  assert.equal(FakeRecognition.instances.length, 2, 'a new session can start');
+});
+
+test('cancel with nothing listening does nothing', () => {
+  const { speech, mic } = setup();
+  speech.cancel();
+  assert.equal(mic.attributes['aria-pressed'], 'false');
+});
+
+test('in the panel: Send cancels listening and a late result does not refill the cleared box', async () => {
+  const sent = [];
+  FakeRecognition.instances = [];
+  FakeRecognition.startError = null;
+  window.SpeechRecognition = FakeRecognition;
+  window.isSecureContext = true;
+  const root = document.createElement('div');
+  document.body.replaceChildren(root);
+  const reply = { user_turn: { turn: 1, role: 'user', text: 'x', take_id: 'take_1' }, instructor_turn: { turn: 2, role: 'instructor', text: 'ok', take_id: 'take_1', sentences: null, mode: 'ai' } };
+  const panel = createChatPanel(root, { sessionId: 's1', take: 'take_1', getChat: async () => ({ turns: [] }), sendChat: async (...args) => { sent.push(args); return reply; }, reportError: () => {} });
+  await panel.whenReady;
+  const mic = root.withClass('chat-mic')[0];
+  const input = root.withClass('chat-input')[0];
+  input.value = '';
+  mic.click();
+  const recognition = FakeRecognition.instances[0];
+  recognition.say(['and bar four']);
+  root.button('Send').click();
+  assert.ok(recognition.aborted);
+  assert.equal(mic.attributes['aria-pressed'], 'false');
+  await settle();
+  assert.equal(sent.length, 1);
+  assert.equal(input.value, '', 'cleared after a successful send');
+  recognition.say(['and bar four please']);
+  assert.equal(input.value, '', 'a late result is ignored');
+  delete window.SpeechRecognition;
 });
 
 test('in the panel: the mic sits in the question form, fills the box, and never sends', async () => {
