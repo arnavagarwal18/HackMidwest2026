@@ -28,6 +28,10 @@ def start_pipeline(session_id: str, take_id: str) -> threading.Thread:
     return thread
 
 
+def max_duration_s(take: dict) -> int:
+    return MAX_REP_DURATION_S if take.get("purpose", "take") == "rep" else MAX_DURATION_S
+
+
 def _fail(session_id: str, take_id: str, code: str) -> None:
     update_take(session_id, take_id, status="failed", error=code)
 
@@ -36,15 +40,15 @@ def extract_audio(session_id: str, take_id: str) -> None:
     """Write {take_id}.wav and set duration_s; raises MediaError carrying the error code to store."""
     folder = store.session_dir(session_id)
     take = store.get(session_id).takes[take_id]
-    max_duration_s = MAX_REP_DURATION_S if take.get("purpose", "take") == "rep" else MAX_DURATION_S
+    limit_s = max_duration_s(take)
     info = probe(folder / take["file"])
     if not info.has_audio:
         raise MediaError("no_audio_track", "the file has no audio stream")
-    if info.duration_s is not None and info.duration_s > max_duration_s:
+    if info.duration_s is not None and info.duration_s > limit_s:
         raise MediaError("too_long", f"the file is {info.duration_s:.1f} s long")
     extract_wav(folder / take["file"], folder / take["audio"])
     duration = info.duration_s if info.duration_s is not None else wav_duration_s(folder / take["audio"])
-    if duration > max_duration_s:
+    if duration > limit_s:
         raise MediaError("too_long", f"the file is {duration:.1f} s long")
     update_take(session_id, take_id, duration_s=round(duration, 3))
 

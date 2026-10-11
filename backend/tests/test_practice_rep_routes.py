@@ -173,3 +173,11 @@ def test_a_rep_is_cut_off_at_60_seconds_where_a_take_gets_180(session_id, monkey
     assert too_long.value.code == "too_long"
     pipeline.extract_audio(session_id, "t2")
     assert store.get(session_id).takes["t2"]["duration_s"] == 90.0
+
+
+def test_a_too_long_error_names_the_limit_for_the_take_s_purpose(client, session_id):
+    add_take(session_id, "t1", purpose="rep", exercise_id="ex1", status="failed", error="too_long")
+    add_take(session_id, "t2", status="failed", error="too_long")
+    message = lambda take_id: client.get(f"/sessions/{session_id}/takes/{take_id}/analysis").json()["error"]["message"]
+    assert message("t1") == "That recording is too long. Keep it under 1 minute."
+    assert message("t2") == "That recording is too long. Keep it under 3 minutes."

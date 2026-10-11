@@ -3,6 +3,7 @@ from fastapi import APIRouter
 
 from .. import store
 from ..errors import STORAGE_ERROR_MESSAGE
+from ..takes.pipeline import max_duration_s
 from ..takes.take_store import get_take
 from . import config
 from .take_data import form_flags
@@ -18,15 +19,22 @@ ERROR_MESSAGES = {
     config.ERROR_STORAGE: STORAGE_ERROR_MESSAGE,
     "no_audio_track": "That recording has no sound. Check the microphone and record again.",
     "no_notes_heard": "We couldn't hear any notes. Play a little closer to the microphone and try again.",
-    "too_long": "That recording is too long. Keep it under 3 minutes.",
     "decode_failed": "We couldn't read that recording. Try recording it again.",
     "transcription_failed": "We couldn't pick out the notes in that recording. Try recording it again.",
 }
 
 
-def _error(code: str | None) -> dict | None:
+def _too_long_message(take: dict) -> str:
+    minutes = max_duration_s(take) // 60
+    return f"That recording is too long. Keep it under {minutes} minute{'s' if minutes != 1 else ''}."
+
+
+def _error(take: dict) -> dict | None:
+    code = take.get("error")
     if not code:
         return None
+    if code == "too_long":
+        return {"code": code, "message": _too_long_message(take)}
     return {"code": code, "message": ERROR_MESSAGES.get(code, FALLBACK_ERROR_MESSAGE)}
 
 
@@ -46,7 +54,7 @@ def build_analysis(session_id: str, take_id: str) -> dict:
     diagnosis = diagnosis or {}
     return {
         "status": take["status"],
-        "error": _error(take.get("error")),
+        "error": _error(take),
         "form_status": take.get("form_status", "none"),
         "calibrated": take.get("calibrated", False),
         "transposition": diagnosis.get("transposition") or session.transposition,
