@@ -62,7 +62,6 @@ def _mark_scanning(session_id: str) -> None:
     store.update(session_id, "score_error", None)
     store.update(session_id, "doubtful_bars", [])
     store.update(session_id, "double_checked", False)
-    store.update(session_id, "referee", None)
     store.update(session_id, "score_status", "scanning")
 
 
@@ -104,6 +103,5 @@ def get_score_status(session_id: str) -> dict:
         "bars": bars,
         "doubtful_bars": session.doubtful_bars,
         "double_checked": session.double_checked,
-        "referee": session.referee,
         "warnings": warnings,
     }

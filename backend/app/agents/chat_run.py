@@ -47,7 +47,7 @@ async def _ask(session_id: str, take: dict, turns: list[dict], message: str, hol
     ctx, tools = ai_run.context_and_tools(session_id, take, run.earlier_takes(session.takes, take))
     persona = resolve_persona(session.persona, trace, "instructor")
     agent = build_instructor_agent(ai_run.new_model(), {**tools, **make_chat_tools(session_id, take)}, ctx, holder, trace,
-                                   history_messages(turns, persona.id), PersonaRun(persona), turns)
+                                   history_messages(turns, persona.id), PersonaRun(persona))
     await asyncio.wait_for(
         invoke_until_submitted(agent, message, agent_name="instructor", tool_name=CHAT_SUBMIT.tool_name,
                                accepted=lambda: holder.reply is not None, trace=trace),

@@ -5,19 +5,15 @@ from pathlib import Path
 import pytest
 
 from app import store
-from app.score import clean, compare, homr_runner, reader_agent, scan_job
+from app.agents import config as agents_config
+from app.agents import model as agents_model
+from app.score import clean, homr_runner, scan_job
 from tests.photo_factory import encode, staff_image
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ODE_TO_JOY = Path(__file__).parents[1] / "app" / "score" / "builtins" / "ode_to_joy.musicxml"
 STUB = FIXTURES / "stub_homr.py"
 MB = 1024 * 1024
-
-
-@pytest.fixture(autouse=True)
-def no_reader(monkeypatch):
-    """These tests are about the photo scan itself: the Score reader gives no reading (and never calls Bedrock)."""
-    monkeypatch.setattr(reader_agent, "read_score", lambda image_path, timeout_s=30: None)
 
 
 @pytest.fixture
@@ -74,8 +70,6 @@ def test_photo_scan_goes_from_scanning_to_scanned(client, session_id, stub_homr)
     assert status(client, session_id)["score_status"] == "scanning"
 
     done = wait_until_done(client, session_id)
-    referee = done.pop("referee")  # the contract gained a referee report (LLD-8); its details are tested in test_scan_job_referee
-    assert (referee["status"], referee["reason"]) == ("skipped", "nothing_to_check")
     assert done == {
         "score_status": "scanned",
         "score_error": None,
@@ -83,9 +77,26 @@ def test_photo_scan_goes_from_scanning_to_scanned(client, session_id, stub_homr)
         "bars": 16,
         "doubtful_bars": [],
         "double_checked": False,
-        "warnings": [compare.NO_READING_WARNING],
+        "warnings": [],
     }
     assert client.get(f"/sessions/{session_id}/score").status_code == 200  # the scanned score can be read back
+
+
+def test_photo_scan_with_ai_on_makes_no_bedrock_call_and_has_no_reader_warnings(client, session_id, stub_homr, monkeypatch):
+    settings = agents_config.Settings(region="us-east-1", text_model="text", vision_model="vision", aws_profile="", ai_enabled=True)
+    monkeypatch.setattr(agents_config, "get_settings", lambda: settings)
+
+    def no_bedrock(*args, **kwargs):
+        pytest.fail("a photo scan must not call Bedrock")
+
+    monkeypatch.setattr(agents_model, "build_bedrock_model", no_bedrock)
+    monkeypatch.setattr("strands.Agent.__call__", no_bedrock)
+    stub_homr("ok")
+    post_photo(client, session_id)
+    done = wait_until_done(client, session_id)
+    assert (done["score_status"], done["bars"]) == ("scanned", 16)
+    assert (done["warnings"], done["doubtful_bars"], done["double_checked"]) == ([], [], False)
+    assert "referee" not in done
 
 
 def test_scanned_photo_score_can_be_confirmed(client, session_id, stub_homr):
@@ -216,7 +227,6 @@ def test_status_before_any_scan(client, session_id):
         "bars": None,
         "doubtful_bars": [],
         "double_checked": False,
-        "referee": None,
         "warnings": [],
     }
 

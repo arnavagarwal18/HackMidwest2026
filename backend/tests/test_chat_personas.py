@@ -3,7 +3,7 @@ import pytest
 
 from app import store
 from app.agents import ai_run, run
-from app.agents.chat_history import HISTORY_TURNS, history_messages, with_earlier_coaches
+from app.agents.chat_history import HISTORY_TURNS, history_messages
 from app.agents.persona_styles import BEGINNER_INSTRUCTOR, CONCERT_INSTRUCTOR, MARCHING_INSTRUCTOR
 from app.agents.prompts import INSTRUCTOR_PROMPT
 from tests.fake_model import ScriptedModel, tool_turn
@@ -53,8 +53,14 @@ def assistant_text(call):
     return " ".join(block["text"] for m in call["messages"] if m["role"] == "assistant" for block in m["content"])
 
 
+def whole_prompt(call):
+    """Everything the model is sent: the system prompt and the text of every message."""
+    return " ".join([call["system"], *(block["text"] for m in call["messages"] for block in m["content"])])
+
+
 def test_all_four_coaches_get_their_own_prompt_for_the_same_take_and_question(client, fixture_data, monkeypatch):
     calls = ask_each(client, monkeypatch, fixture_data, ["standard", "beginner", "concert", "marching"])
+    assert len({whole_prompt(call) for call in calls.values()}) == 4
     assert len({call["system"] for call in calls.values()}) == 4
     for persona_id, focus in FOCUS.items():
         assert focus in calls[persona_id]["system"]
@@ -63,7 +69,7 @@ def test_all_four_coaches_get_their_own_prompt_for_the_same_take_and_question(cl
     assert not [focus for focus in FOCUS.values() if focus in calls["standard"]["system"]]
 
 
-def test_another_coachs_reply_is_never_the_current_coachs_own_words(client, fixture_data, monkeypatch):
+def test_a_coachs_prompt_holds_no_text_from_another_coachs_reply(client, fixture_data, monkeypatch):
     order = ["standard", "beginner", "concert", "marching", "concert"]
     captured = []
     monkeypatch.setattr(run, "ai_enabled", lambda: True)
@@ -77,8 +83,8 @@ def test_another_coachs_reply_is_never_the_current_coachs_own_words(client, fixt
     for position, (persona_id, call) in enumerate(captured):
         earlier = captured[:position]
         for other_id in {p for p, _ in earlier if p != persona_id}:
-            assert reply_text(other_id) not in assistant_text(call)  # not as the coach's own turn
-            assert f'The {other_id.capitalize()} coach said: "{reply_text(other_id)}"' in call["system"]  # only as labelled context
+            assert reply_text(other_id) not in whole_prompt(call)  # neither as the coach's own turn nor as background
+            assert f"{other_id.capitalize()} coach said" not in whole_prompt(call)
         for own_id in [p for p, _ in earlier if p == persona_id]:
             assert reply_text(own_id) in assistant_text(call)  # the coach's own earlier answers stay its history
         assert [m["role"] for m in call["messages"]][0::2] == ["user"] * len(call["messages"][0::2])  # roles still alternate
@@ -111,22 +117,19 @@ def test_turns_from_before_personas_count_as_standard():
     turns = [turn("user", "q"), turn("instructor", "old answer")]
     assert history_messages(turns, "standard") == history_messages(turns)
     assert history_messages(turns, "concert") == []
-    assert "The Standard coach said: \"old answer\"" in with_earlier_coaches("base", turns, "concert", "Concert")
 
 
 def test_an_exchange_with_another_coach_leaves_the_history_with_its_question():
     turns = [turn("user", "q1"), turn("instructor", "a1", "beginner"), turn("user", "q2"), turn("instructor", "a2", "concert")]
     assert history_messages(turns, "concert") == [{"role": "user", "content": [{"text": "q2"}]},
                                                   {"role": "assistant", "content": [{"text": "a2"}]}]
-    note = with_earlier_coaches("base\n", turns, "concert", "Concert")
-    assert note.startswith("base\n") and 'The learner asked: "q1" The Beginner coach said: "a1"' in note
-    assert "q2" not in note
-    assert "answer the learner's new question yourself" in note
+    assert history_messages(turns, "beginner") == [{"role": "user", "content": [{"text": "q1"}]},
+                                                   {"role": "assistant", "content": [{"text": "a1"}]}]
 
 
-def test_no_other_coach_means_the_base_prompt_unchanged():
-    turns = [turn("user", "q", None), turn("instructor", "a", "concert")]
-    assert with_earlier_coaches("base", turns, "concert", "Concert") == "base"
+def test_a_question_still_waiting_for_its_reply_stays_in_the_history():
+    turns = [turn("user", "q1"), turn("instructor", "a1", "beginner"), turn("user", "q2")]
+    assert history_messages(turns, "concert") == [{"role": "user", "content": [{"text": "q2"}]}]
 
 
 def test_the_history_window_is_the_same_for_every_coach():

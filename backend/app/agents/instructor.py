@@ -1,12 +1,11 @@
 """The Instructor agent: answers a learner's chat message about one take and finishes by calling submit_reply."""
 import json
 import logging
-from typing import Any, Callable, Sequence
+from typing import Any, Callable
 
 from strands import Agent, tool
 
 from app import store
-from app.agents.chat_history import with_earlier_coaches
 from app.agents.coach import CoachSentence
 from app.agents.context import CheckContext
 from app.agents.holder import ReplyHolder
@@ -93,13 +92,13 @@ def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]
 
 
 def build_instructor_agent(model: Any, tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: ReplyHolder,
-                           trace: Trace, history: list[dict], style: PersonaRun = PersonaRun(), earlier_turns: Sequence[dict] = ()) -> Agent:
-    """`history` is the messages this coach style wrote or heard; `earlier_turns` are all saved turns, so other coaches' replies reach it as labelled context only."""
+                           trace: Trace, history: list[dict], style: PersonaRun = PersonaRun()) -> Agent:
+    """`history` is the messages this coach style wrote or heard."""
     persona = style.persona
     agent = Agent(
         model=model,
         tools=[*[tool(fn) for fn in tools.values()], submit_reply],
-        system_prompt=with_persona(with_earlier_coaches(INSTRUCTOR_PROMPT, earlier_turns, persona.id, persona.label), persona, "instructor"),
+        system_prompt=with_persona(INSTRUCTOR_PROMPT, persona, "instructor"),
         messages=history,
         hooks=[TraceHook(trace, "instructor"), *style_hooks(style.persona, CHAT_SUBMIT, trace, "instructor"),
                CheckerHook(CHAT_SUBMIT, ctx, holder, trace)],

@@ -8,8 +8,6 @@ Found by searching `backend/app` for `build_bedrock_model`, `build_agent_model`,
 
 | Path (module:function) | Entry | Model setting | Fake-model test | Live? | Smoke script row |
 |---|---|---|---|---|---|
-| `app/score/reader_agent.py:read_score` (`_ask_model`: Strands `Agent` on a Bedrock vision model, image in, `Reading` structured output) | `scan_job._run_reader` from `POST /sessions/{id}/score/photo` | `BEDROCK_VISION_MODEL` | Yes, `test_score_reader_agent.py` and `test_scan_job_reader.py` stub `_ask_model`; `Agent` is faked, so the real structured-output call is untested | never | `score reader (vision)` |
-| `app/score/referee/agent.py:build_strands_agent` / `run` (vision model with four tools, settles bars where homr and the reader disagree) | `scan_job._record_success` from the same photo scan, only when a bar is doubtful | `BEDROCK_VISION_MODEL` | Partly: `test_referee_run.py` and `test_scan_job_referee.py` use a stub agent; `test_referee_strands.py` builds the real agent but never calls it | never | **none** (needs a bar where homr and the reader disagree; see gaps) |
 | `app/agents/ai_run.py:run_agents` with `orchestrator.py:build_orchestrator` (text model, tool calls, runs the Coach and Planner as sub-agent tools) | `run.run_feedback` from `takes/pipeline._give_feedback` after a take, and `POST /sessions/{id}/takes/{take}/feedback` | `BEDROCK_TEXT_MODEL` (via `model.build_agent_model`) | Yes, `test_run_ai.py`, `test_agent_token_caps.py`, `test_live_check.py` | never | `feedback: coach` / `feedback: planner` (latency is the whole run) |
 | `app/agents/coach.py:build_coach_agent` (`submit_feedback`) | the Orchestrator's `coach` tool | `BEDROCK_TEXT_MODEL` | Yes, `test_coach_hook.py`, `test_run_ai.py` | never | `feedback: coach` |
 | `app/agents/planner.py:build_planner_agent` (`submit_plan`) | the Orchestrator's `planner` tool | `BEDROCK_TEXT_MODEL` | Yes, `test_planner_hook.py`, `test_run_planner.py` | never | `feedback: planner` |
@@ -21,8 +19,9 @@ Found by searching `backend/app` for `build_bedrock_model`, `build_agent_model`,
 
 Settings read by the loader (`app/agents/config.py:get_settings`): `AI_ENABLED`, `BEDROCK_REGION`, `BEDROCK_TEXT_MODEL`, `BEDROCK_VISION_MODEL`, `AWS_PROFILE`.
 
+Photo scans make no Bedrock call: the AI reader and referee were removed on 2026-10-11 (homr alone reads the photo).
+
 ## Gaps in the smoke script
 
-- **Referee**: runs only inside a photo scan, and only when homr and the reader disagree on a bar. The script does not force that, so a clean run can pass without calling it. If the Reader row passes and a real photo scan (`scripts/e2e_real.py` with a photo, AI on) reports `referee.status` as `done`, the referee ran; otherwise it is still unproven.
 - **Feedback latency** is one number for the whole run (Orchestrator, then Coach and Planner in parallel); per-stage times are in `{feedback_id}_trace.json` in the temporary session folder, or from `python -m app.agents.live_check`.
 - The script uses the Ode to Joy take (`testdata/ode_to_joy/score.musicxml` with `ode_to_joy_trumpet11.mp4`, bars 1-16, quarter = 100), not `trumpet_video1`, because `e2e_real.py` can upload a MusicXML score without a homr photo scan.

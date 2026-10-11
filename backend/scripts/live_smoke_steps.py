@@ -1,8 +1,7 @@
 """The steps of the live Bedrock smoke test. Each returns StepResult rows and never raises.
 
-The reader step calls reader_agent.read_score on a cleaned photo, as the scan does. The feedback and chat steps
-go through the FastAPI routes, so they run exactly what the browser would. Only the take flow reuses e2e_real's
-helpers (its Steps timer and its score and take uploads), which work on any httpx client, a TestClient included.
+The feedback and chat steps go through the FastAPI routes, so they run exactly what the browser would. Only the take flow reuses
+e2e_real's helpers (its Steps timer and its score and take uploads), which work on any httpx client, a TestClient included.
 """
 import json
 import logging
@@ -16,69 +15,17 @@ import e2e_real
 from fastapi.testclient import TestClient
 
 from app import store
-from app.score import clean, reader_agent
 from live_smoke_report import FAIL, PASS, StepResult, checker_verdict
 
 logger = logging.getLogger("live_bedrock_smoke")
 
 TESTDATA = Path(__file__).resolve().parents[2] / "testdata"
-PHOTO = TESTDATA / "ode_to_joy_photo.jpg"
 SCORE_FILE = TESTDATA / "ode_to_joy" / "score.musicxml"
 VIDEO = TESTDATA / "ode_to_joy" / "ode_to_joy_trumpet11.mp4"
 ODE_BARS = (1, 16)  # the clip plays the whole piece: 16 bars at quarter = 100
 CHAT_MESSAGE = "What should I work on first?"
 
-# What reader_agent.read_score logs when it gives no reading, mapped to the reason code the table shows.
-READER_FAILURES = (
-    ("AI settings are wrong", "bad_settings"), ("AI_ENABLED is false", "ai_off"), ("did not fit the Reading schema", "schema_mismatch"),
-    ("timed out", "timeout"), ("Bedrock call failed", "model_error"),
-)
 ERROR_CLASS = re.compile(r"error: (\w+)")
-
-
-class _Collector(logging.Handler):
-    def __init__(self) -> None:
-        super().__init__(level=logging.INFO)
-        self.records: list[logging.LogRecord] = []
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self.records.append(record)
-
-
-def _reader_failure(records: list[logging.LogRecord]) -> tuple[str, str | None]:
-    """(reason code, error class name) from what read_score logged; a failure it did not log is 'no_reading'."""
-    for record in records:
-        for text, code in READER_FAILURES:
-            if text in record.getMessage():
-                return code, record.exc_info[0].__name__ if record.exc_info else None
-    return "no_reading", None
-
-
-def reader_step(photo: Path, work_dir: Path) -> StepResult:
-    """(a) The Score reader with vision on `photo`, cleaned the way the scan cleans it."""
-    result = StepResult("score reader (vision)")
-    collector = _Collector()
-    reader_logger = logging.getLogger(reader_agent.__name__)
-    reader_logger.addHandler(collector)
-    started = time.monotonic()
-    try:
-        cleaned = clean.clean_photo(photo, work_dir / "reader_cleaned.png")
-        started = time.monotonic()
-        reading = reader_agent.read_score(cleaned)
-    except Exception as exc:
-        logger.exception("Reader step crashed")
-        return _crashed(result, exc, started)
-    finally:
-        reader_logger.removeHandler(collector)
-    result.latency_s = time.monotonic() - started
-    if reading is None:
-        result.reason, result.error_class = _reader_failure(collector.records)
-    elif not reading.bars:
-        result.reason = "empty_reading"
-    else:
-        result.status = PASS
-        result.note = f"{len(reading.bars)} bars, {sum(len(bar.notes) for bar in reading.bars)} notes"
-    return result
 
 
 def _crashed(result: StepResult, exc: Exception, started: float) -> StepResult:

@@ -1,10 +1,6 @@
-// Plain-language text for the score screen. The DoubtfulBar shape is not pinned yet (LLD-1 question), so
-// everything that reads its fields lives in doubtfulBarReadings.
+// Plain-language text for the score screen.
 
-// Mock and back end send { bar, homr_text, reader_text }; reader_text is null when the second reader gave nothing.
-export function doubtfulBarReadings(doubtful) {
-  return { bar: doubtful.bar, scan: doubtful.homr_text, second: doubtful.reader_text ?? 'no second reading' };
-}
+export const CHECK_EVERY_BAR_MESSAGE = 'Check every bar against your paper before you confirm.';
 
 const SCAN_ERROR_MESSAGES = {
   scan_failed: "We couldn't read this photo. Try another photo, or choose a file instead.",
