@@ -20,13 +20,23 @@ const ROUTES = [
 export const DEFAULT_HASH = '#/start';
 let renderToken = 0;
 
+// Decodes the matched URL segments; a malformed one (e.g. a stray "%") is logged and gives null, like an unknown route.
+function decodeParams(names, segments, hash) {
+  try {
+    return Object.fromEntries(names.map((name, i) => [name, decodeURIComponent(segments[i])]));
+  } catch (err) {
+    console.error(`Malformed URL hash "${hash}"; showing the start screen instead.`, err);
+    return null;
+  }
+}
+
 export function matchRoute(hash) {
   const path = hash.replace(/^#/, '');
   for (const route of ROUTES) {
     const found = route.regex.exec(path);
     if (found) {
-      const params = Object.fromEntries(route.names.map((name, i) => [name, decodeURIComponent(found[i + 1])]));
-      return { screen: route.screen, params };
+      const params = decodeParams(route.names, found.slice(1), hash);
+      return params && { screen: route.screen, params };
     }
   }
   return null;
