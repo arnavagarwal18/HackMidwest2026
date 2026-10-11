@@ -29,13 +29,13 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [ ] On Windows, run the form tests and the real end-to-end run: from the repo root `backend/.venv/Scripts/python -m pytest backend/tests/test_form*.py`, then with the server running (default http://127.0.0.1:8000) from backend/ `.venv/Scripts/python scripts/e2e_real.py ../testdata/trumpet_video1_sheet.webp ../testdata/trumpet_video1.mp4`. Done: the pass/fail lines and any differences from Mac posted on LLD-4 comment 01a128f9
 
 ## Arnav (MacBook Air M2, 16 GB, has AWS): live AI checks
-- [ ] Set backend/.env: AI_ENABLED=true, BEDROCK_REGION, BEDROCK_TEXT_MODEL, BEDROCK_VISION_MODEL, AWS_PROFILE (never commit .env)
-- [ ] Run `python backend/scripts/live_bedrock_smoke.py`
-- [ ] Score referee on 2 real phone photos of sheet music: is the 0.7 confidence floor right?
-- [ ] Coach and planner on a real take (testdata/reference Ode to Joy): the output passes the checker
-- [ ] Instructor chat: 3 questions about that take; each answer cites a bar or time
-- [ ] Record results in testdata/RESULTS_live.md and push to main
-- [ ] Merge or delete branch origin/task/TASK-17
+- [x] Set backend/.env: AI_ENABLED=true, BEDROCK_REGION, BEDROCK_TEXT_MODEL, BEDROCK_VISION_MODEL, AWS_PROFILE (never commit .env)
+- [x] Run `python backend/scripts/live_bedrock_smoke.py`
+- [x] Score referee on 2 real phone photos of sheet music: is the 0.7 confidence floor right? (good photo kept; the bad photo was rejected by homr's no_notes before the floor applied: see testdata/RESULTS_live.md)
+- [x] Coach and planner on a real take (testdata/reference Ode to Joy): the output passes the checker
+- [ ] Instructor chat: 3 questions about that take; each answer cites a bar or time (FAIL: see testdata/RESULTS_live.md)
+- [x] Record results in testdata/RESULTS_live.md and push to main
+- [x] Merge or delete branch origin/task/TASK-17
 
 ## Rikhil (MacBook Air M5, 16 GB): front end and full run
 - [ ] Decide whether frontend/js/results/autokey_run.js writeFeedbackAgain (5 retries on HTTP 409) is still needed now that the server does the key search; remove it if not (LLD-3 r4-C)
