@@ -51,3 +51,16 @@ Tier-1 sentences: "Bars 8-16, 0:19: right elbow pinned to the body, at the same 
 False "wrong" notes: none (0 wrong; every heard pitch is in tune and the timing errors are under 60 ms).
 False "missed" notes (all 14): each is the second note of a same-pitch pair (bars 1 n2, 2 n1, 3 n2, 4 n1 and n3, 5 n2, 6 n1, 7 n2, 8 n3, 9 n2, 13 n2, 14 n1, 15 n2, 16 n3: B B, D D, G G, A A, and a bar-ending A eighth into a held A, one of them across a barline). The player slurs, so the transcription gives one long note (e.g. 2.23-3.26 s for B B), and the scorer then reports the second note as missed. Guess (not verified): the transcriber only splits a repeated pitch when the level dips 3 dB (`ONSET_DIP_DB`), and this player's soft tonguing doesn't dip that much. This is also why alignment is 0.77 and why the "10 missed" tier-1 sentence is mostly false.
 Form flags (not verified): "right elbow pinned to the body" covers bars 4-16 in two long spans, which looks like a camera-angle or pose-tracking artefact rather than a real fault; I did not look at the video frames.
+
+## After split fix (2026-10-11, branch task/TASK-27, `AI_ENABLED=false`, same commands as above)
+Cause (verified on the Ode to Joy audio): the level does dip at every re-articulation, by 6.5-22 dB (median 13), but slowly (about 0.1 s to come back up), so the onset-strength peak is tiny (about 1.1 against 7 at the first attack) and `librosa.onset_detect` never fires there (e.g. no onset at 2.83 s, the second B). `ONSET_DIP_DB` (3 dB) is only checked at librosa onsets, so the dip was never looked at. Steady playing has under 2 dB of level movement.
+Fix: `transcribe.py` also starts a new note at any level minimum at least `LEVEL_DIP_PROMINENCE_DB` (5 dB) deep (scipy `find_peaks`), merged with the onset-confirmed dips (`MERGE_SPLIT_FRAMES`).
+
+| Take | Before | After |
+|---|---|---|
+| Ode to Joy, `--bars 1-16 --bpm 100` | 0.774, 48 ok / 0 wrong / 14 missed, 0 extras | 1.000, 62 ok / 0 / 0, 1 extra (bar 4); played 100.06 BPM |
+| video1, `--bars 1-16` | 0.952, 99 / 0 / 5, 8 extras | 0.981, 102 ok / 0 wrong / 2 missed, 11 extras |
+| video2, `--bars 1-20` | 0.959, 116 / 0 / 5, 1 extra | 0.983, 119 ok / 0 wrong / 2 missed, 4 extras |
+| Hot Cross Buns, `--bpm 83` | 0.941, 16 ok / 1 wrong / 0 missed | 1.000, 17 ok / 0 / 0, 0 extras; `form_status` still failed |
+
+Extras went up by 3 on video1 and video2 (more splits inside long notes); ok notes rose and missed notes fell on both. The "before" figures are from the earlier runs above (main 3250d86), not a rerun of debb837. Backend suite: 940 passed, 2 skipped.
