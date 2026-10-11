@@ -170,18 +170,18 @@ def test_five_baseline_frames_are_enough():
 
 def test_hips_hidden_skips_the_torso_rule_and_the_neck_fallback_still_runs():
     hidden = {"hip_visibility": 0.2}
-    result = run_all("violin", (2.0, hidden), (2.0, {**hidden, "neck_ratio": 0.45, "head_drop": 0.2}))
+    result = run_all("violin", (2.0, hidden), (2.0, {**hidden, "neck_ratio": 0.35, "head_drop": 0.2}))
     assert result["rules_skipped"] == [{"rule": "slouching", "reason": "not_visible"}]
     [flag] = result["flags"]
     assert flag["rule"] == "slouching"
     assert flag["unit"] == "ratio" and flag["direction"] == "low"
-    assert flag["threshold"] == pytest.approx(0.85 * 0.55)
+    assert flag["threshold"] == pytest.approx(0.85 * 0.45)
     assert flag["start_s"] == pytest.approx(2.0, abs=0.1)
 
 
 def test_neck_fallback_needs_the_head_drop_too():
     hidden = {"hip_visibility": 0.2}
-    result = run_all("violin", (3.0, {**hidden, "neck_ratio": 0.45}))
+    result = run_all("violin", (3.0, {**hidden, "neck_ratio": 0.35}))
     assert result["rules_skipped"] == [{"rule": "slouching", "reason": "not_visible"}]
     assert result["flags"] == []
 
@@ -267,6 +267,6 @@ def test_bad_video_size_is_refused_with_a_clear_message(width, height):
 
 def test_trumpet_neck_fallback_flags_slouching_when_hips_are_hidden():
     hidden = {"hip_visibility": 0.2}
-    result = run_all("trumpet", (2.0, hidden), (2.0, {**hidden, "neck_ratio": 0.45, "head_drop": 0.2}))
+    result = run_all("trumpet", (2.0, hidden), (2.0, {**hidden, "neck_ratio": 0.35, "head_drop": 0.2}))
     assert {"rule": "slouching", "reason": "not_visible"} in result["rules_skipped"]
     assert [f["rule"] for f in result["flags"]] == ["slouching", "trumpet_head_down"]

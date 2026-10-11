@@ -73,7 +73,7 @@ LINK_MIN_TIMING_NOTES = 2  # a bar is linked as late / early when at least this 
 FORM_FILE_SUFFIX = "_form.json"
 
 # Camera view and side-view rules (LLD-4 change 7)
-VIEW_SIDE_MAX = 1.0  # median shoulder width / shoulder-to-nose height below this: the camera sees the player from the side
+VIEW_SIDE_MAX = 1.7  # median shoulder width / shoulder-to-nose height below this: the camera sees the player from the side; fit on 3 clips: side 1.36, Ode 1.48, front 1.96
 VIEW_MIN_FRAMES = 5  # fewer usable frames than this: the view is 'front'
 SIDE_HEAD_PITCH_DELTA = 15  # side view: head_pitch above baseline plus this many degrees
 SIDE_NECK_RATIO = 0.70  # side view: neck_side below this fraction of the baseline (set on its own; the front ratio is 0.60)

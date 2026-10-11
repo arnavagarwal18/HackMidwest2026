@@ -35,7 +35,7 @@ def test_the_ratio_is_the_median_over_the_frames():
 
 
 def test_the_ratio_is_measured_in_pixels_not_normalised_units():
-    frames = frames_of(ratio_frame, (1.0, {"ratio": 0.9}))
+    frames = frames_of(ratio_frame, (1.0, {"ratio": 1.4}))
     assert detect_view(frames)[0] == "side"  # square pixels
     assert detect_view(frames, aspect=4 / 3)[0] == "front"  # a 4:3 frame stretches x: the shoulders are wider in pixels
 

@@ -14,7 +14,7 @@ HAND_POINTS = 21
 UNUSED = [0.5, 0.5, 1.0]
 
 # A relaxed player: nothing here breaks a rule
-RELAXED = {"elbow_angle": 45.0, "neck_ratio": 0.55, "head_drop": -0.05, "torso_lean": 0.0,
+RELAXED = {"elbow_angle": 45.0, "neck_ratio": 0.45, "head_drop": -0.05, "torso_lean": 0.0,
            "elbow_gap_left": 0.5, "elbow_gap_right": 0.45, "wrist_bend": 0.0, "hip_visibility": 1.0}
 
 

@@ -27,8 +27,9 @@ def jpeg(image: np.ndarray) -> bytes:
     return encoded.tobytes()
 
 
-def check(client, session_id: str, data: bytes, content_type: str = "image/jpeg"):
-    return client.post(f"/sessions/{session_id}/camera-check", files={"file": ("frame.jpg", data, content_type)})
+def check(client, session_id: str, data: bytes, content_type: str = "image/jpeg", view: str | None = None):
+    form = {"view": view} if view else None
+    return client.post(f"/sessions/{session_id}/camera-check", files={"file": ("frame.jpg", data, content_type)}, data=form)
 
 
 def new_session(client, instrument: str = "trumpet") -> str:
@@ -51,7 +52,7 @@ def test_the_whole_fixture_photo_shows_every_point_but_is_too_small(client):
 
 
 def test_a_photo_cropped_above_the_elbows_lists_the_elbows_and_hips(client):
-    body = check(client, new_session(client), jpeg(ABOVE_THE_ELBOWS)).json()
+    body = check(client, new_session(client), jpeg(ABOVE_THE_ELBOWS), view="front").json()  # the crop is wide, which now detects as a side view
     assert body["ok"] is False
     assert {"left elbow", "right elbow", "hips"} <= set(body["missing"])
 
