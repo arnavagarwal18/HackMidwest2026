@@ -1,29 +1,28 @@
 /* The standalone tone page (tone.html), used on a phone. */
-.tone-page { display: grid; gap: var(--s4); max-width: 28rem; margin: 0 auto; padding: var(--s4); }
+.tone-page { display: grid; gap: var(--sp-3); max-width: 28rem; margin: 0 auto; padding: var(--sp-3); }
 .tone-page > * + * { margin-top: 0; }
 .tone-page h1 { margin: 0; }
 
 .tone-note, .tone-hold { touch-action: manipulation; width: 100%; }
-.tone-note { min-height: 72px; padding: var(--s4); font-size: var(--fs-xl); font-weight: 600; border-radius: var(--r-lg); box-shadow: var(--shadow-1); }
+.tone-note { min-height: 72px; padding: var(--sp-3); font-size: var(--fs-xl); font-weight: 600; border-radius: var(--radius-card); }
 .tone-note.asked { border-color: var(--brass); border-width: 3px; }
-.tone-note.playing { background: var(--brass); color: #1d1a15; border-color: var(--brass); }
+.tone-note.playing { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 .tone-hold { min-height: 56px; font-size: var(--fs-md); }
-.tone-hold[aria-pressed="true"] { background: var(--brass-soft); color: var(--brass-ink); border-color: var(--brass); }
+.tone-hold[aria-pressed="true"] { background: var(--brass-soft); color: var(--brass); border-color: var(--brass); }
 
 /* Stop stays on screen at the bottom, so silence is always one tap away. */
 .tone-stop {
   position: sticky;
-  bottom: var(--s4);
+  bottom: max(var(--sp-3), env(safe-area-inset-bottom));
   width: 100%;
   min-height: 80px;
-  padding: var(--s4);
-  font-size: 1.75rem;
+  padding: var(--sp-3);
+  font-size: var(--fs-xl);
   font-weight: 700;
-  background: #b3261e; /* fixed red: white text stays readable in dark mode */
-  color: #fff;
-  border-color: #b3261e;
-  box-shadow: var(--shadow-2);
+  background: var(--error-solid); /* fixed red: white text stays readable in dark mode */
+  color: var(--on-error-solid);
+  border-color: var(--error-solid);
   touch-action: manipulation;
 }
 
-.tone-stop:hover { background: #b3261e; border-color: #b3261e; filter: brightness(1.08); }
+.tone-stop:hover { background: var(--error-solid); border-color: var(--ink); }
