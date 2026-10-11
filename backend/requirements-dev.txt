@@ -1,0 +1,3 @@
+# Developer tooling only (not needed to run the app). Install with: pip install -r backend/requirements-dev.txt
+# yt-dlp downloads the YouTube test videos (backend/scripts/fetch_youtube.py); it also needs imageio-ffmpeg from requirements.txt
+yt-dlp>=2026.1.1
