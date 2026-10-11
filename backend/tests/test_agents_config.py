@@ -1,8 +1,9 @@
 import pytest
-from botocore.exceptions import ClientError, NoCredentialsError, ReadTimeoutError
+from botocore.exceptions import ClientError, NoCredentialsError, ReadTimeoutError, TokenRetrievalError
 
 from app.agents import config, smoke
 from app.agents.config import ConfigError, Settings, parse_settings
+from app.agents.credentials import CREDENTIALS_EXPIRED_LINE
 from app.agents.smoke_errors import describe_failure
 
 SETTING_NAMES = ["BEDROCK_REGION", "BEDROCK_TEXT_MODEL", "BEDROCK_VISION_MODEL", "AWS_PROFILE", "AI_ENABLED"]
@@ -108,6 +109,24 @@ def test_smoke_reports_missing_credentials_once(clean_settings, capsys):
     out = capsys.readouterr().out.strip().splitlines()
     assert len(out) == 1
     assert "aws sts get-caller-identity --profile hackmidwest" in out[0]
+
+
+@pytest.mark.parametrize("error", [
+    ClientError({"Error": {"Code": "ExpiredTokenException", "Message": "expired"}}, "ConverseStream"),
+    ClientError({"Error": {"Code": "InvalidSignatureException", "Message": "bad"}}, "ConverseStream"),
+    TokenRetrievalError(provider="sso", error_msg="expired"),
+], ids=["ExpiredTokenException", "InvalidSignatureException", "TokenRetrievalError"])
+def test_smoke_prints_the_expired_credentials_line(clean_settings, capsys, error):
+    for name, value in FULL_ENV.items():
+        clean_settings.setenv(name, value)
+
+    def expired(*args):
+        raise error
+
+    clean_settings.setattr(smoke, "_ask", expired)
+    assert smoke.main() == 1
+    [line] = capsys.readouterr().out.strip().splitlines()
+    assert line.startswith(f"FAILED: {CREDENTIALS_EXPIRED_LINE}")
 
 
 def test_smoke_succeeds_and_prints_both_replies(clean_settings, capsys):

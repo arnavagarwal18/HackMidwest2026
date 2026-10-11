@@ -18,6 +18,7 @@ from strands.agent import agent as strands_agent
 
 from app.agents import ai_run
 from app.agents.config import ConfigError, get_settings
+from app.agents.credentials import first_credential_error
 from app.agents.holder import RunHolder
 from app.agents.model import build_agent_model
 from app.agents.smoke_errors import describe_config_error, describe_failure
@@ -77,7 +78,7 @@ def stage_lines(events: list[dict], total_ms: int) -> list[str]:
 
 def _first_failure(failure: BaseException | None, holder: RunHolder) -> BaseException | None:
     errors = [failure] if failure is not None else [*holder.errors, *holder.planner_errors]
-    return errors[0] if errors else None
+    return first_credential_error(errors) or (errors[0] if errors else None)
 
 
 def _failure_line(failure: BaseException | None, holder: RunHolder) -> str | None:

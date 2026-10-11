@@ -48,7 +48,7 @@ def _result_content(event: AfterToolCallEvent, verdict: dict) -> dict:
     return {"toolUseId": event.tool_use["toolUseId"], "status": "success", "content": [{"json": verdict}]}
 
 
-def _stop_agent(event: AfterToolCallEvent) -> None:
+def stop_agent(event: AfterToolCallEvent) -> None:
     """Make the agent finish after this tool batch instead of asking the model for another turn."""
     request_state = event.invocation_state.get("request_state")
     if isinstance(request_state, dict):
@@ -77,7 +77,7 @@ class CheckerHook(HookProvider):
         verdict, finished = self._judge(event, tries)
         event.result = _result_content(event, verdict)
         if finished:
-            _stop_agent(event)
+            stop_agent(event)
 
     def _judge(self, event: AfterToolCallEvent, tries: int) -> tuple[dict, bool]:
         """The verdict the agent sees, and whether the agent is done."""

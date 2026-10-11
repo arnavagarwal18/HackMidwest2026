@@ -6,6 +6,7 @@ from typing import Any
 
 from app.agents.config import get_settings
 from app.agents.context import CheckContext, build_context
+from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, first_credential_error, is_credential_error
 from app.agents.holder import RunHolder
 from app.agents.model import build_agent_model
 from app.agents.orchestrator import build_orchestrator
@@ -81,6 +82,14 @@ def _accepted_exercises(session_id: str, take: dict, holder: RunHolder) -> list[
     return None
 
 
+def _log_failure(session_id: str, take: dict, exc: Exception) -> None:
+    """Log why the agents failed; for credentials only the class, since a traceback carries the error's message."""
+    if is_credential_error(exc):
+        log.error("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
+    else:
+        log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
+
+
 def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Trace, cant_tell: bool = False) -> AiFeedback:
     """Run the agents on a diagnosed take. Anything the Coach or Planner got accepted is kept, even if a later step failed.
 
@@ -91,7 +100,9 @@ def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Tra
         asyncio.run(run_agents(session_id, take, history, holder, trace))
     except Exception as exc:
         failure = exc
-        log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
+        _log_failure(session_id, take, exc)
+    if first_credential_error([failure, *holder.errors, *holder.planner_errors]) is not None:
+        log.warning(CREDENTIALS_EXPIRED_LINE)
     exercises = _accepted_exercises(session_id, take, holder)
     check, error_class = holder.check_counts(), _error_class(holder, failure)
     if cant_tell:
