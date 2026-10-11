@@ -25,6 +25,32 @@ if "bad" in stem:
 """
 
 
+def process_exists(pid):
+    """True while a process with this pid is running (os.kill(pid, 0) only probes on POSIX)."""
+    if os.name == "posix":
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return False
+    exit_code = wintypes.DWORD()
+    ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+    kernel32.CloseHandle(handle)
+    return bool(ok) and exit_code.value == 259  # STILL_ACTIVE
+
+
+requires_posix_signals = pytest.mark.skipif(
+    os.name != "posix", reason="Windows cannot deliver SIGINT/SIGTERM to a child process with send_signal")
+
+
 @pytest.fixture
 def batch(tmp_path):
     child = tmp_path / "child.py"
@@ -148,8 +174,7 @@ def test_timeout_is_recorded_and_the_child_is_killed(batch):
     assert slow["status"] == "timeout"
     assert "timeout" in slow["error"]
     assert good["status"] == "ok"
-    with pytest.raises(ProcessLookupError):
-        os.kill(int(batch.pids("slow")[0]), 0)
+    assert not process_exists(int(batch.pids("slow")[0]))
 
 
 def test_command_that_cannot_start_is_recorded_as_failed(batch, capsys):
@@ -208,6 +233,7 @@ def wait_for_file(path, seconds=15):
         time.sleep(0.05)
 
 
+@requires_posix_signals
 @pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM], ids=["ctrl-c", "sigterm"])
 def test_interrupting_the_runner_stops_the_running_child(batch, sig):
     runner = subprocess.Popen(
@@ -222,8 +248,7 @@ def test_interrupting_the_runner_stops_the_running_child(batch, sig):
         runner.send_signal(sig)
         assert runner.wait(timeout=15) != 0
 
-        with pytest.raises(ProcessLookupError):
-            os.kill(child_pid, 0)
+        assert not process_exists(child_pid)
         assert not (batch.out_dir / "good.pid").exists()
         assert not batch.state.exists()
     finally:
