@@ -12,7 +12,7 @@ from app.agents.model import with_max_tokens
 from app.agents.prompts import PLANNER_PROMPT
 from app.agents.trace import Trace
 
-PLANNER_TOOLS = ("list_problems", "get_bar", "get_history")
+PLANNER_TOOLS = ("get_take_overview", "list_problems", "get_bar", "get_history")
 PLANNER_MAX_TOKENS = 1500  # up to 4 exercises with pass marks and claims, as one submit_plan call
 
 

@@ -1,5 +1,16 @@
 """What one feedback run's agents hand back: accepted outputs, what the Checker dropped, and the check counts."""
+import json
 from dataclasses import dataclass, field
+
+
+def describe_rejections(agent: str, tries: int, item_name: str, result: dict) -> list[str]:
+    """One line per Checker problem of a rejected submit: who, which try, which item, the reason and the claim it was about."""
+    lines = []
+    for problem in result["problems"]:
+        where = f"{item_name} {problem['index']}" if problem["index"] is not None else "whole submission"
+        claim = f" [claim {json.dumps(problem['claim'], default=str)}]" if problem["claim"] is not None else ""
+        lines.append(f"{agent} try {tries}, {where}: {problem['reason']}{claim}")
+    return lines
 
 
 @dataclass
@@ -18,18 +29,21 @@ class RunHolder:
     plan_claims_failed: int = 0
     errors: list[Exception] = field(default_factory=list)  # exceptions raised inside the Coach tool
     planner_errors: list[Exception] = field(default_factory=list)  # exceptions raised inside the Planner tool
+    rejections: list[str] = field(default_factory=list)  # every problem the Checker found in the Coach's and Planner's submits
 
     def note_feedback_check(self, tries: int, result: dict) -> None:
         """Record the latest Checker result for the Coach's submit number `tries`."""
         self.coach_tries = tries
         self.claims_checked = result["claims_checked"]
         self.claims_failed = result["claims_failed"]
+        self.rejections += describe_rejections("coach", tries, "sentence", result)
 
     def note_plan_check(self, tries: int, result: dict) -> None:
         """Record the latest Checker result for the Planner's submit number `tries`."""
         self.planner_tries = tries
         self.plan_claims_checked = result["claims_checked"]
         self.plan_claims_failed = result["claims_failed"]
+        self.rejections += describe_rejections("planner", tries, "exercise", result)
 
     def accept_feedback(self, output: dict, dropped: list[dict]) -> None:
         self.feedback = output
