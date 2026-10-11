@@ -3,7 +3,7 @@
 import { reportError, showNotice } from '../banner.js';
 import { pollUntilDone } from '../results/polling.js';
 import {
-  REP_MAX_SECONDS, asPolled, recordKind, repWasScored, stateAfterRep, wantsVideo,
+  REP_MAX_SECONDS, asPolled, historyAfterRep, recordKind, repWasScored, stateAfterRep, wantsVideo,
 } from './model.js';
 import { renderTrainer } from './view.js';
 import { element } from '../dom.js';
@@ -18,7 +18,7 @@ export function createTrainer(root, options, deps) {
   const { sessionId, ex } = options;
   const host = element('div', '', 'trainer-host');
   root.append(host);
-  const model = { exercise: null, xstate: null, phase: 'loading', rep: null, slow: false, mediaError: null };
+  const model = { exercise: null, xstate: null, phase: 'loading', rep: null, slow: false, mediaError: null, history: [] };
   let alive = true;
   let starting = false;
   let stream = null;
@@ -142,6 +142,7 @@ export function createTrainer(root, options, deps) {
     model.rep = rep;
     if (!repWasScored(rep)) { setPhase('not_counted'); return; }
     model.xstate = stateAfterRep(model.xstate, rep);
+    model.history = historyAfterRep(model.history, rep);
     setPhase('result');
   }
 

@@ -103,3 +103,23 @@ export function stateAfterRep(exerciseState, rep) {
 export const asPolled = (rep) => ({ ...rep, done: repIsFinished(rep) });
 
 export const firstRepText = (bpm) => `Rep at ${bpm} BPM - press space`;
+
+export const HISTORY_LIMIT = 8;
+
+// The reps scored since the screen opened, newest first, as { tempo_bpm, passed }. Returns a new list.
+export function historyAfterRep(history, rep) {
+  if (!repWasScored(rep)) return history;
+  return [{ tempo_bpm: rep.tempo_bpm, passed: rep.passed }, ...history].slice(0, HISTORY_LIMIT);
+}
+
+// The form checks of a rep in words, or null when the exercise has no form rule and nothing was flagged.
+export function formFlagsText(exercise, rep) {
+  const count = rep.form_flag_ids?.length ?? 0;
+  if (count > 0) return { tone: 'warn', text: `${plural(count, 'form flag')} raised` };
+  return exercise.pass_mark.form_rule ? { tone: 'ok', text: 'No form flags' } : null;
+}
+
+export const repFactsText = (rep) => ({
+  errors: typeof rep.errors === 'number' ? { value: String(rep.errors), label: rep.errors === 1 ? 'Wrong or missed note' : 'Wrong or missed notes' } : null,
+  timing: typeof rep.mean_abs_timing_ms === 'number' ? { value: `${Math.round(rep.mean_abs_timing_ms)} ms`, label: 'Average timing' } : null,
+});

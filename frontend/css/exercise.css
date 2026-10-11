@@ -1,48 +1,89 @@
-/* Loop trainer (#/exercise/:ex), in the "Brass & Ivory" direction. Colours come from the tokens in app.css. */
-.exercise-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--sp-4); row-gap: var(--sp-2); align-items: start; }
-.exercise-card > * { grid-column: 1; }
-.exercise-card h1 { margin: var(--sp-1) 0 var(--sp-2); }
-.exercise-card p { margin: 0; }
-.exercise-card .pass-mark { display: inline-block; justify-self: start; margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); }
-.exercise-card > .tempo-dial { grid-column: 2; grid-row: 1 / span 4; align-self: center; }
-.tempo-dial {
-  display: grid;
-  place-items: center;
-  width: 168px;
-  aspect-ratio: 1;
-  padding: 14px;
-  border-radius: 50%;
-  background: conic-gradient(var(--brass) 0 var(--dial-progress, 0%), var(--line) var(--dial-progress, 0%) 100%);
-  text-align: center;
+/* Loop trainer (#/exercise/:ex), built from the shared pieces in components.css. Colours, spacing and type come from the tokens in app.css. */
+
+/* The host sits straight in <main>, which would draw it as a card; the cards are inside it. */
+.trainer-host { padding: 0; background: none; border: 0; box-shadow: none; }
+
+/* Wide screens: the trainer keeps the left column and the right column stays free for the coach chat drawer. */
+@media (min-width: 72rem) {
+  .trainer-host { display: grid; grid-template-columns: minmax(0, 44rem) minmax(16rem, 1fr); column-gap: var(--sp-4); }
+  .trainer-host > .trainer { grid-column: 1; }
 }
-.tempo-dial > div { display: grid; place-content: center; width: 100%; height: 100%; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); }
-.tempo-dial .bpm { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 600; line-height: 1; }
-.tempo-dial .unit { color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.1em; text-transform: uppercase; }
-.tempo-dial .dial-target { color: var(--muted); font-size: var(--fs-xs); }
-.streak { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0 var(--sp-2); }
-.streak .current-tempo { flex-basis: 100%; margin: 0; font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 600; line-height: 1.25; }
-.streak-dots { display: flex; gap: var(--sp-2); list-style: none; margin: 0; padding: 0; font-size: var(--fs-lg); line-height: 1; color: var(--muted); }
-.streak-dots .dot.filled { color: var(--ok); }
-.streak-label { margin: 0; }
-.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr)); gap: var(--sp-1); list-style: none; margin: var(--sp-3) 0; padding: 0; }
+
+.trainer { display: grid; gap: var(--sp-4); min-width: 0; }
+.trainer .page-header { margin: 0; }
+
+/* ---------- Tempo card: stats, progress, streak, ladder, pass mark ---------- */
+.exercise-card .card-body { display: grid; gap: var(--sp-3); }
+.exercise-card .card-body > * { margin: 0; }
+.exercise-text { color: var(--muted); }
+.trainer-stats { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: end; }
+.trainer-stats .stat:first-child .stat-value { font-size: calc(var(--fs-3xl) * 1.5); color: var(--brass); }
+.tempo-progress { height: 8px; border-radius: var(--radius-pill); background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.tempo-progress-fill { display: block; height: 100%; background: var(--brass); border-radius: var(--radius-pill); transition: width var(--dur) var(--ease); }
+/* The stats show the current tempo; this line keeps it readable for screen readers. */
+.exercise-card .current-tempo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr)); gap: var(--sp-1); list-style: none; padding: 0; }
 .ladder .step { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
 .ladder .step.passed { background: var(--ok-soft); color: var(--ok); }
 .ladder .step.current { background: var(--primary); color: var(--primary-ink); }
-.trainer-status { margin-top: var(--sp-3); padding: var(--sp-4) var(--sp-3); text-align: center; background: var(--bg); border: 2px dashed var(--line); border-radius: var(--radius-card); color: var(--ink); }
-.trainer-status .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin: var(--sp-3) 0 0; }
-.trainer-status .stage { margin: 0 0 var(--sp-2); font-family: var(--font-display); font-size: var(--fs-xl); }
-.trainer-status .reasons { margin: var(--sp-1) auto var(--sp-3); padding-left: 1.2rem; max-width: 28rem; text-align: left; }
-.trainer-status .verdict { margin: 0; font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 700; line-height: 1.25; }
-.trainer-status .verdict.pass { color: var(--ok); }
-.trainer-status .verdict.fail { color: var(--error); }
-.trainer-status .verdict.done { color: var(--brass); }
-.trainer-status.result-pass { border: 2px solid var(--ok); background: var(--ok-soft); }
-.trainer-status.result-fail { border: 2px solid var(--error); background: var(--error-soft); }
-.trainer-status.done { border: 2px solid var(--brass); background: var(--brass-soft); }
+.streak { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.streak-dots { display: flex; gap: var(--sp-2); list-style: none; margin: 0; padding: 0; font-size: var(--fs-lg); line-height: 1; color: var(--muted); }
+.streak-dots .dot.filled { color: var(--ok); }
+.streak-label { margin: 0; font-size: var(--fs-sm); }
+.exercise-card .card-footer { justify-content: flex-start; }
+.exercise-card .pass-mark { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+
+/* ---------- The control and result panel ---------- */
+.trainer-status { padding: var(--sp-4); text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-1); color: var(--ink); }
+.trainer-status > * { margin: 0; }
+.trainer-status > * + * { margin-top: var(--sp-3); }
+.trainer-status .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
+.trainer-status .stage { font-family: var(--font-display); font-size: var(--fs-xl); }
+.trainer-status .next-rep { color: var(--muted); }
+.trainer-status.result-pass .next-rep, .trainer-status.result-fail .next-rep { color: var(--ink); font-size: var(--fs-lg); font-weight: 600; }
+.trainer-status .skeleton-line { margin-left: auto; margin-right: auto; max-width: 20rem; }
 .trainer-status input[type="file"] { margin-top: var(--sp-2); }
+
+/* One large record / stop control; the dot or square is drawn here so the label stays plain text. */
+.trainer-primary { min-width: 14rem; min-height: 64px; font-size: var(--fs-lg); box-shadow: var(--shadow-2); }
+.trainer-primary::before { content: ""; width: 0.7em; height: 0.7em; border-radius: 50%; background: currentColor; }
+.trainer-primary.is-stop::before { border-radius: 2px; }
+.trainer-status.is-recording { border-color: var(--error); background: var(--error-soft); }
+.trainer-status.is-recording .stage::before { content: ""; display: inline-block; width: 0.6em; height: 0.6em; margin-right: var(--sp-2); border-radius: 50%; background: var(--error); animation: trainer-pulse 1.2s var(--ease) infinite alternate; }
+@keyframes trainer-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* The rep result: a clear pass or fail card */
+.trainer-status.result-pass, .trainer-status.result-fail, .trainer-status.done { text-align: left; border-width: 1px 1px 1px 6px; }
+.trainer-status.result-pass { border-color: var(--ok); background: var(--ok-soft); }
+.trainer-status.result-fail { border-color: var(--error); background: var(--error-soft); }
+.trainer-status.done { border-color: var(--brass); background: var(--brass-soft); }
+.trainer-status.result-pass .actions, .trainer-status.result-fail .actions { justify-content: flex-start; }
+.trainer-status.result-pass > .done { margin-top: var(--sp-4); }
+.verdict-row > * { margin: 0; }
+.verdict-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-1) var(--sp-3); }
+.verdict { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 700; line-height: 1.1; letter-spacing: 0.02em; }
+.verdict.pass { color: var(--ok); }
+.verdict.fail { color: var(--error); }
+.verdict.done { color: var(--brass); }
+.tempo-change { font-weight: 600; }
+.rep-facts { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-2) var(--sp-5); }
+.rep-facts .stat-value { font-size: var(--fs-2xl); }
+.trainer-status .reasons { padding-left: 1.2rem; max-width: 36rem; text-align: left; }
+.trainer-status.not-counted .reasons { margin-left: auto; margin-right: auto; }
+
+/* ---------- Rep history ---------- */
+.rep-history-card .card-body { padding: 0; }
+.rep-history-card .empty-state { margin: var(--sp-3) var(--sp-4); }
+.rep-history { list-style: none; margin: 0; padding: 0; }
+.rep-history-item { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--line); }
+.rep-history-item:first-child { border-top: 0; }
+.rep-history-tempo { font-weight: 600; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 40rem) {
-  .trainer-status .actions button { width: 100%; }
-  .exercise-card { grid-template-columns: minmax(0, 1fr); }
-  .exercise-card > .tempo-dial { grid-column: 1; grid-row: auto; justify-self: center; width: 140px; margin-top: var(--sp-3); }
-  .tempo-dial .bpm { font-size: var(--fs-2xl); }
+  .trainer-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .trainer-stats .stat:first-child { grid-column: 1 / -1; }
+  .trainer-status { padding: var(--sp-3); }
+  .trainer-status .actions .btn, .trainer-primary { width: 100%; min-width: 0; }
+  .verdict { font-size: var(--fs-2xl); }
+  .rep-history-item { padding: var(--sp-2) var(--sp-3); }
 }
