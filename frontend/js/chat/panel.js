@@ -1,7 +1,9 @@
 // The Instructor chat panel: history, the opening message, the question box and the pending-reply state.
-// deps: { sessionId, take, getChat, sendChat, reportError, timeoutMs, timers } so tests can run it without a back end.
+// deps: { sessionId, take, getChat, sendChat, reportError, timeoutMs, timers, mountCoachSwitch } so tests can run it without a back end.
+// mountCoachSwitch(slot, { onCoachChanged }) is optional: it puts the Coach style switch in `slot` and resolves to its controller (or null).
 import { button, element } from '../dom.js';
 import { REPLY_TIMEOUT_MS, TIMEOUT_MESSAGE, openingTurn, validateMessage, withTimeout } from './model.js';
+import { nowCoachingText } from '../persona/model.js';
 import { renderTranscript } from './transcript.js';
 
 const THINKING_TEXT = 'The Instructor is thinking…';
@@ -10,12 +12,14 @@ const EMPTY_TEXT = 'Ask the Instructor about this take.';
 // Returns { setResults, whenReady, state }. setResults({ jumpContext, feedback }) is called by the results screen once
 // the take's results are on screen: the feedback sentences become the opening message and jumps start to work.
 export function createChatPanel(root, deps) {
-  const { sessionId, take, getChat, sendChat, reportError, timeoutMs = REPLY_TIMEOUT_MS, timers } = deps;
+  const { sessionId, take, getChat, sendChat, reportError, timeoutMs = REPLY_TIMEOUT_MS, timers, mountCoachSwitch } = deps;
   let history = [];
   let opening = null;
   let jumpContext = null;
   let pending = false;
   let loading = true; // the history is still being fetched
+  let coach = null; // the Coach style switch controller, once mounted
+  let coachMode = null; // the mode of the latest feedback or instructor turn
 
   const heading = element('h2', 'Instructor');
   const transcript = element('ul', '', 'chat-transcript', { 'aria-live': 'polite' });
@@ -26,7 +30,8 @@ export function createChatPanel(root, deps) {
   const send = button('Send', () => submit(), 'chat-send');
   const form = element('div', '', 'chat-form');
   form.append(input, send);
-  root.replaceChildren(heading, transcript, emptyNote, thinking, form);
+  const coachSlot = element('div', '', 'coach-slot'); // fixed at the bottom of the panel
+  root.replaceChildren(heading, transcript, emptyNote, thinking, form, coachSlot);
 
   const sameTake = (turn) => (turn.take_id === take ? jumpContext : null);
 
@@ -34,6 +39,11 @@ export function createChatPanel(root, deps) {
     const turns = opening ? [opening, ...history] : history;
     renderTranscript(transcript, turns, sameTake);
     emptyNote.hidden = turns.length > 0;
+  }
+
+  function setCoachMode(mode) {
+    coachMode = mode;
+    coach?.showMode(coachMode);
   }
 
   function updateControls() {
@@ -56,6 +66,7 @@ export function createChatPanel(root, deps) {
     try {
       const reply = await withTimeout(sendChat(sessionId, message, take), timeoutMs, TIMEOUT_MESSAGE, timers);
       history = [...history, reply.user_turn, reply.instructor_turn];
+      setCoachMode(reply.instructor_turn.mode ?? null);
       input.value = '';
       redraw();
     } catch (err) {
@@ -67,16 +78,27 @@ export function createChatPanel(root, deps) {
 
   const finishLoading = () => { loading = false; redraw(); updateControls(); };
   const ready = getChat(sessionId).then(
-    (result) => { history = result.turns ?? []; finishLoading(); },
+    (result) => {
+      history = [...(result.turns ?? []), ...history]; // history is empty here unless a 'Now coaching' line was added meanwhile
+      finishLoading();
+      if (coachMode === null) setCoachMode(history.findLast((turn) => turn.role === 'instructor')?.mode ?? null);
+    },
     (err) => { reportError(err); finishLoading(); },
   ).catch(reportError);
   updateControls();
 
+  const coachReady = mountCoachSwitch
+    ? mountCoachSwitch(coachSlot, { onCoachChanged: (label) => { history = [...history, { role: 'note', text: nowCoachingText(label) }]; redraw(); } })
+      .then((controller) => { coach = controller; coach?.showMode(coachMode); }, reportError)
+    : Promise.resolve();
+
   return {
-    whenReady: ready,
+    whenReady: Promise.all([ready, coachReady]),
     setResults({ jumpContext: context = null, feedback = null } = {}) {
       jumpContext = context;
       opening = openingTurn(feedback, take);
+      if (feedback) setCoachMode(feedback.mode ?? null);
+      coach?.enable();
       redraw();
     },
   };

@@ -2,6 +2,9 @@
 // See "Take setup" in frontend/README.md. The pieces live in js/take/.
 import { checkCamera, getScore } from '../api.js';
 import { clearBanner, reportError, showNotice } from '../banner.js';
+import { savePersona } from '../persona/change.js';
+import { loadPersonas } from '../persona/load.js';
+import { createPersonaPicker } from '../persona/picker.js';
 import { rememberCamera, rememberTempo, setupWithPrefs } from '../play/prefs.js';
 import { getAudioContext, openStream, recordTake, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { state } from '../state.js';
@@ -49,7 +52,7 @@ export async function render(root, _params, isCurrent = () => true) {
     window.location.hash = '#/score';
     return;
   }
-  const score = await loadScoreSummary();
+  const [score, personas] = await Promise.all([loadScoreSummary(), loadPersonas()]);
   if (!isCurrent()) return; // left while the score loaded: open no camera and register no listener
   loadScoreStyles();
   loadTakeStyles();
@@ -62,6 +65,9 @@ export async function render(root, _params, isCurrent = () => true) {
 
   const form = createTakeForm({
     setup: initialSetup(score, setupWithPrefs(state.take_setup)), bars: score.bars, onKindChange: switchKind, onTempoChange: rememberTempo,
+  });
+  const picker = personas && createPersonaPicker({
+    personas, sessionId: state.session_id, writtenTempoBpm: score.tempo_bpm, savePersona, onTempo: form.setTempo, reportError,
   });
   const camera = createCameraPanel({ instrument: state.instrument, check: (jpeg, view) => checkCamera(state.session_id, jpeg, view) });
   const problem = el('div', { className: 'take-problem' });
@@ -84,6 +90,7 @@ export async function render(root, _params, isCurrent = () => true) {
       sendAgainButton.hidden = discardButton.hidden = mode !== 'unsent';
     }
     controls.forEach((control) => { control.disabled = mode === 'sending' || (control === fileInput && mode !== 'idle'); });
+    picker?.lock(mode === 'recording' || mode === 'sending');
     form.lock(mode === 'recording' || mode === 'sending');
   }
 
@@ -294,6 +301,7 @@ export async function render(root, _params, isCurrent = () => true) {
       el('h1', { text: score.title || 'Play' }),
       el('a', { text: 'Change piece', className: 'chip', attrs: { href: '#/score' } }),
     ] }),
+    ...(picker ? [picker.element] : []),
     form.element,
     camera.element,
     problem,

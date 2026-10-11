@@ -9,6 +9,11 @@ export function rememberMockTransposition(requestBody) {
   rebuilds += 1;
 }
 
+// A POST .../feedback builds the take's feedback again: it comes back with a new id.
+export function rememberMockFeedbackRebuilt() {
+  rebuilds += 1;
+}
+
 // A finished analysis body that shows the key the page set (a back end's rerun leaves the take 'done' and changes its key).
 export function withChosenTransposition(body) {
   return chosen && body.status === 'done' ? { ...body, transposition: chosen } : body;

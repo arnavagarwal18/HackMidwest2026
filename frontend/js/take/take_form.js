@@ -65,6 +65,11 @@ export function createTakeForm({ setup, bars, onKindChange, onTempoChange = () =
 
   return {
     element,
+    // Puts a tempo in the field (a persona's preset) and remembers it like a typed one.
+    setTempo(bpm) {
+      tempo.input.value = bpm;
+      onTempoChange(bpm);
+    },
     read: () => ({
       bar_from: barFrom.input.valueAsNumber,
       bar_to: barTo.input.valueAsNumber,

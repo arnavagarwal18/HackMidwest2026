@@ -4,7 +4,8 @@
 // Polled routes (poll) answer with <processingFile> (one file, or a list: one per poll) for their first `polls` requests, then with
 // the final file, so screens can test their polling. A POST that starts the work (resets) restarts
 // the count for that group. The mock only reads static files; nothing reaches a real route.
-import { rememberMockTransposition, withChosenTransposition, withRebuiltFeedback } from './mock_transposition.js';
+import { rememberMockPersona, withMockPersona } from './mock_persona.js';
+import { rememberMockFeedbackRebuilt, rememberMockTransposition, withChosenTransposition, withRebuiltFeedback } from './mock_transposition.js';
 
 const MOCK_DELAY_MS = 150;
 
@@ -17,6 +18,8 @@ export const mockRequestLog = [];
 const ROUTES = [
   { method: 'POST', pattern: '/sessions', file: 'post_sessions', resets: 'upload' },
   { method: 'GET', pattern: '/sessions/:id', file: 'get_session' },
+  { method: 'PATCH', pattern: '/sessions/:id', file: 'patch_session' },
+  { method: 'GET', pattern: '/personas', file: 'get_personas' },
   { method: 'GET', pattern: '/builtins', file: 'get_builtins' },
   { method: 'POST', pattern: '/sessions/:id/score/photo', file: 'post_score_photo', resets: 'score_status' },
   { method: 'GET', pattern: '/sessions/:id/score', file: 'get_score' },
@@ -37,6 +40,7 @@ const ROUTES = [
     poll: { group: 'camera', processingFile: 'post_camera_check', polls: 3 } },
   { method: 'GET', pattern: '/sessions/:id/takes/:take/feedback', file: 'get_feedback',
     poll: { group: 'feedback', processingFile: 'error_feedback_not_ready' } },
+  { method: 'POST', pattern: '/sessions/:id/takes/:take/feedback', file: 'get_feedback' }, // builds it again
   { method: 'GET', pattern: '/sessions/:id/feedback/:fb/trace', file: 'get_trace' },
   { method: 'GET', pattern: '/sessions/:id/chat', file: 'get_chat' },
   { method: 'POST', pattern: '/sessions/:id/chat', file: 'post_chat' },
@@ -131,6 +135,8 @@ export async function mockResponse(method, path, requestBody) {
   const isForm = requestBody instanceof FormData;
   mockRequestLog.push({ method, path, body: isForm ? undefined : requestBody, form: isForm ? Object.fromEntries(requestBody.entries()) : undefined });
   if (method === 'POST' && path.endsWith('/transposition')) rememberMockTransposition(requestBody);
+  if (method === 'POST' && path.endsWith('/feedback')) rememberMockFeedbackRebuilt();
+  rememberMockPersona(method, path.split('?')[0], requestBody);
   const file = mockFileFor(method, path, requestBody);
   if (!file) return null;
   await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
@@ -140,7 +146,7 @@ export async function mockResponse(method, path, requestBody) {
     return null;
   }
   const json = await res.json();
-  const body = file.startsWith('get_analysis') ? withChosenTransposition(json) : withRebuiltFeedback(file, json);
+  const body = file.startsWith('get_analysis') ? withChosenTransposition(json) : withMockPersona(file, path.split('?')[0], withRebuiltFeedback(file, json));
   const isError = file.startsWith('error_'); // error_*.json files stand for a failed (non-2xx) response
   return { ok: !isError, status: isError ? (ERROR_STATUS[file] ?? 404) : 200, body };
 }

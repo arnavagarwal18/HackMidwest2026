@@ -11,6 +11,7 @@ import { buildMeasurementIndex } from './measurements.js';
 import { createMediaPlayer, isVideoTake } from './media.js';
 import { renderCantTell } from './cant_tell.js';
 import { renderDetectionChip } from './detection.js';
+import { renderCoachedBy } from '../persona/coached_by.js';
 import { renderPlan, renderTraceLink } from './plan.js';
 import { renderSentenceList } from './sentences.js';
 import { renderStatStrip } from './stats.js';
@@ -59,6 +60,8 @@ export function renderDone(view, data, context) {
 
   view.replaceChildren(element('h1', 'Results'));
   if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
+  const coachedBy = renderCoachedBy(feedback);
+  if (coachedBy) view.append(coachedBy);
   view.append(renderDetectionChip(analysis, { sessionId: context.sessionId, onChanged: context.rerun }));
   const stats = renderStatStrip(analysis);
   if (stats) view.append(stats);

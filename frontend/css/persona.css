@@ -1,0 +1,51 @@
+/* Coach style controls: the segmented control, the Coach style switch in the chat panel, and the Play screen picker.
+   Loaded from js/persona/styles.js; uses only the variables defined in app.css. */
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.segment {
+  flex: 1 1 auto;
+  min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.segment:first-child { border-left: 0; }
+.segment:hover:not(:disabled):not(.segment-on) { background: var(--brass-soft); }
+.segment:focus-visible { outline: var(--focus-ring); outline-offset: -3px; }
+.segment-on { background: var(--primary); color: var(--primary-ink); font-weight: 600; }
+.segment:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* The switch stays at the bottom of the chat panel while its transcript scrolls. */
+.coach-slot:not(:empty) {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.coach-switch { display: flex; flex-direction: column; gap: var(--sp-2); }
+.coach-switch > p { margin: 0; }
+.coach-switch-label { font-size: var(--fs-sm); font-weight: 600; }
+
+.persona-picker { display: flex; flex-direction: column; gap: var(--sp-2); }
+.persona-picker-label { margin: 0; font-size: var(--fs-md); }
+.persona-hint { margin: 0; min-height: 1.5em; }
+
+.coached-by { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+.chat-note { font-size: var(--fs-sm); font-style: italic; list-style: none; }

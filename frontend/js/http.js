@@ -91,6 +91,7 @@ export async function request(method, path, body, onProgress) {
 
 export const get = (path) => request('GET', path);
 export const postJson = (path, body) => request('POST', path, body ?? {});
+export const patchJson = (path, body) => request('PATCH', path, body);
 
 // Multipart: files is { fieldName: Blob|File }, fields is { name: value } sent as text. onProgress({ loaded, total }) is optional.
 export function postForm(path, files, fields = {}, onProgress) {

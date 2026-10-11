@@ -1,7 +1,8 @@
 import { reportError, showNotice } from '../banner.js';
 import { state } from '../state.js';
 import { element } from '../dom.js';
-import { fetchResultsOnce, stageLabel, STAGES } from '../results/load.js';
+import { loadPersonas } from '../persona/load.js';
+import { fetchResultsOnce, stageLabel, STAGES, unwrapFeedback } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
 import { refreshAfterKeyChange } from '../results/rerun.js';
 import { mountOverlay } from '../results/overlay.js';
@@ -19,11 +20,18 @@ export async function render(root, params) {
   const chatPanel = element('aside', '', 'chat-panel');
   root.className = 'with-chat';
   root.append(view, chatPanel);
-  const chat = renderChat(chatPanel, { take });
+  let shown = null; // the analysis, feedback and plan on screen, so a new coach style can redraw them with its feedback
+  const chat = renderChat(chatPanel, { take, onFeedback: redrawWithFeedback });
+
+  // The coach style changed and the feedback was built again: draw the results again with it (nothing to redraw before they are shown).
+  function redrawWithFeedback(body) {
+    if (isActive() && shown) show({ ...shown, ...unwrapFeedback(body) });
+  }
 
   const isActive = () => view.isConnected; // false once the router has moved to another screen
   let overlay = null; // the body-lines overlay of the finished take on screen (none for mic takes)
   const show = (result) => {
+    shown = result;
     overlay?.destroy();
     overlay = null;
     if (result.analysis.status === 'failed') {
@@ -75,14 +83,17 @@ export async function render(root, params) {
 
   async function start() {
     renderWorking(view, STAGES.processing, false);
+    const personasRead = loadPersonas(); // the names for 'Coached by'; never rejects
     try {
       const polled = await pollUntilDone({
         fetchOnce: () => fetchResultsOnce(sessionId, take),
         isActive,
         onTick: ({ result, slow }) => renderWorking(view, stageLabel(result.analysis), slow),
       });
-      if (polled.outcome === 'done') show(polled.result);
-      else if (polled.outcome === 'timeout') renderTooLong(view, stageLabel(polled.result.analysis), checkAgain);
+      if (polled.outcome === 'done') {
+        await personasRead;
+        if (isActive()) show(polled.result);
+      } else if (polled.outcome === 'timeout') renderTooLong(view, stageLabel(polled.result.analysis), checkAgain);
     } catch (err) {
       failRequest(err);
     }
