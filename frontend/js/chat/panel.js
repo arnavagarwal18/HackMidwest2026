@@ -91,6 +91,7 @@ export function createChatPanel(root, deps) {
       reportError(err); // the typed text stays in the box
     } finally {
       setPending(false);
+      if (sheet.isOpen() && !sheet.contains(document.activeElement)) input.focus?.(); // the browser dropped focus when the box was disabled
     }
   }
 

@@ -1,6 +1,8 @@
 // The coach sheet shell: a bottom sheet (centred on wide screens) that opens half height and can expand to full height.
 // It owns only the window behaviour: open/close, Escape, focus in and back, a Tab trap, the grabber (tap or drag) and the backdrop.
-// createSheet({ title, onClose }) -> { nodes, headerSlot, body, footer, open(), close(), isOpen(), setExpanded(flag) }.
+// Keys and focus are watched on the document while the sheet is open, so they still work when a control that had focus is disabled
+// (the browser then leaves focus on the page behind).
+// createSheet({ title, onClose }) -> { nodes, headerSlot, body, footer, open(), close(), isOpen(), contains(node), setExpanded(flag) }.
 // The caller puts its content in headerSlot, body and footer, and appends `nodes` to its root.
 import { button, element } from '../dom.js';
 
@@ -41,6 +43,8 @@ export function createSheet({ title, onClose = () => {} }) {
     backdrop.hidden = false;
     sheet.hidden = false;
     sheet.focus?.();
+    document.addEventListener('keydown', onKeydown);
+    document.addEventListener('focusin', pullFocusBack);
   }
 
   function close() {
@@ -48,26 +52,36 @@ export function createSheet({ title, onClose = () => {} }) {
     opened = false;
     backdrop.hidden = true;
     sheet.hidden = true;
+    document.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('focusin', pullFocusBack);
     returnFocusTo?.focus?.();
     returnFocusTo = null;
     onClose();
   }
 
+  const contains = (node) => Boolean(node) && sheet.contains(node);
+
   // Keeps Tab inside the open sheet (aria-modal): from the last control it goes to the first, and back.
+  // With focus outside the sheet (lost to the page), Tab goes to the first control, shift+Tab to the last.
   function trapTab(event) {
     const controls = [...(sheet.querySelectorAll?.(FOCUSABLE) ?? [])].filter((control) => !control.closest?.('[hidden]'));
     if (!controls.length) return;
     const edge = event.shiftKey ? controls[0] : controls.at(-1);
     const target = event.shiftKey ? controls.at(-1) : controls[0];
-    if (document.activeElement !== edge && document.activeElement !== sheet) return;
+    if (contains(document.activeElement) && document.activeElement !== edge && document.activeElement !== sheet) return;
     event.preventDefault?.();
     target.focus?.();
   }
 
-  sheet.addEventListener('keydown', (event) => {
+  function onKeydown(event) {
     if (event.key === 'Escape') { event.preventDefault?.(); close(); }
     else if (event.key === 'Tab') trapTab(event);
-  });
+  }
+
+  function pullFocusBack(event) {
+    if (!contains(event.target)) sheet.focus?.();
+  }
+
   backdrop.addEventListener('click', () => close());
 
   let dragFrom = null;
@@ -90,5 +104,5 @@ export function createSheet({ title, onClose = () => {} }) {
   });
 
   setExpanded(false);
-  return { nodes: [backdrop, sheet], headerSlot, body, footer, open, close, isOpen: () => opened, setExpanded };
+  return { nodes: [backdrop, sheet], headerSlot, body, footer, open, close, isOpen: () => opened, contains, setExpanded };
 }

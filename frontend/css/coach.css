@@ -69,7 +69,7 @@
 .chat-thinking { margin: 0; }
 
 /* A bar reference is the sentence text itself: plain, underlined, and a 44px target. */
-.coach-link { display: inline; min-height: var(--tap); padding: 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 1px; text-underline-offset: 0.2em; cursor: pointer; }
+.coach-link { display: inline-block; min-height: var(--tap); padding: var(--sp-2) 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 1px; text-underline-offset: 0.2em; cursor: pointer; }
 .coach-link:hover { text-decoration-thickness: 2px; }
 
 .coach-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }

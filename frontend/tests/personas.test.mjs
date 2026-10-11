@@ -304,6 +304,21 @@ test('the menu works from the keyboard: arrows open and move, Escape closes with
   assert.equal(trigger(root).textContent, 'Coach: Beginner ▾');
 });
 
+test('the menu button takes focus back when it is enabled again after losing it to being disabled', () => {
+  const menu = createMenu({ label: 'Coach', menuLabel: 'Coach style', options: PERSONAS, value: 'standard', onChange: () => {} });
+  trigger(menu.element).focus();
+  menu.setDisabled(true);
+  document.activeElement = document.body; // the browser drops focus from a disabled button
+  menu.setDisabled(false);
+  assert.ok(document.activeElement === trigger(menu.element), 'focus is back on the menu button');
+  const other = document.createElement('button');
+  trigger(menu.element).focus();
+  menu.setDisabled(true);
+  other.focus();
+  menu.setDisabled(false);
+  assert.ok(document.activeElement === other, 'focus that moved elsewhere is not taken');
+});
+
 test('a click outside closes the menu; a disabled menu cannot be opened', () => {
   const menu = createMenu({ label: 'Coach', menuLabel: 'Coach style', options: PERSONAS, value: 'standard', onChange: () => {} });
   const root = menu.element;

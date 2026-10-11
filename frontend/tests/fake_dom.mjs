@@ -25,6 +25,7 @@ export class FakeNode {
     });
   }
   replaceChildren(...nodes) { this.children.forEach((c) => { c.parent = null; }); this.children = []; this.append(...nodes); }
+  contains(node) { return node === this || this.all().includes(node); }
   focus() { this.doc.activeElement = this; }
   remove() { if (this.parent) { this.parent.children = this.parent.children.filter((c) => c !== this); this.parent = null; } }
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }

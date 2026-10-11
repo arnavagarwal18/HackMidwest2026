@@ -48,7 +48,8 @@ async function setup(options = {}) {
 
 const chips = (root) => root.withClass('coach-chip');
 const sheetOf = (root) => root.withClass('coach-sheet')[0];
-const press = (node, key) => node.listeners.keydown.forEach((fn) => fn({ key, preventDefault() {}, stopPropagation() {} }));
+const press = (key, extra = {}) => document.dispatch('keydown', { key, preventDefault() {}, stopPropagation() {}, ...extra }); // keys are heard on the document
+const browserDropsFocus = () => { document.activeElement = document.body; }; // what a browser does when the focused control is disabled
 
 test('validateMessage accepts 1-1000 characters and explains the rest', () => {
   assert.equal(validateMessage('a'), null);
@@ -231,7 +232,7 @@ test('the panel is a closed dialog sheet until coach:open; Close and Escape shut
   assert.equal(sheet.hidden, true);
   assert.ok(document.activeElement === opener, 'focus goes back to where it was');
   document.dispatch(OPEN_EVENT);
-  press(sheet, 'Escape');
+  press('Escape');
   assert.equal(sheet.hidden, true, 'Escape closes');
   document.dispatch(OPEN_EVENT);
   backdrop.click();
@@ -266,11 +267,67 @@ test('Tab stays inside the open sheet', async () => {
   document.dispatch(OPEN_EVENT);
   let prevented = false;
   focusables.at(-1).focus();
-  sheet.listeners.keydown.forEach((fn) => fn({ key: 'Tab', preventDefault: () => { prevented = true; } }));
+  press('Tab', { preventDefault: () => { prevented = true; } });
   assert.ok(document.activeElement === focusables[0], 'Tab from the last control wraps to the first');
   assert.equal(prevented, true);
-  sheet.listeners.keydown.forEach((fn) => fn({ key: 'Tab', shiftKey: true, preventDefault() {} }));
+  press('Tab', { shiftKey: true });
   assert.ok(document.activeElement === focusables.at(-1), 'shift+Tab from the first control goes to the last');
+});
+
+test('Escape and Tab still work after Send disables the box and the browser drops focus; focus comes back after the reply', async () => {
+  const reply = deferred();
+  const { root, input, send } = await setup({ sendChat: () => reply.promise });
+  const sheet = sheetOf(root);
+  const focusables = [root.withClass('coach-grabber')[0], root.button('Close'), input, send];
+  sheet.querySelectorAll = () => focusables;
+  document.dispatch(OPEN_EVENT);
+  input.focus();
+  input.value = 'Why?';
+  send.click();
+  browserDropsFocus();
+  press('Tab');
+  assert.ok(document.activeElement === focusables[0], 'Tab from the page behind goes back into the sheet');
+  browserDropsFocus();
+  press('Tab', { shiftKey: true });
+  assert.ok(document.activeElement === focusables.at(-1), 'shift+Tab from the page behind goes to the last control');
+  browserDropsFocus();
+  reply.resolve(aiReply());
+  await settle();
+  assert.ok(document.activeElement === input, 'focus returns to the question box after the reply');
+  browserDropsFocus();
+  press('Escape');
+  assert.equal(sheet.hidden, true, 'Escape works with focus on the page behind');
+});
+
+test('Escape works while a reply is pending, and focus returns to the box after an error', async () => {
+  const reply = deferred();
+  const { root, input, send } = await setup({ sendChat: () => reply.promise });
+  document.dispatch(OPEN_EVENT);
+  input.focus();
+  input.value = 'Why?';
+  send.click();
+  browserDropsFocus();
+  reply.reject(new Error('Offline'));
+  await settle();
+  assert.ok(document.activeElement === input, 'focus returns to the box after an error');
+  browserDropsFocus();
+  press('Escape');
+  assert.equal(sheetOf(root).hidden, true);
+});
+
+test('focus that lands outside the open sheet is moved back in, and a closed sheet stops listening', async () => {
+  const { root } = await setup();
+  const sheet = sheetOf(root);
+  const outside = document.createElement('button');
+  document.dispatch(OPEN_EVENT);
+  outside.focus();
+  document.dispatch('focusin', { target: outside });
+  assert.ok(document.activeElement === sheet, 'focus is pulled back into the sheet');
+  document.dispatch('focusin', { target: root.button('Close') });
+  assert.ok(document.activeElement === sheet, 'focus inside the sheet is left alone');
+  root.button('Close').click();
+  assert.equal(document.count('keydown'), 0, 'no key listener stays behind');
+  assert.equal(document.count('focusin'), 0, 'no focus listener stays behind');
 });
 
 test('a panel that left the page stops answering coach:open', async () => {

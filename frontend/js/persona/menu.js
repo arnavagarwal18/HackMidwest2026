@@ -11,6 +11,7 @@ export function createMenu({ label, menuLabel, options, value, onChange }) {
   loadPersonaStyles();
   let chosen = value;
   let isOpen = false;
+  let hadFocus = false;
   const trigger = element('button', '', 'coach-menu-button', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' });
   const triggerText = element('span', '', 'coach-menu-text');
   trigger.append(triggerText, element('span', ' ▾', 'coach-menu-caret', { 'aria-hidden': 'true' }));
@@ -90,9 +91,15 @@ export function createMenu({ label, menuLabel, options, value, onChange }) {
   return {
     element: root,
     setValue(id) { chosen = id; draw(); },
+    // A disabled button loses focus; when enabled again it takes focus back if the page has none.
     setDisabled(flag) {
-      if (flag) close();
+      if (flag) {
+        close();
+        hadFocus = document.activeElement === trigger;
+      }
       trigger.disabled = flag;
+      if (!flag && hadFocus && (!document.activeElement || document.activeElement === document.body)) trigger.focus?.();
+      if (!flag) hadFocus = false;
     },
   };
 }
