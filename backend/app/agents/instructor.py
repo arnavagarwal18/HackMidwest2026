@@ -28,7 +28,7 @@ REP_RESULT_FIELDS = ("take_id", "tempo_bpm", "status", "passed", "errors", "reas
 
 @tool(name=CHAT_SUBMIT.tool_name)
 def submit_reply(sentences: list[CoachSentence]) -> dict:
-    """Submit your finished reply. The result says accepted, or lists the sentences to fix before you submit again."""
+    """Submit your finished reply. Every claim needs its type, id and value; a count claim cites a bar or problem id (b:... or p:...), never a note or extra id. The result says accepted, or lists the sentences to fix before you submit again."""
     return {"accepted": True}  # the CheckerHook replaces this with the Checker's verdict
 
 
