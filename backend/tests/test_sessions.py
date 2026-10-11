@@ -42,6 +42,7 @@ def test_get_session(client):
     assert response.json() == {
         "session_id": session_id,
         "instrument": "trumpet",
+        "persona": "standard",
         "score_status": "none",
         "has_calibration": False,
         "take_ids": [],
