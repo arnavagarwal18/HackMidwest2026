@@ -6,10 +6,14 @@ from strands import Agent, tool
 
 from app.agents.coach import Claim
 from app.agents.context import CheckContext
+from app.agents.drills import drill_tools_for
 from app.agents.holder import RunHolder
 from app.agents.hooks import PLAN_SUBMIT, CheckerHook, TraceHook
 from app.agents.model import with_max_tokens
-from app.agents.prompts import PLANNER_PROMPT
+from app.agents.persona_hooks import style_hooks
+from app.agents.persona_run import PersonaRun, tag_agent
+from app.agents.personas import Persona
+from app.agents.prompts import PLANNER_PROMPT, with_persona
 from app.agents.trace import Trace
 
 PLANNER_TOOLS = ("get_take_overview", "list_problems", "get_bar", "get_history")
@@ -46,11 +50,19 @@ def submit_plan(output: PlannerOutput) -> dict:
     return {"accepted": True}  # the CheckerHook replaces this with the Checker's verdict
 
 
-def build_planner_agent(model: Any, measurement_tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace) -> Agent:
-    return Agent(
+def planner_tool_names(persona: Persona) -> list[str]:
+    """The measurement tools and, for a style persona, its drill tool: what the Planner is given besides submit_plan."""
+    return [*PLANNER_TOOLS, *[drill.tool_name for drill in drill_tools_for(persona)]]
+
+
+def build_planner_agent(model: Any, measurement_tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace,
+                        style: PersonaRun = PersonaRun()) -> Agent:
+    agent = Agent(
         model=with_max_tokens(model, PLANNER_MAX_TOKENS),
-        tools=[*[tool(measurement_tools[name]) for name in PLANNER_TOOLS], submit_plan],
-        system_prompt=PLANNER_PROMPT,
-        hooks=[TraceHook(trace, "planner"), CheckerHook(PLAN_SUBMIT, ctx, holder, trace)],
+        tools=[*[tool(measurement_tools[name]) for name in PLANNER_TOOLS], *drill_tools_for(style.persona), submit_plan],
+        system_prompt=with_persona(PLANNER_PROMPT, style.persona, "planner"),
+        hooks=[TraceHook(trace, "planner"), *style_hooks(style.persona, PLAN_SUBMIT, trace, "planner"),
+               CheckerHook(PLAN_SUBMIT, ctx, holder, trace)],
         callback_handler=None,
     )
+    return tag_agent(agent, style)

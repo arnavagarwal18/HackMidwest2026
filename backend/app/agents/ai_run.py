@@ -10,6 +10,8 @@ from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, first_credential_er
 from app.agents.holder import RunHolder
 from app.agents.model import build_agent_model
 from app.agents.orchestrator import build_orchestrator
+from app.agents.persona_run import PersonaRun
+from app.agents.personas import STANDARD, focus_order
 from app.agents.tools import make_tools
 from app.agents.trace import Trace
 
@@ -17,6 +19,7 @@ log = logging.getLogger(__name__)
 
 TIME_LIMIT_S = 45  # shared by the feedback run and the instructor chat
 ORCHESTRATOR_REQUEST = "Feedback for take {take_id}. Read the overview first."
+STYLE_REQUEST = "Feedback for take {take_id}. Coaching style: {label}. Focus order: {focus_order}. Read the overview first."
 
 
 @dataclass
@@ -48,11 +51,19 @@ def context_and_tools(session_id: str, take: dict, history: list[dict]) -> tuple
     return build_context(session_id, take["take_id"], **sources), make_tools(session_id, take["take_id"], **sources)
 
 
-async def run_agents(session_id: str, take: dict, history: list[dict], holder: RunHolder, trace: Trace) -> None:
+def orchestrator_request(take_id: str, style: PersonaRun) -> str:
+    """Today's request for Standard; a style persona adds its name and the order to explain the problems in."""
+    if style.persona is STANDARD:
+        return ORCHESTRATOR_REQUEST.format(take_id=take_id)
+    return STYLE_REQUEST.format(take_id=take_id, label=style.persona.label, focus_order=", ".join(style.focus_order))
+
+
+async def run_agents(session_id: str, take: dict, history: list[dict], holder: RunHolder, trace: Trace,
+                     style: PersonaRun = PersonaRun()) -> None:
     """The Orchestrator run under the time limit; raises on a model failure or timeout (run_ai_feedback catches it)."""
     ctx, tools = context_and_tools(session_id, take, history)
-    orchestrator = build_orchestrator(new_model(), tools, ctx, holder, trace)
-    await asyncio.wait_for(orchestrator.invoke_async(ORCHESTRATOR_REQUEST.format(take_id=take["take_id"])), TIME_LIMIT_S)
+    orchestrator = build_orchestrator(new_model(), tools, ctx, holder, trace, style)
+    await asyncio.wait_for(orchestrator.invoke_async(orchestrator_request(take["take_id"], style)), TIME_LIMIT_S)
 
 
 def shown_sentence(sentence: dict) -> dict:
@@ -90,14 +101,18 @@ def _log_failure(session_id: str, take: dict, exc: Exception) -> None:
         log.exception("The feedback agents failed for take %s/%s (%s)", session_id, take["take_id"], type(exc).__name__)
 
 
-def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Trace, cant_tell: bool = False) -> AiFeedback:
+def run_ai_feedback(session_id: str, take: dict, history: list[dict], trace: Trace, cant_tell: bool = False,
+                    style: PersonaRun | None = None) -> AiFeedback:
     """Run the agents on a diagnosed take. Anything the Coach or Planner got accepted is kept, even if a later step failed.
+
+    `style` is the persona picked for the run; without one the run is Standard, in the ranker's problem order.
 
     For a take that can't be judged only the Planner runs, so there are no sentences and no failure reason.
     """
     holder, failure = RunHolder(), None
+    style = style or PersonaRun(STANDARD, tuple(focus_order((take.get("diagnosis") or {}).get("problems") or [], STANDARD)))
     try:
-        asyncio.run(run_agents(session_id, take, history, holder, trace))
+        asyncio.run(run_agents(session_id, take, history, holder, trace, style))
     except Exception as exc:
         failure = exc
         _log_failure(session_id, take, exc)

@@ -10,7 +10,9 @@ from app.agents.coach import CoachSentence
 from app.agents.context import CheckContext
 from app.agents.holder import ReplyHolder
 from app.agents.hooks import CHAT_SUBMIT, CheckerHook, TraceHook
-from app.agents.prompts import INSTRUCTOR_PROMPT
+from app.agents.persona_hooks import style_hooks
+from app.agents.persona_run import PersonaRun, tag_agent
+from app.agents.prompts import INSTRUCTOR_PROMPT, with_persona
 from app.agents.tools import fit_json
 from app.agents.trace import Trace
 from app.practice.progress import read_progress
@@ -100,12 +102,14 @@ def history_messages(turns: list[dict]) -> list[dict]:
 
 
 def build_instructor_agent(model: Any, tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: ReplyHolder,
-                           trace: Trace, history: list[dict]) -> Agent:
-    return Agent(
+                           trace: Trace, history: list[dict], style: PersonaRun = PersonaRun()) -> Agent:
+    agent = Agent(
         model=model,
         tools=[*[tool(fn) for fn in tools.values()], submit_reply],
-        system_prompt=INSTRUCTOR_PROMPT,
+        system_prompt=with_persona(INSTRUCTOR_PROMPT, style.persona, "instructor"),
         messages=history,
-        hooks=[TraceHook(trace, "instructor"), CheckerHook(CHAT_SUBMIT, ctx, holder, trace)],
+        hooks=[TraceHook(trace, "instructor"), *style_hooks(style.persona, CHAT_SUBMIT, trace, "instructor"),
+               CheckerHook(CHAT_SUBMIT, ctx, holder, trace)],
         callback_handler=None,
     )
+    return tag_agent(agent, style)

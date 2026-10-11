@@ -13,6 +13,8 @@ from app import store
 from app.agents.ai_run import AiFeedback, run_ai_feedback
 from app.agents.config import get_settings
 from app.agents.fallback import build_fallback
+from app.agents.persona_run import PersonaRun, build_persona_run, trace_persona
+from app.agents.planner import planner_tool_names
 from app.agents.trace import Trace
 from app.errors import AppError
 from app.takes.pipeline_steps import resolve_step
@@ -44,7 +46,8 @@ def ai_enabled() -> bool:
     return get_settings().ai_enabled
 
 
-def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bool, trace: Trace) -> tuple[AiFeedback | None, str | None]:
+def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bool, trace: Trace,
+                 style: PersonaRun) -> tuple[AiFeedback | None, str | None]:
     """The AI path's result (None when it didn't run) and the reason the rule feedback is used instead (None when the AI's is)."""
     try:
         enabled = ai_enabled()
@@ -54,7 +57,7 @@ def _ai_feedback(session_id: str, take: dict, history: list[dict], cant_tell: bo
         return None, "model_error"
     if not enabled:
         return None, "cant_tell" if cant_tell else "disabled"
-    ai = run_ai_feedback(session_id, take, history, trace, cant_tell)
+    ai = run_ai_feedback(session_id, take, history, trace, cant_tell, style)
     return ai, "cant_tell" if cant_tell else ai.reason
 
 
@@ -91,10 +94,12 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
         log.warning("Take %s/%s has no diagnosis; its feedback will have no sentences", session_id, take_id)
         diagnosis = {}
     flags = {f["id"]: f for f in (take.get("form") or {}).get("flags") or []}
+    style = build_persona_run(session.persona, diagnosis.get("problems") or [], trace)
+    trace_persona(trace, style, planner_tool_names(style.persona))
     try:
         history = earlier_takes(session.takes, take)
         fallback = build_fallback(diagnosis, take, history, flags)
-        ai, reason = _ai_feedback(session_id, take, history, fallback.cant_tell, trace)
+        ai, reason = _ai_feedback(session_id, take, history, fallback.cant_tell, trace, style)
     except Exception:
         log.exception("The rule plan for take %s/%s failed; using a plain whole-range plan", session_id, take_id)
         trace.add("orchestrator", "fallback", "model_error", "rule plan failed")
@@ -108,6 +113,7 @@ def _build_records(session_id: str, take_id: str, trace: Trace, started: float) 
     feedback = {
         "id": feedback_id, "take_id": take_id, "created_at": datetime.now(timezone.utc).isoformat(),
         "mode": "fallback" if reason else "ai", "fallback_reason": reason, "cant_tell": fallback.cant_tell,
+        "persona": style.persona.id,
         "tier1": diagnosis.get("tier1") or [], "sentences": fallback.sentences if reason else ai.sentences,
         "dropped": ai.dropped if ai else [], "plan_id": plan_id,
         "check": {"coach_tries": 0, "planner_tries": 0, "claims_checked": 0, "claims_failed": 0, "sentences_dropped": 0,
