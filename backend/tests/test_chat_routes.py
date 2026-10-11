@@ -259,6 +259,14 @@ def test_unreadable_ai_settings_fall_back(client, fixture_data, monkeypatch):
     assert say(client, session_id).json()["instructor_turn"]["fallback_reason"] == "disabled"
 
 
+def test_an_instructor_turn_names_the_coach_style_it_was_written_in(client, fixture_data, monkeypatch):
+    ai(monkeypatch, enabled=False)
+    session_id = done_session(fixture_data)
+    assert say(client, session_id).json()["instructor_turn"]["persona"] == "standard"
+    client.patch(f"/sessions/{session_id}", json={"persona": "marching"})
+    assert say(client, session_id).json()["instructor_turn"]["persona"] == "marching"
+
+
 # ---- errors ----
 
 def test_an_unknown_session_is_404_on_both_routes(client):
