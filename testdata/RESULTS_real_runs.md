@@ -79,3 +79,5 @@ Extras went up by 3 on video1 and video2 (more splits inside long notes); ok not
 
 - The take5 side clip should be re-recorded with the hips in frame (slouching cannot be judged without them).
 - The acted clip `form/bad_posture_example.mp4` currently flags nothing and has no fault times in `form_expectations.json`, so its test skips until Xavier or Caleb supplies the times.
+
+Removed 2026-10-11: owner marked bad_posture_example.mp4 as bad data.

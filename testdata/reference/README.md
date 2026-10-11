@@ -9,5 +9,3 @@
 | historia_de_un_amor_digitide.mp4 | Historia de un Amor - Trumpet - DigiTide Blaze (1080p).mp4 |
 
 "Hot Cross Buns ... (1080p) (1).mp4" was byte-identical to the first file, so it is not included.
-
-testdata/form/bad_posture_example.mp4 <- bad posture example.mp4 (owner's bad-posture form example)
