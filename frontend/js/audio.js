@@ -7,7 +7,7 @@ export async function getAudioContext() {
   if (!context) {
     const Ctor = window.AudioContext || window.webkitAudioContext;
     if (!Ctor) {
-      throw new Error('This browser cannot play or record audio. Please use Chrome.');
+      throw new Error('This browser cannot play or record audio. Please use Safari or Chrome.');
     }
     context = new Ctor();
   }

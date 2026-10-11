@@ -4,17 +4,20 @@ import { getAudioContext } from './audio.js';
 import { scheduleClick, startMetronome } from './metronome.js';
 import { MediaAccessError, toMediaAccessError } from './media_error.js';
 
-export { MediaAccessError, renderMediaError, HELP_LINE } from './media_error.js';
+export { MediaAccessError, renderMediaError, HELP_LINES } from './media_error.js';
 export { getAudioContext } from './audio.js';
 
 export const MAX_TAKE_SECONDS = 180;
 export const COUNT_IN_LEAD_S = 0.5; // the first click comes this long after the recorder starts
-const VIDEO_CONSTRAINTS = { width: { ideal: 1280 }, height: { ideal: 720 } };
+// The browser's voice processing would bend the pitch the app measures, so it is all off (MDN: echoCancellation).
+const AUDIO_CONSTRAINTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+// facingMode is only a wish: "exact" throws on devices with a single camera.
+const VIDEO_CONSTRAINTS = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: 'user' } };
 const DEVICE_ERRORS = ['NotAllowedError', 'SecurityError', 'NotFoundError', 'OverconstrainedError', 'NotReadableError', 'AbortError'];
 
 async function openAudio() {
   try {
-    return await navigator.mediaDevices.getUserMedia({ audio: true });
+    return await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS });
   } catch (err) {
     throw toMediaAccessError('mic', err);
   }
@@ -33,7 +36,7 @@ export async function openStream({ video = false } = {}) {
     return { stream: await openAudio(), hasVideo: false, cameraError: null };
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: VIDEO_CONSTRAINTS });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS, video: VIDEO_CONSTRAINTS });
     return { stream, hasVideo: true, cameraError: null };
   } catch (err) {
     if (!DEVICE_ERRORS.includes(err && err.name)) throw toMediaAccessError('mic', err);

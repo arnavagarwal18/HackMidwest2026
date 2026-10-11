@@ -161,7 +161,8 @@ Tests: `node --test frontend/tests/overlay.test.mjs` (fake canvas and DOM; no br
 | File | Job |
 | --- | --- |
 | `setup.js` | Defaults (bars 1..N, score tempo, one bar of count-in; a saved `state.take_setup` wins field by field), `validateSetup`, `takeFields` (the POST `/takes` text fields; no `downbeat_s` for an uploaded file). |
-| `take_form.js` | The form: bar from/to, tempo (30-240), count-in (0-8), mic or video, metronome (with the headphones note). |
+| `take_form.js` | The form: tempo (30-240) with a - / + stepper (steps of 2) and the "Add camera" toggle up front; bar from/to, count-in (0-8) and the metronome (with the headphones note) under "More options". |
+| `../play/prefs.js` | Remembers the tempo (per session, i.e. per piece) and the camera on/off in localStorage (`practice_coach_play_prefs`). |
 | `camera_panel.js` | Live preview + guide outline + badge; owns the checker. `attach(stream)` / `pauseChecks()` / `detach()`. |
 | `camera_checker.js` | One `camera-check` about every second (never overlapping), stops on `stop()` or on the first failure. |
 | `camera_status.js` | Answer -> badge text (`In frame`, `Move back: right elbow not in view`, too small, too dark). |

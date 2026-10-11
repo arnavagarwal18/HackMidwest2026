@@ -1,8 +1,9 @@
-// Take setup (#/take): choose the bars, tempo and mic or video, record (or upload a file), send it, open the results.
+// Play (#/take): the tempo and one big Record button; record (or upload a file), send it, open the results.
 // See "Take setup" in frontend/README.md. The pieces live in js/take/.
 import { checkCamera, getScore, uploadTake } from '../api.js';
 import { clearBanner, reportError, showNotice } from '../banner.js';
-import { openStream, recordTake, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
+import { rememberCamera, rememberTempo, setupWithPrefs } from '../play/prefs.js';
+import { getAudioContext, openStream, recordTake, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { state } from '../state.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
 import { createCameraPanel } from '../take/camera_panel.js';
@@ -12,6 +13,8 @@ import { createTakeForm } from '../take/take_form.js';
 const STYLE_HREF = 'css/take.css';
 const RECORD_LIMIT_S = 180;
 const NO_METER = { stop() {} };
+const MIC_REASON = 'Record needs your microphone to hear your trumpet. Your browser will ask you to allow it.';
+const WAITING_TEXT = "Waiting for permission\u2026 Choose Allow in your browser's prompt. If none appears, check the address bar or the site settings.";
 const START_FAILED_TEXT = 'The recording could not be started, so it was stopped. Press Record to try again.';
 
 // After a reload only the score status is known, so the bar count and tempo come from the score itself.
@@ -47,13 +50,15 @@ export async function render(root, _params, isCurrent = () => true) {
   let recording = null; // { handle, meter } while recording
   let unsent = null; // { result, kind } a finished recording whose upload failed; kept so Send again reuses the same file
 
-  const form = createTakeForm({ setup: initialSetup(score, state.take_setup), bars: score.bars, onKindChange: switchKind });
+  const form = createTakeForm({
+    setup: initialSetup(score, setupWithPrefs(state.take_setup)), bars: score.bars, onKindChange: switchKind, onTempoChange: rememberTempo,
+  });
   const camera = createCameraPanel({ instrument: state.instrument, check: (jpeg) => checkCamera(state.session_id, jpeg) });
   const problem = el('div', { className: 'take-problem' });
   const status = el('p', { className: 'muted', attrs: { role: 'status' } });
   const meterBox = el('div', { className: 'take-meter' });
-  const recordButton = button('Record', startRecording, 'primary');
-  const stopButton = button('Stop', stopRecording);
+  const recordButton = button('Record', startRecording, 'primary record-big');
+  const stopButton = button('Stop', stopRecording, 'primary record-big');
   const sendAgainButton = button('Send this take again', sendUnsent);
   const discardButton = button('Discard and record again', discardUnsent);
   const fileInput = el('input', { attrs: { type: 'file', accept: 'audio/*,video/*' } });
@@ -82,6 +87,7 @@ export async function render(root, _params, isCurrent = () => true) {
   async function openFor(kind) {
     const ticket = ++opening;
     closeStream();
+    status.textContent = WAITING_TEXT;
     try {
       const opened = await openStream({ video: kind === 'video' });
       if (disposed || ticket !== opening) {
@@ -98,6 +104,8 @@ export async function render(root, _params, isCurrent = () => true) {
       if (err.name !== 'MediaAccessError') throw err;
       renderMediaError(problem, err, { onTryAgain: () => openFor(form.read().kind), onUpload: () => fileInput.click() });
       return false;
+    } finally {
+      if (ticket === opening) status.textContent = '';
     }
   }
 
@@ -108,12 +116,15 @@ export async function render(root, _params, isCurrent = () => true) {
   }
 
   async function switchKind(kind) {
+    rememberCamera(kind === 'video');
     problem.replaceChildren();
     if (kind === 'video') await openFor('video');
     else closeStream();
   }
 
   async function startRecording() {
+    // Started inside the tap itself, before the permission prompt: Safari only lets audio run when the tap starts it.
+    getAudioContext().catch((err) => console.error('Audio could not be unlocked by the Record tap:', err));
     clearBanner();
     const setup = readSetup();
     if (!setup) return;
@@ -272,11 +283,13 @@ export async function render(root, _params, isCurrent = () => true) {
     form.element,
     camera.element,
     problem,
+    el('p', { className: 'muted', text: MIC_REASON }),
     el('p', { className: 'take-actions', children: [recordButton, stopButton, sendAgainButton, discardButton] }),
     meterBox,
     status,
-    el('p', { className: 'muted', text: 'Or upload an existing audio or video file. It is sent with the bars and tempo above.' }),
+    el('p', { className: 'muted', text: 'Or upload an existing audio or video file. It is sent with the tempo above.' }),
     fileInput,
+    el('p', { children: [el('a', { text: 'Fine-tune for your room and microphone (optional)', attrs: { href: '#/calibrate' } })] }),
   );
   setMode('idle');
   if (form.read().kind === 'video') await openFor('video');

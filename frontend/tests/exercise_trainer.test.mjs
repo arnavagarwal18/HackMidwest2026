@@ -230,7 +230,7 @@ test('a refused upload shows the message in the red banner and keeps the recordi
 test('a blocked microphone shows the media error with Try again and Upload; nothing retries by itself', async () => {
   const t = await setup({ recorder: { openError: new MediaAccessError('mic', 'blocked') } });
   await t.press();
-  assert.ok(t.text('media-error')[0].includes('Chrome is blocking the mic'));
+  assert.ok(t.text('media-error')[0].includes('This page is not allowed to use the mic'));
   assert.ok(t.root.button('Try again'));
   assert.ok(t.root.button('Upload a recording instead'));
   await settle();

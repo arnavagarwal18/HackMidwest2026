@@ -190,8 +190,9 @@ test('a blocked mic shows the device message and the help line, with Try again',
   const blocked = installFakeBrowser({ micError: 'NotAllowedError' });
   const root = await startScreen();
   await root.button(/^Record Bb3/).click();
-  assert.ok(root.hasText('Chrome is blocking the mic'));
-  assert.ok(root.hasText('Allow it in Chrome: click the camera icon in the address bar'));
+  assert.ok(root.hasText('This page is not allowed to use the mic'));
+  assert.ok(root.hasText('Settings, then Safari, then Camera and Microphone'), 'tells iPhone learners where to allow it');
+  assert.ok(root.hasText('click the camera icon in the address bar'));
   assert.ok(root.button('Try again'));
   assert.equal(root.button(/^Record Bb3/).disabled, false, 'recorded clips and buttons stay usable');
   blocked.leave();
@@ -328,9 +329,9 @@ test('a clip recorded after a mic-error Try again is stored, and the screen goes
   };
   const root = await startScreen('?mock=1', 'sess_micretry');
   await root.button(/^Record Bb3/).click();
-  assert.ok(root.hasText('Chrome is blocking the mic'));
+  assert.ok(root.hasText('This page is not allowed to use the mic'));
   assert.equal(root.button(/^Record the delay test/).disabled, true);
-  micBlocked = false; // the learner allows the mic in Chrome, then presses Try again
+  micBlocked = false; // the learner allows the mic, then presses Try again
   await root.button('Try again').click();
   assert.ok(root.hasText('Recorded'), 'the clip recorded by Try again is stored');
   await root.button(/^Record F4 \(3 s\)$/).click();

@@ -8,6 +8,12 @@
 .take-form legend { padding: 0 var(--s2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .take-form p { margin: 0; }
 .take-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.record-big { min-height: 56px; padding: 0 2.4rem; font-size: var(--fs-lg); }
+@media (max-width: 40rem) { .record-big { width: 100%; } }
+.tempo-stepper { display: flex; align-items: flex-end; gap: var(--s2); }
+.stepper { min-width: var(--tap); min-height: var(--tap); font-size: var(--fs-lg); }
+.take-more summary { min-height: var(--tap); cursor: pointer; color: var(--muted); }
+.take-more[open] { display: grid; gap: var(--s4); }
 .take-meter meter { width: 12rem; }
 
 .camera-panel { max-width: 40rem; }
