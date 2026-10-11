@@ -21,8 +21,8 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [ ] Push to main and post the results on LLD-4 comment 01a128f9 for Caleb
 
 ## Caleb (AMD Ryzen 9 270, 16 GB): review and clean-up
-- [ ] Merge or delete branch origin/task/TASK-10
-- [ ] Review change 11 against the existing posture rules (limits loose enough for camera angle and body build; drift rules kept; `pytest backend/tests/test_form*.py`)
+- [x] Merge or delete branch origin/task/TASK-10
+- [x] Review change 11 against the existing posture rules (limits loose enough for camera angle and body build; drift rules kept; `pytest backend/tests/test_form*.py`)
 - [ ] Reply on LLD-4 comment 01a128f9 with approve or the blocking issues
 
 ## Arnav (MacBook Air M2, 16 GB, has AWS): live AI checks
