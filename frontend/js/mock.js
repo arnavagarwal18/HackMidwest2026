@@ -71,7 +71,7 @@ const FAILED_CALIBRATION = { group: 'calibration', processingFile: 'error_calibr
 const calibrationVariant = () => new URLSearchParams(window.location.search).get('calibration');
 
 // error_*.json files stand for a failed response; most are a 404, these have their own status.
-const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409 };
+const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409, error_feedback_busy: 409 };
 
 // Exercise ids that change what the exercise routes answer, so the loop trainer can be tried in each state.
 // ex_fail / ex_not_counted: the rep is a FAIL / does not count. ex_complete: one pass from the target, and the rep completes it.
@@ -115,6 +115,9 @@ export function mockFileFor(method, path, requestBody) {
   if (route.poll) return pollFile(route, pathOnly, route.file === 'get_analysis' ? analysisVariant(takeId, finalFile) : finalFile);
   if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
     return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);
+  }
+  if (route.file === 'post_feedback' && pathOnly.split('/')[2] === 'sess_feedback_busy') { // not ready for the first two asks
+    return pollFile({ poll: { group: 'feedback_busy', processingFile: 'error_feedback_busy', polls: 2 } }, pathOnly, finalFile);
   }
   if (route.file === 'post_transposition' && pathOnly.split('/')[2] === 'sess_unconfirmed') return 'error_transposition_wrong_state';
   if (route.file === 'get_session') return SESSION_VARIANTS[pathOnly.split('/')[2]] ?? route.file;

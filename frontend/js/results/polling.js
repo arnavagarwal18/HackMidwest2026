@@ -15,7 +15,7 @@ export function pollThresholds(search = window.location.search) {
   };
 }
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // fetchOnce() -> { done, ...anything }. Resolves to { outcome: 'done', result }, { outcome: 'timeout', result }
 // (last answer, after giveUpAfterMs) or { outcome: 'stopped' } when isActive() turns false.

@@ -157,3 +157,11 @@ test('a 409 wrong_state stops the search, shows the back end message and restore
   assert.match(dom.banner.textContent, /Confirm your sheet music/);
   assert.deepEqual(transpositionPosts(), [-1, 0], 'one failed try, then the restore (which also fails and is reported)');
 });
+
+test('a 409 from the feedback request is retried until the back end is ready', async () => {
+  const view = openView();
+  const outcome = await runAutoKey({ view, sessionId: 'sess_feedback_busy', take: AUTOKEY_TAKE, original: 0, isActive: () => view.isConnected });
+  assert.equal(outcome.outcome, 'found');
+  assert.equal(outcome.result.feedback.cant_tell, false);
+  assert.equal(feedbackPosts(), 3, 'two 409s, then the feedback');
+});
