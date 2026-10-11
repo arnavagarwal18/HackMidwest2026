@@ -15,6 +15,7 @@ from app.errors import AppError
 router = APIRouter()
 
 MESSAGE_MAX_CHARS = 1000
+REP_PURPOSE = "rep"  # the purpose practice/ gives a rep take
 _reply_locks: dict[str, threading.Lock] = {}
 _registry_lock = threading.Lock()
 
@@ -45,12 +46,12 @@ def _valid_message(message: str) -> str:
 
 
 def _chosen_take(takes: dict[str, dict], take_id: str | None) -> dict | None:
-    """The asked-for take, else the latest take that is done (None when there is none)."""
+    """The asked-for take, else the latest done take that is not a practice rep (None when there is none)."""
     if take_id is not None:
         if take_id not in takes:
             raise AppError(404, "take_not_found", "We couldn't find that take.")
         return takes[take_id]
-    done = [t for t in takes.values() if t.get("status") == "done"]
+    done = [t for t in takes.values() if t.get("status") == "done" and t.get("purpose", "take") != REP_PURPOSE]
     return max(done, key=lambda t: int(t["take_id"][1:]), default=None)
 
 

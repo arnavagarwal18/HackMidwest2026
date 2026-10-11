@@ -307,3 +307,7 @@ def test_8_practice_rep_is_scored_and_progress_follows(flow, tmp_path):
     if scored_whole:
         assert after.json()["after"] is not None, "a rep scored on the before take's bars, but 'after' is null"
         assert after.json()["after"]["source"] == "rep", after.json()["after"]
+
+    chat = flow.client.post(f"/sessions/{session_id}/chat", json={"message": "And now?"})
+    assert chat.status_code == 200, chat.text
+    assert chat.json()["instructor_turn"]["take_id"] == take_id, "after a rep the chat should still be about the full take"

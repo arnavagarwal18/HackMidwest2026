@@ -47,9 +47,9 @@ def say(client, session_id, message="How did I do?", **body):
     return client.post(f"/sessions/{session_id}/chat", json={"message": message, **body})
 
 
-def add_take_like_t1(session_id, status):
+def add_take_like_t1(session_id, status, **extra):
     t1 = store.get(session_id).takes["t1"]
-    return add_take(session_id, lambda take_id: {**{k: v for k, v in t1.items() if k != "take_id"}, "status": status}, lambda take: None)
+    return add_take(session_id, lambda take_id: {**{k: v for k, v in t1.items() if k != "take_id"}, "status": status, **extra}, lambda take: None)
 
 
 def trace_events(session_id, turn_id):
@@ -169,6 +169,36 @@ def test_the_default_take_is_the_latest_done_take(client, fixture_data, monkeypa
     add_take_like_t1(session_id, "done")
     add_take_like_t1(session_id, "processing")
     assert say(client, session_id).json()["instructor_turn"]["take_id"] == "t2"
+
+
+def test_the_default_take_skips_practice_reps(client, fixture_data, monkeypatch):
+    ai(monkeypatch, enabled=False)
+    session_id = done_session(fixture_data)
+    add_take_like_t1(session_id, "done", purpose="rep")
+    assert say(client, session_id).json()["instructor_turn"]["take_id"] == "t1"
+
+
+def test_a_take_with_purpose_take_still_counts_as_latest(client, fixture_data, monkeypatch):
+    ai(monkeypatch, enabled=False)
+    session_id = done_session(fixture_data)
+    add_take_like_t1(session_id, "done", purpose="take")
+    add_take_like_t1(session_id, "done", purpose="rep")
+    assert say(client, session_id).json()["instructor_turn"]["take_id"] == "t2"
+
+
+def test_an_explicit_rep_take_id_is_still_used(client, fixture_data, monkeypatch):
+    ai(monkeypatch, enabled=False)
+    session_id = done_session(fixture_data)
+    add_take_like_t1(session_id, "done", purpose="rep")
+    assert say(client, session_id, take_id="t2").json()["instructor_turn"]["take_id"] == "t2"
+
+
+def test_with_only_rep_takes_the_reply_says_to_record_one(client, fixture_data, monkeypatch):
+    ai(monkeypatch, enabled=False)
+    session_id = store.create("trumpet").session_id
+    add_take(session_id, lambda take_id: {"status": "done", "purpose": "rep"}, lambda take: None)
+    instructor = say(client, session_id).json()["instructor_turn"]
+    assert (instructor["text"], instructor["take_id"]) == (NO_TAKE_TEXT, None)
 
 
 def test_an_explicit_take_id_is_used(client, fixture_data, monkeypatch):
