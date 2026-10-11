@@ -1,0 +1,51 @@
+{
+  "source_video": "testdata\\ode_to_joy\\ode_to_joy_trumpet11.mp4",
+  "score": "testdata\\ode_to_joy\\score.musicxml",
+  "planted_take": "testdata\\planted\\ode_to_joy_planted.mp4",
+  "take_form": {
+    "kind": "video",
+    "bar_from": 1,
+    "bar_to": 16,
+    "tempo_bpm": 100.0,
+    "count_in_beats": 0
+  },
+  "mistakes": [
+    {
+      "id": 1,
+      "kind": "wrong_note",
+      "bar": 3,
+      "beat": 1.0,
+      "source_time_s": [
+        7.0,
+        8.2
+      ],
+      "detail": "pitch shifted -2 semitones; the original note is score (written) MIDI 69"
+    },
+    {
+      "id": 2,
+      "kind": "missed_note",
+      "bar": 6,
+      "beat": 2.0,
+      "source_time_s": [
+        14.81,
+        15.4
+      ],
+      "detail": "silenced; the original note is score (written) MIDI 74"
+    },
+    {
+      "id": 3,
+      "kind": "rushing",
+      "bars": [
+        9,
+        10
+      ],
+      "source_time_s": [
+        21.39,
+        26.2
+      ],
+      "detail": "time-compressed by 15% (audio and video); everything after it is 0.63 s earlier in the take"
+    }
+  ],
+  "pass_rule": "diagnosis flags a wrong note in the bar of mistake 1, a missed note in the bar of mistake 2, and rushing in the bars of mistake 3; every other bar it flags is an extra",
+  "expected_extras_note": "bars after 10 play 0.63 s early in the take, so late bars may be flagged as early"
+}

@@ -9,3 +9,4 @@ venv/
 *.log
 testdata/youtube/videos/
 testdata/youtube/fault_videos/
+testdata/planted/*.mp4
