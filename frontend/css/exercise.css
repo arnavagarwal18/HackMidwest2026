@@ -1,9 +1,9 @@
-/* Loop trainer (#/exercise/:ex), in the "Brass & Ivory" direction. Colours come from tokens.css. */
-.exercise-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s5); row-gap: var(--s2); align-items: start; }
+/* Loop trainer (#/exercise/:ex), in the "Brass & Ivory" direction. Colours come from the tokens in app.css. */
+.exercise-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--sp-4); row-gap: var(--sp-2); align-items: start; }
 .exercise-card > * { grid-column: 1; }
-.exercise-card h1 { margin: var(--s1) 0 var(--s2); }
+.exercise-card h1 { margin: var(--sp-1) 0 var(--sp-2); }
 .exercise-card p { margin: 0; }
-.exercise-card .pass-mark { display: inline-block; justify-self: start; margin-top: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); }
+.exercise-card .pass-mark { display: inline-block; justify-self: start; margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); }
 .exercise-card > .tempo-dial { grid-column: 2; grid-row: 1 / span 4; align-self: center; }
 .tempo-dial {
   display: grid;
@@ -12,37 +12,37 @@
   aspect-ratio: 1;
   padding: 14px;
   border-radius: 50%;
-  background: conic-gradient(var(--brass) 0 var(--dial-progress, 0%), var(--line-strong) var(--dial-progress, 0%) 100%);
+  background: conic-gradient(var(--brass) 0 var(--dial-progress, 0%), var(--line) var(--dial-progress, 0%) 100%);
   text-align: center;
 }
-.tempo-dial > div { display: grid; place-content: center; width: 100%; height: 100%; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-.tempo-dial .bpm { font-family: var(--font-display); font-size: 2.8rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.tempo-dial > div { display: grid; place-content: center; width: 100%; height: 100%; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); }
+.tempo-dial .bpm { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 600; line-height: 1; }
 .tempo-dial .unit { color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.1em; text-transform: uppercase; }
 .tempo-dial .dial-target { color: var(--muted); font-size: var(--fs-xs); }
-.streak { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin: var(--s4) 0 var(--s2); }
-.streak .current-tempo { flex-basis: 100%; margin: 0; font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 600; line-height: 1.1; }
-.streak-dots { display: flex; gap: var(--s2); list-style: none; margin: 0; padding: 0; font-size: 1.4rem; line-height: 1; color: var(--ink-2); }
-.streak-dots .dot.filled { color: var(--good); }
+.streak { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0 var(--sp-2); }
+.streak .current-tempo { flex-basis: 100%; margin: 0; font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 600; line-height: 1.25; }
+.streak-dots { display: flex; gap: var(--sp-2); list-style: none; margin: 0; padding: 0; font-size: var(--fs-lg); line-height: 1; color: var(--muted); }
+.streak-dots .dot.filled { color: var(--ok); }
 .streak-label { margin: 0; }
-.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr)); gap: var(--s1); list-style: none; margin: var(--s3) 0; padding: 0; }
-.ladder .step { padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; font-weight: 600; text-align: center; }
-.ladder .step.passed { background: var(--good-soft); color: var(--good); }
-.ladder .step.current { background: var(--brass); color: #1d1a15; box-shadow: 0 4px 12px rgb(183 131 42 / 0.35); }
-.trainer-status { margin-top: var(--s4); padding: var(--s5) var(--s4); text-align: center; background: var(--bg); border: 2px dashed var(--line-strong); border-radius: var(--r-lg); color: var(--ink); }
-.trainer-status .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); margin: var(--s3) 0 0; }
-.trainer-status .stage { margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--fs-xl); }
-.trainer-status .reasons { margin: var(--s1) auto var(--s3); padding-left: 1.2rem; max-width: 28rem; text-align: left; }
-.trainer-status .verdict { margin: 0; font-family: var(--font-display); font-size: 3rem; font-weight: 700; line-height: 1.1; }
-.trainer-status .verdict.pass { color: var(--good); }
+.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr)); gap: var(--sp-1); list-style: none; margin: var(--sp-3) 0; padding: 0; }
+.ladder .step { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
+.ladder .step.passed { background: var(--ok-soft); color: var(--ok); }
+.ladder .step.current { background: var(--primary); color: var(--primary-ink); }
+.trainer-status { margin-top: var(--sp-3); padding: var(--sp-4) var(--sp-3); text-align: center; background: var(--bg); border: 2px dashed var(--line); border-radius: var(--radius-card); color: var(--ink); }
+.trainer-status .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin: var(--sp-3) 0 0; }
+.trainer-status .stage { margin: 0 0 var(--sp-2); font-family: var(--font-display); font-size: var(--fs-xl); }
+.trainer-status .reasons { margin: var(--sp-1) auto var(--sp-3); padding-left: 1.2rem; max-width: 28rem; text-align: left; }
+.trainer-status .verdict { margin: 0; font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 700; line-height: 1.25; }
+.trainer-status .verdict.pass { color: var(--ok); }
 .trainer-status .verdict.fail { color: var(--error); }
-.trainer-status .verdict.done { color: var(--accent); }
-.trainer-status.result-pass { border: 2px solid var(--good); background: var(--good-soft); }
-.trainer-status.result-fail { border: 2px solid var(--error); background: var(--error-bg); }
+.trainer-status .verdict.done { color: var(--brass); }
+.trainer-status.result-pass { border: 2px solid var(--ok); background: var(--ok-soft); }
+.trainer-status.result-fail { border: 2px solid var(--error); background: var(--error-soft); }
 .trainer-status.done { border: 2px solid var(--brass); background: var(--brass-soft); }
-.trainer-status input[type="file"] { margin-top: var(--s2); }
+.trainer-status input[type="file"] { margin-top: var(--sp-2); }
 @media (max-width: 40rem) {
   .trainer-status .actions button { width: 100%; }
   .exercise-card { grid-template-columns: minmax(0, 1fr); }
-  .exercise-card > .tempo-dial { grid-column: 1; grid-row: auto; justify-self: center; width: 140px; margin-top: var(--s3); }
-  .tempo-dial .bpm { font-size: 2.4rem; }
+  .exercise-card > .tempo-dial { grid-column: 1; grid-row: auto; justify-self: center; width: 140px; margin-top: var(--sp-3); }
+  .tempo-dial .bpm { font-size: var(--fs-2xl); }
 }

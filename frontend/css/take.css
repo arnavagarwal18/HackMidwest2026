@@ -1,30 +1,33 @@
 /* Take setup screen. Loaded by js/screens/take.js. */
-.take-form { display: grid; gap: var(--s4); }
-.field-row { display: flex; flex-wrap: wrap; gap: var(--s4); }
-.field { display: grid; gap: var(--s1); }
+.take-form { display: grid; gap: var(--sp-3); }
+.field-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.field { display: grid; gap: var(--sp-1); }
 .field input[type="number"] { width: 9rem; }
-.choice { display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap); }
-.take-form fieldset { display: flex; flex-wrap: wrap; gap: 0 var(--s5); margin: 0; padding: var(--s2) var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); }
-.take-form legend { padding: 0 var(--s2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.choice { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap); }
+.take-form fieldset { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.take-form legend { padding: 0 var(--sp-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .take-form p { margin: 0; }
-.take-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.record-big { min-height: 56px; padding: 0 2.4rem; font-size: var(--fs-lg); }
-@media (max-width: 40rem) { .record-big { width: 100%; } }
-.tempo-stepper { display: flex; align-items: flex-end; gap: var(--s2); }
+.take-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-bottom: max(var(--sp-3), env(safe-area-inset-bottom)); }
+.record-big { min-height: 56px; padding: 0 var(--sp-5); font-size: var(--fs-lg); }
+@media (max-width: 40rem) {
+  .record-big { width: 100%; }
+  .take-actions { position: sticky; bottom: 0; z-index: 5; padding-top: var(--sp-2); background: var(--bg); border-top: 1px solid var(--line); } /* Record stays in the thumb zone */
+}
+.tempo-stepper { display: flex; align-items: flex-end; gap: var(--sp-2); }
 .stepper { min-width: var(--tap); min-height: var(--tap); font-size: var(--fs-lg); }
 .take-more summary { min-height: var(--tap); cursor: pointer; color: var(--muted); }
-.take-more[open] { display: grid; gap: var(--s4); }
+.take-more[open] { display: grid; gap: var(--sp-3); }
 .take-meter meter { width: 12rem; }
 
 .camera-panel { max-width: 40rem; }
-.camera-stage { position: relative; aspect-ratio: 16 / 9; margin-bottom: var(--s3); background: #101828; border-radius: var(--r-md); overflow: hidden; }
+.camera-stage { position: relative; aspect-ratio: 16 / 9; margin-bottom: var(--sp-3); background: var(--media-bg); border-radius: var(--radius-card); overflow: hidden; }
 .camera-stage video { width: 100%; height: 100%; object-fit: cover; }
 .camera-guide-host { position: absolute; inset: 0; pointer-events: none; }
-.camera-guide { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 0.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-.camera-guide .guide-instrument { stroke: #fec84b; stroke-dasharray: 2 1.5; }
-.camera-badge { display: inline-block; margin: var(--s2) 0 0; padding: 2px var(--s3); border-radius: var(--r-pill); font-weight: 600; }
+.camera-guide { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--on-media); stroke-width: 0.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.camera-guide .guide-instrument { stroke: var(--on-media-accent); stroke-dasharray: 2 1.5; }
+.camera-badge { display: inline-block; margin: var(--sp-2) 0 0; padding: 2px var(--sp-3); border-radius: var(--radius); font-weight: 600; }
 .camera-badge[hidden] { display: none; }
-.camera-ok { background: var(--good-soft); color: var(--good); }
-.camera-warn { background: var(--warn-soft); color: var(--warn); }
-.camera-note { margin: var(--s1) 0 0; font-size: var(--fs-sm); }
-.media-error { padding: var(--s3) var(--s4); background: var(--bad-soft); color: var(--bad); border-radius: var(--r-sm); }
+.camera-ok { background: var(--ok-soft); color: var(--ok); }
+.camera-warn { background: var(--sharp-soft); color: var(--sharp); }
+.camera-note { margin: var(--sp-1) 0 0; font-size: var(--fs-sm); }
+.media-error { padding: var(--sp-3) var(--sp-3); background: var(--error-soft); color: var(--error); border-radius: var(--radius); }

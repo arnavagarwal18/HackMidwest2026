@@ -1,22 +1,94 @@
-/* Base and shared styles in the "Brass & Ivory" direction. Needs tokens.css loaded first. */
+/* Practice Coach - "Brass & Ivory". The design tokens live here, in :root, and every stylesheet uses them.
+   Brass is an accent (links, focus, the active state); the one filled primary action is --primary.
+   No web fonts, no gradients, no shadows: 1px lines and flat fills only. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour - light. Contrast ratios are WCAG 2.x, against --bg unless noted. */
+  --bg: #faf6ec;            /* ivory */
+  --surface: #ffffff;       /* cards, inputs */
+  --ink: #2a2018;           /* 14.76:1 */
+  --muted: #6b5d4d;         /* 5.90:1 */
+  --line: #8c7f6e;          /* 3.62:1, for borders and icons (non-text needs 3:1) */
+  --brass: #8a5f0a;         /* links, focus, accent: 5.23:1 */
+  --primary: #7a5208;       /* the filled primary button */
+  --primary-ink: #ffffff;   /* 6.91:1 on --primary */
+  --primary-hover: #664506;
+  --ok: #1f7a4d;            /* in tune */
+  --flat: #1f5fa8;          /* flat / early */
+  --sharp: #a65300;         /* sharp / late */
+  --error: #b3261e;
+  --error-solid: #b3261e;   /* the same red in both modes, behind white text */
+  --on-error-solid: #ffffff;
+
+  /* Tints and fills derived from the tokens above, so they follow the dark mode too */
+  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--bg));
+  --brass-soft: color-mix(in srgb, var(--brass) 12%, var(--surface));
+  --ok-soft: color-mix(in srgb, var(--ok) 10%, var(--surface));
+  --flat-soft: color-mix(in srgb, var(--flat) 10%, var(--surface));
+  --sharp-soft: color-mix(in srgb, var(--sharp) 10%, var(--surface));
+  --error-soft: color-mix(in srgb, var(--error) 10%, var(--surface));
+
+  /* Media (video, camera, QR): the same in both modes */
+  --media-bg: #14110d;
+  --on-media: rgb(255 255 255 / 0.85);
+  --on-media-accent: #f0c15a;
+  --qr-bg: #ffffff;
+
+  /* Type */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 25px; --fs-2xl: 31px; --fs-3xl: 39px;
+
+  /* Space (4-pt base), shape, targets */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --sp-6: 48px; --sp-7: 64px;
+  --radius: 8px;
+  --radius-card: 12px;
+  --tap: 44px;               /* minimum touch target */
+  --focus-ring: 3px solid var(--brass);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1612;            /* 15.12:1 with --ink */
+    --surface: #261f18;
+    --ink: #f3ebdd;
+    --muted: #b8a994;         /* 7.79:1 */
+    --line: #7d705f;          /* 3.71:1 */
+    --brass: #d4a340;         /* 7.77:1 */
+    --primary: #d4a340;
+    --primary-ink: #1c1612;   /* 7.77:1 on --primary */
+    --primary-hover: #e2b459;
+    --ok: #6cc48b;
+    --flat: #8fb0ef;
+    --sharp: #f0a25c;
+    --error: #f08a80;
+  }
+}
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 
 body {
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 var(--fs-md)/1.55 var(--font-body);
+  font: 400 var(--fs-md)/1.5 var(--font-body);
+  font-variant-numeric: tabular-nums; /* scores, cents, ms and BPM line up */
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
-h1 { font-size: var(--fs-2xl); margin: var(--s2) 0 var(--s3); }
-h2 { font-size: var(--fs-lg); margin: var(--s5) 0 var(--s3); }
-h3 { font-size: var(--fs-md); margin: 0 0 var(--s2); }
-a { color: var(--brass-ink); }
-:focus-visible { outline: 3px solid var(--focus-color); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.25; }
+h1 { font-size: var(--fs-2xl); margin: var(--sp-2) 0 var(--sp-3); }
+h2 { font-size: var(--fs-lg); margin: var(--sp-4) 0 var(--sp-3); }
+h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-2); }
+@media (min-width: 40rem) { h1 { font-size: var(--fs-3xl); } }
+a { color: var(--brass); }
+:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .muted { color: var(--muted); }
 [hidden] { display: none !important; } /* the display rules below must not show what a screen hides */
 
@@ -27,121 +99,107 @@ header {
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: var(--s4);
-  padding: var(--s3) var(--s5);
-  padding-top: max(var(--s3), env(safe-area-inset-top));
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  -webkit-backdrop-filter: saturate(1.4) blur(12px);
-  backdrop-filter: saturate(1.4) blur(12px);
+  gap: var(--sp-3);
+  padding: var(--sp-2) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-2) max(var(--sp-4), env(safe-area-inset-left));
+  padding-top: max(var(--sp-2), env(safe-area-inset-top));
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
 header > strong {
   display: inline-flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--sp-2);
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   white-space: nowrap;
 }
 
-header > strong::before { /* brass bell mark, pure CSS */
+header > strong::before { /* brass mark */
   content: "";
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #f3d58c, var(--brass) 55%, #7a520f);
-  box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.25);
+  background: var(--brass);
 }
 
-nav {
-  display: flex;
-  gap: 2px;
-  margin-left: auto;
-  max-width: 100%;
-  padding: 3px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
+nav { display: flex; gap: var(--sp-2); margin-left: auto; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 nav::-webkit-scrollbar { display: none; }
 
 nav a {
   flex: none;
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
-  padding: 0 0.85rem;
-  border-radius: var(--r-pill);
-  color: var(--ink-2);
+  min-height: var(--tap);
+  padding: 0 var(--sp-3);
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
   font-size: var(--fs-sm);
   font-weight: 500;
   text-decoration: none;
 }
 
-nav a:hover { color: var(--ink); background: var(--surface); }
-nav a.current { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
-nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0.6em; }
+nav a:hover { color: var(--ink); }
+nav a.current { color: var(--ink); font-weight: 600; border-bottom-color: var(--brass); }
+nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0.6em; } /* a glyph too, so the tab is not marked by colour alone */
 
 @media (max-width: 40rem) {
-  header { position: static; flex-wrap: wrap; gap: var(--s2); padding: var(--s2) var(--s4); }
+  header { position: static; flex-wrap: wrap; gap: var(--sp-2); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); }
   nav { /* a full-width strip of the two tabs, so every tab shows with no sideways scrolling */
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    width: calc(100% + 2 * var(--s4));
+    width: calc(100% + 2 * var(--sp-3));
     max-width: none;
-    margin: 0 calc(-1 * var(--s4));
-    padding: var(--s2) var(--s4) 0;
-    background: none;
-    border-width: 1px 0 0;
-    border-radius: 0;
+    margin: 0 calc(-1 * var(--sp-3));
+    padding: var(--sp-2) var(--sp-3) 0;
+    border-top: 1px solid var(--line);
     overflow: visible;
   }
-  nav a { justify-content: center; min-height: 44px; padding: 0 var(--s1); }
+  nav a { justify-content: center; padding: 0 var(--sp-1); }
 }
 
-main { max-width: 62rem; margin: 0 auto; padding: var(--s5) var(--s5) var(--s7); }
-main > * + * { margin-top: var(--s4); }
-@media (max-width: 40rem) { main { padding: var(--s4) var(--s4) var(--s7); } }
+main {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: var(--sp-4) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-6) max(var(--sp-4), env(safe-area-inset-left));
+}
 
-/* ---------- Banner ---------- */
+main > * + * { margin-top: var(--sp-3); }
+@media (max-width: 40rem) { main { padding-top: var(--sp-3); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); } }
+
+/* ---------- Banner and inline messages ---------- */
 .banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s4);
-  padding: var(--s3) var(--s5);
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
   font-weight: 600;
 }
 
-.banner[hidden] { display: none; }
-.banner-error { background: var(--bad-soft); color: var(--bad); }
-.banner-notice { background: var(--brass-soft); color: var(--brass-ink); }
+.banner-error { background: var(--error-soft); color: var(--error); }
+.banner-notice { background: var(--brass-soft); color: var(--brass); }
 
-/* ---------- Buttons ---------- */
+/* ---------- Buttons: primary (filled), secondary (outlined, the default) and text ---------- */
 button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s2);
+  gap: var(--sp-2);
   min-height: var(--tap);
-  padding: 0 1.1rem;
-  font: 600 var(--fs-sm)/1 var(--font-body);
-  letter-spacing: 0.01em;
+  padding: 0 var(--sp-3);
+  font: 600 var(--fs-sm)/1.25 var(--font-body);
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 
-button:hover { border-color: var(--ink-2); }
-button:active { transform: translateY(1px); }
-button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+button:hover { border-color: var(--ink); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* The primary action of each screen, reached by the classes and positions the screens already have. */
 button.primary,
@@ -157,33 +215,58 @@ button.primary:hover,
   border-color: var(--primary-hover);
 }
 
-
-/* ---------- Forms ---------- */
-input[type="number"], input[type="text"], textarea, select {
-  min-height: var(--tap);
-  padding: 0 var(--s3);
-  font: inherit;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
+button.text, .sentence-text, .tab {
+  background: transparent;
+  border-color: transparent;
 }
 
-textarea { padding: var(--s2) var(--s3); }
-input:focus, textarea:focus, select:focus { outline: none; border-color: var(--brass); box-shadow: var(--focus); }
-label { font-size: var(--fs-sm); color: var(--ink-2); }
-input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; accent-color: var(--brass); }
-input[type="file"] { max-width: 100%; font: inherit; font-size: var(--fs-sm); color: var(--ink-2); }
+button.text { color: var(--brass); }
+button.text:hover { border-color: transparent; text-decoration: underline; }
+
+/* A link that looks like a secondary button, and the small pill-like chip */
+.button-link, .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-link { border-color: var(--brass); color: var(--brass); }
+.button-link:hover, .chip:hover { background: var(--brass-soft); border-color: var(--brass); }
+.chip { background: transparent; color: var(--brass); }
+.chip-unknown { min-height: 0; padding: 2px var(--sp-2); border-style: dashed; color: var(--muted); }
+
+/* ---------- Forms: 16px text so iOS Safari does not zoom on focus ---------- */
+input[type="number"], input[type="text"], textarea, select {
+  min-height: var(--tap);
+  padding: 0 var(--sp-3);
+  font: 400 var(--fs-md)/1.5 var(--font-body);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+textarea { padding: var(--sp-2) var(--sp-3); }
+input:focus, textarea:focus, select:focus { outline: var(--focus-ring); outline-offset: 2px; border-color: var(--brass); }
+label { font-size: var(--fs-sm); color: var(--muted); }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--brass); }
+input[type="file"] { max-width: 100%; font: 400 var(--fs-md)/1.5 var(--font-body); color: var(--muted); }
 
 input[type="file"]::file-selector-button {
   min-height: var(--tap);
-  margin-right: var(--s3);
-  padding: 0 1.1rem;
-  font: 600 var(--fs-sm)/1 var(--font-body);
+  margin-right: var(--sp-3);
+  padding: 0 var(--sp-3);
+  font: 600 var(--fs-sm)/1.25 var(--font-body);
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -201,9 +284,8 @@ input[type="file"]::file-selector-button {
 ) {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1);
-  padding: var(--s5);
+  border-radius: var(--radius-card);
+  padding: var(--sp-4);
 }
 
 @media (max-width: 40rem) {
@@ -214,7 +296,7 @@ input[type="file"]::file-selector-button {
     main > form.take-form,
     main > .empty-state,
     .chat-panel
-  ) { padding: var(--s4); border-radius: var(--r-md); }
+  ) { padding: var(--sp-3); }
 }
 
 main > section > :first-child, main > div > :first-child { margin-top: 0; }
@@ -223,8 +305,8 @@ main > section > :last-child, main > div > :last-child { margin-bottom: 0; }
 pre.response {
   overflow-x: auto;
   max-height: 16rem;
-  padding: var(--s3);
-  border-radius: var(--r-sm);
+  padding: var(--sp-3);
+  border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--line);
   font: var(--fs-sm)/1.5 var(--font-mono);
@@ -234,7 +316,7 @@ pre.response {
 main.with-chat {
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 1fr);
-  gap: var(--s5);
+  gap: var(--sp-4);
   align-items: start;
   max-width: 82rem;
 }
@@ -242,47 +324,52 @@ main.with-chat {
 main.with-chat > * + * { margin-top: 0; }
 @media (max-width: 56rem) { main.with-chat { grid-template-columns: 1fr; } }
 
-.chat-panel { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; }
+.chat-panel { position: sticky; top: 76px; max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px); overflow-y: auto; }
 @media (max-width: 56rem) { .chat-panel { position: static; max-height: none; } }
 
 /* ---------- Progress screen ---------- */
 .progress-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; width: 100%; padding: 0; overflow: hidden; }
-.progress-table th, .progress-table td { padding: var(--s3) var(--s4); text-align: left; border-bottom: 1px solid var(--line); }
+.progress-table th, .progress-table td { padding: var(--sp-3); text-align: left; border-bottom: 1px solid var(--line); }
 .progress-table tbody tr:last-child > * { border-bottom: 0; }
 .progress-table thead th { background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; }
 .progress-table tbody th { font-weight: 600; }
-.exercise-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
-.exercise-item { padding: var(--s4); }
+.exercise-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.exercise-item { padding: var(--sp-3); }
 .exercise-item a { font-weight: 600; }
-.exercise-item p { margin: var(--s1) 0 0; }
-.empty-state { border-style: dashed; border-color: var(--line-strong); box-shadow: none; color: var(--ink-2); }
+.exercise-item p { margin: var(--sp-1) 0 0; }
+.empty-state { border-style: dashed; color: var(--muted); }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--r-pill);
-  background: var(--info-soft);
-  color: var(--info);
-  font: 600 var(--fs-xs)/1.4 var(--font-body);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius);
+  background: var(--flat-soft);
+  color: var(--flat);
+  font: 600 var(--fs-xs)/1.5 var(--font-body);
 }
 
-.badge-done { background: var(--good-soft); color: var(--good); }
+.badge-done { background: var(--ok-soft); color: var(--ok); }
 
-/* ---------- Trace screen: one colour per agent ---------- */
-.trace-group { --agent: var(--muted); border-left: 6px solid var(--agent); }
-.trace-group h3 { margin: 0 0 var(--s2); color: var(--agent); }
-.agent-orchestrator { --agent: var(--agent-orchestrator); }
-.agent-coach { --agent: var(--agent-coach); }
-.agent-planner { --agent: var(--agent-planner); }
-.agent-checker { --agent: var(--agent-checker); }
+/* ---------- Trace screen: one colour per agent, named in the heading too ---------- */
+.trace-group { --agent: var(--muted); border-left: 4px solid var(--agent); }
+.trace-group h3 { margin: 0 0 var(--sp-2); color: var(--agent); }
+.agent-orchestrator { --agent: var(--brass); }
+.agent-coach { --agent: var(--flat); }
+.agent-planner { --agent: var(--sharp); }
+.agent-checker { --agent: var(--ok); }
 .trace-events { list-style: none; margin: 0; padding: 0; }
-.trace-event { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--line); }
+.trace-event { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 0; border-top: 1px solid var(--line); }
 .trace-event:first-child { border-top: 0; }
-.trace-time { min-width: 4rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.trace-marker { padding: 0 var(--s2); border-radius: 4px; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; }
-.trace-check_pass .trace-marker { background: var(--good-soft); color: var(--good); }
-.trace-check_fail .trace-marker { background: var(--bad-soft); color: var(--bad); }
-.trace-dropped .trace-marker, .trace-fallback .trace-marker { background: var(--warn-soft); color: var(--warn); }
+.trace-time { min-width: 4rem; color: var(--muted); }
+.trace-marker { padding: 0 var(--sp-2); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; }
+.trace-check_pass .trace-marker { background: var(--ok-soft); color: var(--ok); }
+.trace-check_fail .trace-marker { background: var(--error-soft); color: var(--error); }
+.trace-dropped .trace-marker, .trace-fallback .trace-marker { background: var(--sharp-soft); color: var(--sharp); }
 .trace-detail { flex-basis: 100%; margin: 0 0 0 5rem; font: var(--fs-sm)/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 40rem) { .trace-detail { margin-left: 0; } }
+
+/* Fades only, and not at all when the reader asks for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

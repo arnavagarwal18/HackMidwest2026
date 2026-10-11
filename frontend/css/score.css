@@ -1,54 +1,44 @@
 /* Start and Score screens. Loaded by js/score/ui.js loadScoreStyles(). */
 
 /* Start: one status line while the first piece is set up; on failure the message, Try again and a link. */
-.start { padding: var(--s6) 0; }
-.start-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3); margin: 0; font-size: var(--fs-md); }
-.start-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
-.start-actions a { display: inline-flex; align-items: center; min-height: 44px; }
+.start { padding: var(--sp-5) 0; }
+.start-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); margin: 0; font-size: var(--fs-md); }
+.start-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.start-actions a { display: inline-flex; align-items: center; min-height: var(--tap); }
 
 .tabs {
   display: flex;
-  gap: 2px;
+  gap: var(--sp-2);
   width: fit-content;
   max-width: 100%;
-  padding: 3px;
-  background: var(--surface-2);
+  padding: var(--sp-1);
   border: 1px solid var(--line);
-  border-radius: var(--r-pill);
+  border-radius: var(--radius);
   overflow-x: auto;
 }
 
-.tab { flex: none; min-height: var(--tap); background: transparent; border-color: transparent; color: var(--ink-2); }
+.tab { flex: none; color: var(--muted); }
 .tab:hover { border-color: transparent; color: var(--ink); }
-.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); border-color: var(--line); box-shadow: var(--shadow-1); }
+.tab[aria-selected="true"] { background: var(--brass-soft); color: var(--ink); border-color: var(--brass); }
 .tab-body[hidden], .crop-stage[hidden] { display: none; }
 
-.file-pick { display: inline-flex; align-items: center; gap: var(--s2); margin: 0 var(--s4) var(--s2) 0; }
-.crop-canvas { display: block; width: 100%; max-width: 900px; height: auto; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); cursor: crosshair; }
+.file-pick { display: inline-flex; align-items: center; gap: var(--sp-2); margin: 0 var(--sp-3) var(--sp-2) 0; }
+.crop-canvas { display: block; width: 100%; max-width: 900px; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: crosshair; }
 
 .builtin-list { margin: 0; padding: 0; list-style: none; }
-.builtin-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.builtin-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
 .builtin-list li:first-child { border-top: 0; padding-top: 0; }
 .builtin-list li:last-child { padding-bottom: 0; }
 
-.scan-panel ul { margin: 0 0 var(--s3); padding-left: var(--s5); }
-.scan-panel li { margin: var(--s1) 0; }
-.scan-panel p:last-child { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.scan-panel ul { margin: 0 0 var(--sp-3); padding-left: var(--sp-4); }
+.scan-panel li { margin: var(--sp-1) 0; }
+.scan-panel p:last-child { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .bar-count { font-family: var(--font-display); font-size: var(--fs-lg); }
-.scan-error { color: var(--bad); font-weight: 600; }
+.scan-error { color: var(--error); font-weight: 600; }
 
-.spinner {
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 3px solid var(--line-strong);
-  border-top-color: var(--brass);
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
+/* A static ring: the reading state is announced by its role and label, and nothing loops. */
+.spinner { width: 28px; height: 28px; border: 3px solid var(--line); border-top-color: var(--brass); border-radius: 50%; }
 
 /* Play's piece line: the title and a "Change piece" chip beside it. */
-.piece-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.piece-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .piece-line h1 { margin: 0; }
-.chip { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s3); border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
