@@ -97,3 +97,27 @@ def test_the_bell_rule_is_skipped_when_the_wrists_are_not_visible():
 def test_bell_height_is_wrist_midpoint_below_the_mouth_in_shoulder_widths():
     frame = timeline((0.1, {"bell_height": 1.25}))[0]
     assert frame_measures(frame, specs=FRONT_BELL_SPECS)[BELL_HEIGHT].value == pytest.approx(1.25)
+
+
+def _untracked_start(*segments: tuple[float, dict]) -> list[dict]:
+    """Frames with no person in the first 2 s (so the baseline is the default), then the segments."""
+    lead_in = [{"t": round(i * 0.1, 6), "pose": None, "left_hand": None, "right_hand": None} for i in range(20)]
+    later = timeline(*segments)
+    return lead_in + [{**frame, "t": round(frame["t"] + 2.0, 6)} for frame in later]
+
+
+def test_a_defaulted_baseline_does_not_set_the_head_drop_threshold():
+    # head_drop 0.12 is 0.17 above the default baseline of -0.05 but under the fixed limit: ordinary playing, not a flag
+    analysis = analyse(_untracked_start((HOLD_S, {"head_drop": 0.12})), "trumpet", "t1")
+    assert analysis["baseline"]["defaulted"] is True
+    assert analysis["flags"] == []
+
+
+def test_a_defaulted_baseline_still_flags_a_head_drop_past_the_fixed_limit():
+    [flag] = analyse(_untracked_start((HOLD_S, {"head_drop": 0.40})), "trumpet", "t1")["flags"]
+    assert flag["rule"] == "trumpet_head_down" and flag["threshold"] == pytest.approx(config.TRUMPET_HEAD_DROP_MAX)
+
+
+def test_a_defaulted_baseline_does_not_set_the_neck_ratio_threshold():
+    # the default neck ratio 0.55 would put the threshold at 0.33; 0.32 is above the fixed 0.30
+    assert analyse(_untracked_start((HOLD_S, {"neck_ratio": 0.32})), "trumpet", "t1")["flags"] == []

@@ -55,6 +55,19 @@ def _head_drop_past_fallback(readings: Readings, baseline: Baseline) -> bool | N
     return None if drop is None else drop > baseline.head_drop + config.SLOUCHING_FALLBACK_HEAD_DROP
 
 
+def _upper_limit(baseline: Baseline, from_baseline: float, fixed: float) -> float:
+    """Threshold for a measure that breaks a rule when it goes above: the stricter of its baseline threshold and the fixed limit.
+
+    A defaulted baseline is a guess (no one was tracked in the first seconds), so only the fixed limit is used then.
+    """
+    return fixed if baseline.defaulted else min(from_baseline, fixed)
+
+
+def _lower_limit(baseline: Baseline, from_baseline: float, fixed: float) -> float:
+    """Like _upper_limit, for a measure that breaks a rule when it goes below."""
+    return fixed if baseline.defaulted else max(from_baseline, fixed)
+
+
 RULES = [
     Rule("violin_elbow_low", (VIOLIN,), ELBOW_ANGLE, LOW, DEG, lambda b: config.VIOLIN_ELBOW_LOW_DEG,
          "bow elbow too low", side="right"),
@@ -65,14 +78,15 @@ RULES = [
     Rule("shoulders_raised", (VIOLIN,), NECK_RATIO, LOW, RATIO,
          lambda b: config.SHOULDERS_RAISED_RATIO * b.neck_ratio, "shoulders raised", side="both"),
     Rule("shoulders_raised", (TRUMPET,), NECK_RATIO, LOW, RATIO,
-         lambda b: max(config.SHOULDERS_RAISED_RATIO * b.neck_ratio, config.TRUMPET_NECK_RATIO_MIN), "shoulders raised", side="both"),
+         lambda b: _lower_limit(b, config.SHOULDERS_RAISED_RATIO * b.neck_ratio, config.TRUMPET_NECK_RATIO_MIN),
+         "shoulders raised", side="both"),
     Rule("slouching", BOTH_INSTRUMENTS, TORSO_LEAN, HIGH, DEG, lambda b: config.SLOUCHING_TORSO_LEAN_DEG,
          "slouching"),
     Rule("slouching", BOTH_INSTRUMENTS, NECK_RATIO, LOW, RATIO,
          lambda b: config.SLOUCHING_FALLBACK_NECK_RATIO * b.neck_ratio, "slouching",
          fallback_for="slouching", also=_head_drop_past_fallback),
     Rule("trumpet_head_down", (TRUMPET,), HEAD_DROP, HIGH, RATIO,
-         lambda b: min(b.head_drop + config.TRUMPET_HEAD_DOWN_DROP, config.TRUMPET_HEAD_DROP_MAX), "head dropped"),
+         lambda b: _upper_limit(b, b.head_drop + config.TRUMPET_HEAD_DOWN_DROP, config.TRUMPET_HEAD_DROP_MAX), "head dropped"),
     Rule("trumpet_elbows_pinned", (TRUMPET,), ELBOW_GAP_LEFT, LOW, RATIO,
          lambda b: config.TRUMPET_ELBOWS_PINNED_GAP, "left elbow pinned to the body", side="left"),
     Rule("trumpet_elbows_pinned", (TRUMPET,), ELBOW_GAP_RIGHT, LOW, RATIO,
@@ -90,12 +104,12 @@ RULES = [
          lambda b: None if b.neck_side is None else config.SIDE_NECK_RATIO * b.neck_side, "shoulders raised",
          side="both", views=(SIDE,), span_of=lambda b: config.SIDE_NECK_SPAN_FRACTION * b.neck_side),
     Rule("shoulders_raised", (TRUMPET,), NECK_SIDE, LOW, RATIO,
-         lambda b: None if b.neck_side is None else max(config.SIDE_NECK_RATIO * b.neck_side, config.TRUMPET_NECK_SIDE_MIN),
+         lambda b: None if b.neck_side is None else _lower_limit(b, config.SIDE_NECK_RATIO * b.neck_side, config.TRUMPET_NECK_SIDE_MIN),
          "shoulders raised", side="both", views=(SIDE,), span_of=lambda b: config.SIDE_NECK_SPAN_FRACTION * b.neck_side),
     Rule("slouching", BOTH_INSTRUMENTS, SIDE_TORSO_LEAN, HIGH, DEG, lambda b: config.SLOUCHING_TORSO_LEAN_DEG,
          "slouching", views=(SIDE,), span_of=lambda b: config.SEVERITY_SPANS["slouching"]),
     Rule("trumpet_head_down", (TRUMPET,), HEAD_PITCH, HIGH, DEG,
-         lambda b: min(b.head_pitch + config.SIDE_HEAD_PITCH_DELTA, config.TRUMPET_HEAD_PITCH_MAX),
+         lambda b: _upper_limit(b, b.head_pitch + config.SIDE_HEAD_PITCH_DELTA, config.TRUMPET_HEAD_PITCH_MAX),
          "head dropped", views=(SIDE,), span_of=lambda b: config.SIDE_HEAD_PITCH_SPAN_DEG),
     Rule("trumpet_bell_angle", (TRUMPET,), BELL_ANGLE, HIGH, DEG, lambda b: config.TRUMPET_BELL_ANGLE_MAX, "bell too high",
          views=(SIDE,), span_of=lambda b: config.SIDE_BELL_ANGLE_SPAN_DEG),

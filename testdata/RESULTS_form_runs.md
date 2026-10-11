@@ -163,7 +163,7 @@ Other things noticed, not changed:
 
 ## Fixed limits (LLD-4 change 11, 2026-10-11)
 
-Fixed trumpet limits apply from the first frame; the baseline rules stay for drift. A frame breaks a rule when it crosses the stricter of the baseline threshold and the fixed limit, so one episode gives one flag (same rule names and output shape). The limits live in `backend/app/form/config.py` (each with its source stat in a comment). Trumpet only; violin is unchanged. Source stats: the "Good-posture statistics (YouTube set)" tables above. Pooled p1/p99 of torso_lean and neck_ratio are inflated (probably cropped hips), so those limits rest on per-video medians and pooled p5/p95.
+Fixed trumpet limits apply from the first frame; the baseline rules stay for drift. A frame breaks a rule when it crosses the stricter of the baseline threshold and the fixed limit, so one episode gives one flag (same rule names and output shape). When the baseline is the default (nobody tracked in the first 2 s), only the fixed limit is used: the default head_drop of -0.05 had put the head-down threshold at 0.10, which flagged the owner's three good clips. The limits live in `backend/app/form/config.py` (each with its source stat in a comment). Trumpet only; violin is unchanged. Source stats: the "Good-posture statistics (YouTube set)" tables above. Pooled p1/p99 of torso_lean and neck_ratio are inflated (probably cropped hips), so those limits rest on per-video medians and pooled p5/p95.
 
 | Rule (flag) | Measure, view | Limit | Stat it came from |
 |---|---|---|---|
@@ -186,6 +186,7 @@ Run: each clip tracked with `track_video` (10 fps, no hands) and judged with `an
 
 | Clip | View | Before | After |
 |---|---|---|---|
+| `form/good_posture_1_general.mp4`, `good_posture_2.mp4`, `good_posture_3.mp4` | front | `trumpet_head_down` x8, x4, x4 (default baseline, peaks 0.103-0.129 vs 0.100) | none on all three |
 | `form/good_posture_side.mp4` | side | none | none |
 | `form/neck_bad_then_good_side.mp4` | side | none | none (see below: not met) |
 | `form/bad_posture_side.mp4` | front (3 frames) | none | none (`trumpet_bell_angle` not_visible) |

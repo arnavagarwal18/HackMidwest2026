@@ -96,7 +96,8 @@ SEVERITY_SPANS.update({"trumpet_cheeks_puffed": FACE_SPAN, "trumpet_smile_embouc
 FACE_BOX_MARGIN = 2.0  # the crop for the next frame is this x the larger side of the face box last found, centred on it
 
 # Fixed trumpet limits (LLD-4 change 11): they apply from the first frame, alongside the baseline rules, which still catch
-# drift during a take (a frame breaks a rule when it crosses the stricter of the two). Each is set just outside the good set
+# drift during a take (a frame breaks a rule when it crosses the stricter of the two; with a defaulted baseline, i.e. nobody
+# tracked in the first 2 s, only the fixed limit counts, since the default is a guess). Each is set just outside the good set
 # (testdata/youtube/posture_stats.csv, 51 front and 19 side videos; "Good-posture statistics (YouTube set)" and "Fixed limits
 # (change 11)" in testdata/RESULTS_form_runs.md), loose enough for camera angle and body build. The pooled p1/p99 tails of
 # torso_lean and neck_ratio are inflated (probably cropped hips), so those limits rest on per-video medians and pooled p5/p95.
