@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 HISTORY_TURNS = 10
 RECENT_REPS = 5
+INSTRUMENT = "trumpet"  # the app is trumpet only, so the Instructor never hears of another instrument, whatever the session says
 REP_RESULT_FIELDS = ("take_id", "tempo_bpm", "status", "passed", "errors", "reasons")
 
 
@@ -46,7 +47,11 @@ def plan_progress(session: Any, plan: dict) -> dict:
     definitions = {**progress["added_exercises"], **{ex["id"]: ex for ex in plan["exercises"]}}
     summaries = {}
     for exercise_id, state in progress["exercises"].items():
-        if state["plan_id"] != plan["id"] or exercise_id not in definitions:
+        if state["plan_id"] != plan["id"]:
+            continue
+        if exercise_id not in definitions:
+            log.warning("Exercise %s of session %s has practice state but no definition; left out of the plan progress",
+                        exercise_id, session.session_id)
             continue
         reps = [progress["reps"][rep_id] for rep_id in state["rep_ids"] if rep_id in progress["reps"]]
         summaries[exercise_id] = {
@@ -69,7 +74,7 @@ def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]
         except (NotConfirmed, OSError, ValueError):
             log.exception("No confirmed score to summarise for session %s", session_id)
         diagnosis = take.get("diagnosis") or {}
-        return fit_json({"title": title, "instrument": store.get(session_id).instrument, "bars": bars,
+        return fit_json({"title": title, "instrument": INSTRUMENT, "bars": bars,
                          "bar_from": take["bar_from"], "bar_to": take["bar_to"],
                          "target_bpm": diagnosis.get("target_bpm", take.get("tempo_bpm"))})
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from app import store
 from app.agents import ai_run, run
+from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, is_credential_error
 from app.agents.fallback import tier1_sentences
 from app.agents.holder import ReplyHolder
 from app.agents.instructor import build_instructor_agent, history_messages, make_chat_tools
@@ -28,6 +29,7 @@ class Reply:
 
 
 def _fallback(take: dict | None, reason: str, trace: Trace) -> Reply:
+    log.warning("The instructor replies in fallback mode (%s)", reason)
     trace.add("instructor", "fallback", reason)
     if take is None:
         return Reply([], "fallback", NO_TAKE_TEXT, fallback_reason=reason)
@@ -58,6 +60,16 @@ def _ai_enabled(trace: Trace) -> bool:
         return False
 
 
+def _record_failure(session_id: str, take: dict, exc: Exception, trace: Trace) -> None:
+    """Log and trace why the Instructor failed. Only the error's class is kept: for credentials its message could hold secrets."""
+    if is_credential_error(exc):
+        log.error("The instructor failed for session %s take %s (%s)", session_id, take["take_id"], type(exc).__name__)
+        log.warning(CREDENTIALS_EXPIRED_LINE)
+    else:
+        log.exception("The instructor failed for session %s take %s (%s)", session_id, take["take_id"], type(exc).__name__)
+    trace.add("instructor", "error", type(exc).__name__)
+
+
 def answer(session_id: str, take: dict | None, turns: list[dict], message: str, trace: Trace) -> Reply:
     """The instructor's reply to `message` about `take`, given the chat so far. Never raises: any failure gives the fallback reply."""
     if take is None:
@@ -71,8 +83,7 @@ def answer(session_id: str, take: dict | None, turns: list[dict], message: str, 
         asyncio.run(_ask(session_id, take, turns, message, holder, trace))
     except Exception as exc:
         failure = exc
-        log.exception("The instructor failed for session %s take %s (%s)", session_id, take["take_id"], type(exc).__name__)
-        trace.add("instructor", "error", type(exc).__name__, str(exc))
+        _record_failure(session_id, take, exc, trace)
     if holder.reply is None:
         return _fallback(take, _failure_reason(holder, failure), trace)
     sentences = [ai_run.shown_sentence(s) for s in holder.reply["sentences"]]
