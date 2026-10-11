@@ -9,8 +9,10 @@
   <link rel="stylesheet" href="../../css/app.css">
   <link rel="stylesheet" href="../../css/components.css">
   <style>
+    :root { --fill: 22%; --soft-ink: color-mix(in srgb, var(--ink) 80%, var(--bg)); }
     /* The design system switches dark mode with prefers-color-scheme only; this mirrors its dark tokens for ?theme=dark. */
     html[data-theme="dark"] {
+      --fill: 32%;
       color-scheme: dark;
       --bg: #161412; --surface: #211e1b; --ink: #f2eee7; --muted: #b5aea3; --line-strong: #7d766b;
       --accent: #d4a340; --primary-ink: #161412; --primary-hover: #e2b459;
@@ -23,54 +25,55 @@
       --ok: #1f7a4d; --flat: #1f5fa8; --sharp: #a65300; --error: #b3261e; --shadow-color: 31 28 24;
     }
 
-    .proto-note { margin: 0; padding: var(--sp-1) var(--page-pad); background: var(--surface-2); color: var(--muted); font-size: var(--fs-caption); text-align: center; }
+    .proto-note { margin: 0; padding: var(--sp-1) var(--page-pad); background: var(--surface-2); color: var(--ink); font-size: var(--fs-caption); text-align: center; }
     .layout { display: flex; align-items: flex-start; min-height: calc(100dvh - 28px); }
     .main { flex: 1; min-width: 0; padding: var(--sp-4) var(--page-pad) var(--sp-7); }
-    .main-inner { max-width: 44rem; margin: 0 auto; }
-    .back { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--muted); text-decoration: none; }
+    .main > .main-inner { max-width: 44rem; margin: 0 auto; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; } /* undo the design system's card surface for main > div */
+    .back { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--soft-ink); text-decoration: none; }
 
     /* 1. Recording: a poster with a play button and a scrubber, above the verdict */
     .player { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-card); background: var(--media-bg); color: var(--on-media); overflow: hidden; }
     .player-play { position: absolute; inset: 0; display: grid; place-items: center; width: 100%; border: 0; background: transparent; color: inherit; cursor: pointer; }
-    .player-play span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgb(255 255 255 / 0.18); font-size: 26px; padding-left: 4px; }
-    .player-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3); font-size: var(--fs-caption); }
+    .player-play span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #ffffff; color: var(--media-bg); font-size: 26px; padding-left: 4px; }
+    .player-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3); font-size: 14px; color: #ffffff; }
     .player-bar input { flex: 1; min-height: var(--tap); accent-color: var(--on-media-accent); }
-    .player-caption { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); color: var(--muted); }
-
+    
     /* 2. Verdict and labelled scores */
-    .verdict h1 { margin: var(--sp-5) 0 var(--sp-1); }
-    .verdict .lead { margin: 0; color: var(--muted); font-size: var(--fs-headline); }
+    .verdict h1 { margin: var(--sp-4) 0 var(--sp-1); }
+    .verdict .lead { margin: 0; color: var(--soft-ink); font-size: var(--fs-headline); }
     .scores { margin: var(--sp-4) 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
     .scores li { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 0 var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
     .scores .name { font-weight: 600; }
-    .scores .what { grid-column: 1; color: var(--muted); }
+    .scores .what { grid-column: 1; color: var(--soft-ink); }
     .scores .value { grid-row: 1 / span 2; grid-column: 2; font-size: var(--fs-title); font-weight: 600; text-align: right; }
-    .focus-tag { margin-left: var(--sp-2); padding: 2px var(--sp-2); border-radius: var(--radius-pill); border: 1.5px solid var(--sharp); color: var(--sharp); font-size: var(--fs-caption); font-weight: 600; white-space: nowrap; }
+        .focus-tag { margin-left: var(--sp-2); color: var(--sharp); font-weight: 700; white-space: nowrap; } /* plain text, not a pill */
     .scores li.is-focus .value { color: var(--sharp); }
     .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
 
     /* 4. Bar boxes */
-    .bars-head { margin-top: var(--sp-6); }
-    .bars-head p { margin: 0; color: var(--muted); }
-    .bar-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
-    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 52px; min-height: 52px; padding: 0; border: 2px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
-    .bar-box small { font-size: 12px; font-weight: 700; }
-    .bar-box[data-level="good"] { border-color: var(--ok); background: var(--ok-soft); }
-    .bar-box[data-level="ok"]   { border-color: var(--flat); background: var(--flat-soft); }
-    .bar-box[data-level="off"]  { border-color: var(--sharp); background: var(--sharp-soft); }
+    .bars-head { margin-top: var(--sp-5); }
+    .bars-head h2 { margin-top: 0; }
+    .bars-head p { margin: 0; color: var(--soft-ink); }
+    .bar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
+    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0; border: 2px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
+    .bar-box .num { font-size: 18px; font-weight: 700; }
+    .bar-box .word { font-size: var(--fs-caption); font-weight: 600; }
+    .bar-box[data-level="good"] { border-color: var(--ok); background: color-mix(in srgb, var(--ok) var(--fill), var(--surface)); }
+    .bar-box[data-level="ok"]   { border-color: var(--flat); background: color-mix(in srgb, var(--flat) var(--fill), var(--surface)); }
+    .bar-box[data-level="off"]  { border-color: var(--sharp); background: color-mix(in srgb, var(--sharp) var(--fill), var(--surface)); }
     .bar-box[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
-    .legend { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-3) 0 0; color: var(--muted); font-size: var(--fs-caption); }
-    .detail { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) 0 0; color: var(--ink); font-size: var(--fs-body); }
+    .detail { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
     .detail h3 { font-size: var(--fs-headline); margin: 0 0 var(--sp-2); }
     .detail ul { margin: 0 0 var(--sp-3); padding-left: var(--sp-4); }
     .detail li { margin-bottom: var(--sp-1); }
     .link-btn { display: inline-flex; align-items: center; min-height: var(--tap); }
 
     /* 5. Practice plan */
-    .plan { margin-top: var(--sp-6); }
+    .plan { margin-top: var(--sp-5); }
     .plan ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
     .plan li { display: flex; gap: var(--sp-3); align-items: baseline; padding: var(--sp-2) 0; counter-increment: step; }
-    .plan li::before { content: counter(step); flex: none; width: 1.5em; font-weight: 600; color: var(--muted); }
+    .plan li::before { content: counter(step); flex: none; width: 1.5em; font-weight: 600; color: var(--soft-ink); }
     .plan a { display: inline-flex; align-items: center; min-height: var(--tap); }
 
     /* 3. Coach: a docked panel on wide screens, a bottom sheet on narrow ones */
@@ -82,7 +85,7 @@
     .menu-list button:hover { background: var(--surface-2); }
     .coach-body { flex: 1; overflow-y: auto; padding: var(--sp-3); }
     .turn { margin: 0 0 var(--sp-3); }
-    .turn.you { text-align: right; color: var(--muted); }
+    .turn.you { text-align: right; color: var(--soft-ink); }
     .chips { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
     .coach-foot { display: flex; gap: var(--sp-2); padding: var(--sp-3); border-top: 1px solid var(--line); }
     .coach-foot input { flex: 1; min-width: 0; min-height: var(--tap); padding: 0 var(--sp-3); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; }
@@ -100,7 +103,13 @@
       .main { padding-bottom: 96px; }
     }
     @media (min-width: 901px) {
-      .player { aspect-ratio: 21 / 9; }
+      .player { aspect-ratio: auto; height: 200px; }
+      .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+      .scores li { display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: var(--sp-3) 0 0; border-bottom: 0; }
+      .scores .value { text-align: left; }
+      .scores { border-top: 0; }
+      .scores li { border-top: 1px solid var(--line); }
+      .bar-row { grid-template-columns: repeat(12, minmax(44px, 1fr)); }
       .coach-toggle-open { display: none; }
       .coach-toggle-open.is-wide-visible { display: block; }
       .coach.is-collapsed { display: none; }
@@ -138,7 +147,6 @@
           </ul>
           <div class="actions">
             <button class="btn btn-primary btn-lg" type="button">Try again</button>
-            <button class="btn btn-lg" type="button">Practice bar 7</button>
           </div>
         </section>
 
@@ -149,7 +157,7 @@
             <p>Pick a bar to see what happened in it.</p>
           </div>
           <ul class="bar-row" id="bar-row" role="list"></ul>
-          <p class="legend" aria-hidden="true"><span>✓ Good</span><span>~ Close</span><span>! Off</span></p>
+          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Close</b> a small slip</span><span><b>Off</b> needs work</span></p>
           <div class="detail" id="detail" aria-live="polite"></div>
         </section>
 
@@ -214,7 +222,7 @@
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
       { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
     ];
-    const SYMBOL = { good: '✓', ok: '~', off: '!' };
+    const LABEL = { good: 'Good', ok: 'Close', off: 'Off' };
     const WORD = { good: 'good', ok: 'close', off: 'off' };
 
     const row = document.getElementById('bar-row');
@@ -222,7 +230,7 @@
     BARS.forEach((bar, i) => {
       const n = i + 1;
       const li = document.createElement('li');
-      li.innerHTML = `<button class="bar-box" type="button" data-level="${bar.level}" data-bar="${n}" aria-pressed="false" aria-label="Bar ${n}, ${WORD[bar.level]}">${n}<small aria-hidden="true">${SYMBOL[bar.level]}</small></button>`;
+      li.innerHTML = `<button class="bar-box" type="button" data-level="${bar.level}" data-bar="${n}" aria-pressed="false" aria-label="Bar ${n}, ${WORD[bar.level]}"><span class="num">${n}</span><span class="word" aria-hidden="true">${LABEL[bar.level]}</span></button>`;
       row.appendChild(li);
     });
     const boxes = [...row.querySelectorAll('.bar-box')];
