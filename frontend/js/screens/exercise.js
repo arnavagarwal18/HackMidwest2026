@@ -8,6 +8,12 @@ import { loopHintText, takeLoopRequest } from '../results/loop.js';
 
 const DEFAULT_BEATS_PER_BAR = 4;
 
+// The rep settings: count-in is the take setup's, or one bar (the top number of the time signature) while none was chosen yet, as on the take screen.
+export function repSettings(score, setup) {
+  const beatsPerBar = score.time_signature?.[0] ?? DEFAULT_BEATS_PER_BAR;
+  return { beatsPerBar, countInBeats: setup.count_in_beats ?? beatsPerBar, metronomeOn: setup.metronome_on };
+}
+
 // The loop trainer: see js/exercise/trainer.js. The count-in and metronome settings are the take setup's.
 export async function render(root, { ex }) {
   const sessionId = state.session_id ?? 'no-session';
@@ -19,9 +25,7 @@ export async function render(root, { ex }) {
   const trainer = createTrainer(root, {
     sessionId,
     ex,
-    beatsPerBar: state.score.time_signature?.[0] ?? DEFAULT_BEATS_PER_BAR,
-    countInBeats: setup.count_in_beats,
-    metronomeOn: setup.metronome_on,
+    ...repSettings(state.score, setup),
     thresholds: pollThresholds(),
     onFullTake: () => {
       // The take screen opens with the range the learner chose before; only fill it in when nothing was chosen.

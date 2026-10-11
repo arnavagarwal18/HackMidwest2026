@@ -406,3 +406,12 @@ test('a request that fails after leaving is logged, not shown in the next screen
   await settle();
   assert.equal(t.dom.banner.textContent, '');
 });
+
+test('a trainer opened before any take was sent counts in one bar, as the take screen does', async () => {
+  const { repSettings } = await import('../js/screens/exercise.js');
+  const unchosen = { count_in_beats: null, metronome_on: false };
+  assert.deepEqual(repSettings({ time_signature: [3, 4] }, unchosen), { beatsPerBar: 3, countInBeats: 3, metronomeOn: false });
+  assert.equal(repSettings({ time_signature: null }, { count_in_beats: undefined }).countInBeats, 4);
+  assert.equal(repSettings({ time_signature: [3, 4] }, { count_in_beats: 0 }).countInBeats, 0); // an explicit "no count-in" stays
+  assert.equal(repSettings({ time_signature: [3, 4] }, { count_in_beats: 2 }).countInBeats, 2);
+});
