@@ -215,6 +215,78 @@ The bad first half cannot be flagged by any fixed limit that sits outside the go
 
 The bad half's head pitch (about 12) equals the good set's median (13.4) and is below `good_posture_side`'s own good playing (up to 26); its head_drop (0.24 to 0.41) is below that good clip's 0.34 to 0.50; neck_side depends on how close the camera is (0.31 here, 0.07 on the full-body clip). A limit low enough to catch the bad half (head_pitch under about 10) would flag the good-set median, `good_posture_side.mp4`, and `take5_ode_form_side.mp4` (head_pitch p50 11.7), so none was set. Without a second source for the fault (for example neck-forward distance, which the pose landmarks 0-24 in a close-up do not give) this clip cannot be a fixed-limit test; it can still be caught only when the baseline comes from good posture (the drift rule: 17 degrees past the good half's baseline).
 
+## Fixed limits loosened (TEAM-24 review, 2026-10-11)
+
+TEAM-24's reviewers found that several fixed limits of change 11 sit inside the good-posture range (for example `trumpet_elbows_wide` at 1.0 crosses the p95 of the left elbow of 12 of 41 good videos). This section counts how many good videos each fixed limit flags, and loosens the ones that flag more than 3.
+
+Method (`backend/scripts/good_flags.py`; per-video rows in `testdata/youtube/good_flags.csv`): the 70 usable good videos are the ones `posture_stats.csv` measured (a view, no skip reason), downloaded again with `fetch_youtube.py` (so they are the files as they are on YouTube today). Each is tracked once at 5 fps for the first 120 s (the stats run's sampling) and judged with `rules.analyse(..., "trumpet")`, AI off, no face. Every video is judged twice: with the config as it is, and with every fixed limit switched off (the baseline rules alone). A rule's flags on a video are **caused by the fixed limit** when the first run flags that rule and direction and the second does not. A video counts once per limit however many flags it gets. Views are the ones `analyse` detects, which differ from the stats run's for three videos near the 1.7 ratio (`JnbCqDz6FfQ` and `03Y8iZdr5bE` front to side, `E_rM2Gu5174` side to front), so this run has 50 front and 20 side videos, not 51 and 19. A flag still needs a run of 1.0 s (`MIN_EPISODE_S`, unchanged); no rule's minimum run was lengthened.
+
+### Excluded videos (tracker noise, not posture)
+
+Five videos are flagged by several unrelated fixed limits at once (elbow gaps of 2 to 6 shoulder widths, neck ratios of 0.03 to 0.09, head drops up to 0.66). A contact sheet of each, at the flagged times, was checked with the light picture model (stills only, so this is what that model said, not a frame-by-frame check):
+
+| Video | Why excluded |
+|---|---|
+| `03Y8iZdr5bE` | no player: the frames at the flagged times show the audience in a concert hall |
+| `p0c4GJHLZvI` | orchestra, several trumpets in frame: the tracker follows a different player from moment to moment (pose found in 61% of frames) |
+| `H0I1FjTeJ2w` | orchestra, cuts between sections, cropped at the waist: the tracked person is sometimes a woodwind player (neck ratio 0.07, elbow gap 2.4) |
+| `ZUZYoVw7moc` | orchestra, the player partly behind the timpani and conductor, cropped at the hips or hem: the pose jumps between people (pose found in 67% of frames) |
+| `TvRuRdMzAPg` | solo trumpeter cropped at the waist, so the hips the elbow gap is measured from are the tracker's guess; pose found in 66% of frames; elbow gaps up to 2.7 |
+
+Counts below are for all 70 videos and for the 65 left after these five. Cropped hips alone do not make a video noisy here: 28 of the 70 have hips in frame in under 30% of tracked frames, and only 2 of those (`Zxa2c5r9VFI`, `gzpFYaE9Wj8`) are flagged because of a fixed limit.
+
+### Before and after: videos flagged because of a fixed limit
+
+| Limit | View | Before | After | Videos before (of 70 / of 65) | Videos after (of 70 / of 65) |
+|---|---|---|---|---|---|
+| `shoulders_raised`: neck_ratio below | front | 0.30 | **0.15** | 8 / 5 | 6 / **3** |
+| `shoulders_raised`: neck_side below | side | 0.04 | 0.04 | 0 / 0 | 0 / 0 |
+| `trumpet_head_down`: head_drop above | front | 0.30 | 0.30 | 5 / 2 | 5 / 2 |
+| `trumpet_head_down`: head_pitch above | side | 40 deg | 40 deg | 3 / 1 | 3 / 1 |
+| `trumpet_elbows_wide`: elbow gap above | front | 1.0 | **1.3** | 8 / 5 | 6 / **3** |
+| `trumpet_bell_angle` "bell too high": bell_height below | front | -0.55 | -0.55 | 5 / 3 | 5 / 3 |
+| `trumpet_bell_angle` "bell too low": bell_height above | front | 2.0 | 2.0 | 2 / 1 | 2 / 1 |
+| `trumpet_bell_angle` "bell too high": bell_angle above | side | -5 deg | -5 deg | 5 / 3 | 5 / 3 |
+| `trumpet_bell_angle` "bell too low": bell_angle below | side | -100 deg | -100 deg | 4 / 2 | 4 / 2 |
+
+Flags that come from the baseline rules alone are not counted here (`slouching` and `trumpet_elbows_pinned` have no change-11 fixed limit): `good_flags.csv` lists them with `caused_by_fixed_limit` False.
+
+The criterion was at most 3 videos per limit among the 65. Two limits failed it and were loosened: neck_ratio 0.30 to 0.15, and elbows_wide 1.0 to 1.3 (the tightest limit that gives 3 of 65; 1.4 and 1.5 give the same). The other limits already flag at most 3 of 65 and stay. On all 70 videos the criterion is not met by front head_drop (5) and four of the bell limits (2 to 5), and meeting it without excluding anyone would take limits far outside any posture a coach would care about: head_drop above 0.5, neck_ratio below about 0.05, elbows above 3.0 shoulder widths, front bell_height below -1.0, side bell_angle below -110 deg, and no side "bell too high" angle up to 30 deg gets under 4. That is why the five noisy videos were excluded instead.
+
+The bell rule has four limits; each flags at most 3 of the 65, but different videos, so 9 of the 65 good videos get some bell flag (`Y1GXlXcOneg`, `Zxa2c5r9VFI`, `dU9Zd8ftMGg`, `hvm60dCs-LM`, `JnbCqDz6FfQ`, `LiD9KHRFrQ0`, `dDP-0KCI9FI`, `EQnEV70R7fs`, `lJXdSQm1aJY`). The side-view values there (up to 120 degrees above horizontal, below -110) are not plausible poses, so they look like tracker noise too, but they were not individually checked. Per rule, the 65 give: `shoulders_raised` 3, `trumpet_head_down` 3 (2 front, 1 side), `trumpet_elbows_wide` 3, `trumpet_bell_angle` 9.
+
+### Updated fixed limits
+
+| Rule (flag) | Measure, view | Limit | Change |
+|---|---|---|---|
+| `trumpet_head_down` | head_drop, front | above 0.30 | unchanged |
+| `shoulders_raised` | neck_ratio, front | below **0.15** | was 0.30 |
+| `trumpet_head_down` | head_pitch, side | above 40 deg | unchanged |
+| `shoulders_raised` | neck_side, side | below 0.04 | unchanged |
+| `slouching` | torso_lean / side_torso_lean | above 15 deg | unchanged |
+| `trumpet_elbows_wide` | elbow gap, either side, front | above **1.3** | was 1.0 |
+| `trumpet_bell_angle` "bell too high" | bell_height, front | below -0.55 | unchanged |
+| `trumpet_bell_angle` "bell too low" | bell_height, front | above 2.0 | unchanged |
+| `trumpet_bell_angle` "bell too high" | bell_angle, side | above -5 deg | unchanged |
+| `trumpet_bell_angle` "bell too low" | bell_angle, side | below -100 deg | unchanged |
+
+The baseline rules still catch drift during a take (neck_ratio under 0.6 x the baseline, head_drop 0.15 above it), so a take that starts well and then raises the shoulders or drops the head is still flagged. Only a take that is bad from its first frame now needs a more extreme pose to be flagged (neck_ratio under 0.15, an elbow more than 1.3 shoulder widths from the hip).
+
+### Flags on the repo clips, before and after
+
+Each clip tracked with `track_video` (10 fps, whole clip, no hands) and judged with `analyse(..., "trumpet")`, AI off, no face, by `good_flags.py --clips ... --fps 10 --cap-s 0`. Loosening a limit can only remove flags, and none of these clips had a flag from either loosened limit, so before and after are identical:
+
+| Clip | View | Before and after |
+|---|---|---|
+| `form/good_posture_1_general.mp4`, `good_posture_2.mp4`, `good_posture_3.mp4` | front | no flags |
+| `form/good_posture_side.mp4` | side | no flags |
+| `form/take5_ode_form_front.mp4` | front | `trumpet_elbows_pinned` (left, 0.07-0.08 vs 0.05) at 4.2-6.0, 8.6-9.9 and 28.3-31.2 s |
+| `form/take5_ode_form_side.mp4` | side | no flags |
+| `ode_to_joy/ode_to_joy_trumpet11.mp4` | side | `slouching` at 1.8-3.1 and 6.7-8.7 s (15.1-15.7 deg vs 15) |
+| `trumpet_video1.mp4`, `trumpet_video2.mp4` | front | no flags |
+
+The flag times differ a little from the table in "Fixed limits (LLD-4 change 11)" above, which came from an earlier run of the same clips.
+
 ## Fault-video review: draft answer keys (LLD-4 change 11 inputs)
 
 Run on 20 of the 21 videos in `testdata/youtube/fault_candidates.csv` (`FSsO_-LrqE4` is unavailable). Answers are in `testdata/youtube/fault_candidates_reviewed.csv` (new `(reviewed)` columns; the sheet's own columns are untouched). **All fault lines are DRAFT - Xavier to confirm.**

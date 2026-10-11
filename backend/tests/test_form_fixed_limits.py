@@ -31,10 +31,10 @@ def rules_of(flags: list[dict]) -> list[str]:
 # (rule, overrides that break it, the limit, measure value of a good pose, direction)
 FRONT_CASES = [
     ("trumpet_head_down", {"head_drop": 0.40}, config.TRUMPET_HEAD_DROP_MAX, {"head_drop": 0.25}, "high"),
-    ("shoulders_raised", {"neck_ratio": 0.22}, config.TRUMPET_NECK_RATIO_MIN, {"neck_ratio": 0.33}, "low"),
+    ("shoulders_raised", {"neck_ratio": 0.10}, config.TRUMPET_NECK_RATIO_MIN, {"neck_ratio": 0.20}, "low"),
     ("slouching", {"torso_lean": 25.0}, config.SLOUCHING_TORSO_LEAN_DEG, {"torso_lean": 10.0}, "high"),
-    ("trumpet_elbows_wide", {"elbow_gap_left": 1.3}, config.TRUMPET_ELBOWS_WIDE_GAP, {"elbow_gap_left": 0.8}, "high"),
-    ("trumpet_elbows_wide", {"elbow_gap_right": 1.3}, config.TRUMPET_ELBOWS_WIDE_GAP, {"elbow_gap_right": 0.8}, "high"),
+    ("trumpet_elbows_wide", {"elbow_gap_left": 1.6}, config.TRUMPET_ELBOWS_WIDE_GAP, {"elbow_gap_left": 1.1}, "high"),
+    ("trumpet_elbows_wide", {"elbow_gap_right": 1.6}, config.TRUMPET_ELBOWS_WIDE_GAP, {"elbow_gap_right": 1.1}, "high"),
     ("trumpet_bell_angle", {"bell_height": -0.8}, config.TRUMPET_BELL_HEIGHT_MIN, {"bell_height": -0.3}, "low"),
     ("trumpet_bell_angle", {"bell_height": 2.4}, config.TRUMPET_BELL_HEIGHT_MAX, {"bell_height": 1.7}, "high"),
 ]
@@ -74,7 +74,7 @@ def test_a_fixed_limit_and_the_baseline_rule_give_one_flag_not_two():
     assert rules_of(analyse(frames, "trumpet", "t1")["flags"]) == ["trumpet_head_down"]
 
 
-@pytest.mark.parametrize("overrides", [{"head_drop": 0.40}, {"neck_ratio": 0.22}, {"elbow_gap_left": 1.3}, {"bell_height": 2.4}])
+@pytest.mark.parametrize("overrides", [{"head_drop": 0.40}, {"neck_ratio": 0.10}, {"elbow_gap_left": 1.6}, {"bell_height": 2.4}])
 def test_the_fixed_limits_and_new_rules_are_for_the_trumpet_only(overrides):
     assert front_flags("violin", overrides) == []
 
@@ -119,5 +119,5 @@ def test_a_defaulted_baseline_still_flags_a_head_drop_past_the_fixed_limit():
 
 
 def test_a_defaulted_baseline_does_not_set_the_neck_ratio_threshold():
-    # the default neck ratio 0.55 would put the threshold at 0.33; 0.32 is above the fixed 0.30
-    assert analyse(_untracked_start((HOLD_S, {"neck_ratio": 0.32})), "trumpet", "t1")["flags"] == []
+    # the default neck ratio 0.55 would put the threshold at 0.33; 0.25 is above the fixed 0.15
+    assert analyse(_untracked_start((HOLD_S, {"neck_ratio": 0.25})), "trumpet", "t1")["flags"] == []
