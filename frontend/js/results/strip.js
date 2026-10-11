@@ -3,7 +3,7 @@
 // The boxes are buttons in one tab stop: arrow keys, Home and End move between them, and the box in focus is selected.
 // The selected box (the worst bar at first) shows its detail below the grid (bar_detail.js). A jump to a bar selects its box.
 import { element } from '../dom.js';
-import { problemBars } from './bars.js';
+import { playedBars, problemBars } from './bars.js';
 import { barLevel, LEVEL_MEANINGS, LEVEL_WORDS, LEVELS, worstBarIndex } from './bar_level.js';
 import { renderBarDetail } from './bar_detail.js';
 import { barVerdict } from './bar_verdict.js';
@@ -49,7 +49,7 @@ function targetIndex(key, at, count) {
 // context: { jumpContext, sentences, renderActions } (see bar_detail.js).
 // Returns { section, select(barNumber, { reveal }), hasBar(barNumber) }, or null when the take has no bars.
 export function createBarStrip(analysis, context) {
-  const bars = [...(analysis.bars ?? [])].sort((a, b) => a.bar - b.bar);
+  const bars = playedBars(analysis).sort((a, b) => a.bar - b.bar);
   if (!bars.length) return null;
   const detailContext = { ...context, analysis };
   const problemOrder = problemBars(analysis).map((bar) => bar.bar);

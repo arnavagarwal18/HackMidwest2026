@@ -190,3 +190,10 @@ test('a jump to a bar (a coach link or a sentence) seeks, selects its box and br
   assert.deepEqual(pressed(boxes), ['2']);
   assert.ok(boxes[1].scrolled);
 });
+
+test('a bar with 0 expected notes (past the end of the take) gets no box, even with an extra note', () => {
+  const past = bar(5, { expected: 0, ok: 0, extra: 2 });
+  const { boxes, strip } = grid({ ...gridAnalysis, bars: [...gridAnalysis.bars, past] });
+  assert.deepEqual(boxes.map((box) => box.attributes['data-bar']), ['1', '2', '3', '4']);
+  assert.equal(strip.hasBar(5), false);
+});
