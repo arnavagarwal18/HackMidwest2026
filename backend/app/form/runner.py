@@ -17,6 +17,11 @@ logger = logging.getLogger("app.form")
 STATUS_PROCESSING, STATUS_DONE, STATUS_FAILED = "processing", "done", "failed"
 
 
+def _with_outcome(form: dict, session_id: str, status: str) -> dict:
+    """The form plus the take's form_status and the session's instrument, which the AI agents' tools read from take.form."""
+    return {**form, "status": status, "instrument": store.get(session_id).instrument}
+
+
 def _tracking_summary(result: TrackResult) -> dict:
     return {
         "fps_sampled": result.fps,
@@ -79,7 +84,8 @@ def _rerank(session_id: str, take_id: str) -> None:
 
 def _record_failure(session_id: str, take_id: str) -> None:
     try:
-        update_take(session_id, take_id, form=_failed_form(FormFailed), form_status=STATUS_FAILED)
+        form = _with_outcome(_failed_form(FormFailed), session_id, STATUS_FAILED)
+        update_take(session_id, take_id, form=form, form_status=STATUS_FAILED)
     except Exception:
         logger.exception("Could not record that the form check of take %s/%s failed", session_id, take_id)
 
@@ -89,7 +95,8 @@ def run(session_id: str, take_id: str) -> None:
     try:
         update_take(session_id, take_id, form_status=STATUS_PROCESSING)
         form = _checked_form(session_id, take_id)
-        save_form(session_id, take_id, form, STATUS_FAILED if form["error"] else STATUS_DONE)
+        status = STATUS_FAILED if form["error"] else STATUS_DONE
+        save_form(session_id, take_id, _with_outcome(form, session_id, status), status)
     except Exception:
         logger.exception("Could not save the form check of take %s/%s", session_id, take_id)
         _record_failure(session_id, take_id)
