@@ -1,5 +1,6 @@
 // The problem-bar list: every bar with a problem, worst first. highlight(bar) marks a row and scrolls it into view.
 import { element } from '../dom.js';
+import { hasMistakes, reasonsForBar } from './problem_reasons.js';
 
 const HIGHLIGHT_CLASS = 'highlighted';
 
@@ -10,10 +11,6 @@ function barScores(problems) {
     for (let bar = from; bar <= to; bar += 1) scores.set(bar, Math.max(scores.get(bar) ?? 0, problem.score ?? 0));
   });
   return scores;
-}
-
-function hasMistakes(bar) {
-  return bar.wrong + bar.missed + bar.extra + bar.uncertain > 0;
 }
 
 // Bars that any problem covers or that have a mistake, ordered by their worst problem score (then by bar number).
@@ -59,9 +56,11 @@ export function addBarDetail(container, bar) {
   return container;
 }
 
-function barRow(bar, renderActions) {
+function barRow(bar, analysis, renderActions) {
   const row = element('li', '', 'bar-row', { id: `bar-row-${bar.bar}`, 'data-bar': String(bar.bar), tabindex: '-1' });
   addBarDetail(row, bar);
+  const reasons = reasonsForBar(analysis, bar);
+  if (reasons.length) row.append(element('span', `Flagged: ${reasons.join('; ')}`, 'bar-reason'));
   if (renderActions) row.append(renderActions(bar));
   return row;
 }
@@ -72,7 +71,7 @@ export function createBarList(analysis, renderActions = null) {
   section.append(element('h2', 'Bars to work on'));
   const bars = problemBars(analysis);
   const list = element('ol', '', 'bar-rows');
-  bars.forEach((bar) => list.append(barRow(bar, renderActions)));
+  bars.forEach((bar) => list.append(barRow(bar, analysis, renderActions)));
   section.append(bars.length ? list : element('p', 'No bars with problems.', 'muted'));
 
   function highlight(barNumber) {

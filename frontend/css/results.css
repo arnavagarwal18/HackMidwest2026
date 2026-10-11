@@ -30,6 +30,7 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .bar-row strong { font-family: var(--font-display); font-size: var(--fs-lg); }
 .bar-row.highlighted { background: var(--brass-soft); border-color: var(--brass); }
 .bar-row .meter { grid-column: 2 / -1; grid-row: 2; }
+.bar-row .bar-reason { grid-column: 2 / -1; grid-row: 3; color: var(--muted); font-size: var(--fs-sm); }
 .meter { height: 6px; overflow: hidden; border-radius: var(--radius); background: var(--surface-2); }
 .meter > i { display: block; height: 100%; border-radius: var(--radius); background: var(--ok); }
 .bar-drift { white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
