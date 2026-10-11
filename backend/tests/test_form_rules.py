@@ -13,12 +13,12 @@ BREAKING = [
     ("violin_elbow_low", "violin", {"elbow_angle": 10.0}, "right"),
     ("violin_elbow_high", "violin", {"elbow_angle": 100.0}, "right"),
     ("violin_wrist_collapsed", "violin", {"wrist_bend": 50.0}, "left"),
-    ("shoulders_raised", "violin", {"neck_ratio": 0.3}, "both"),
+    ("shoulders_raised", "violin", {"neck_ratio": 0.45 * RELAXED["neck_ratio"]}, "both"),
     ("slouching", "violin", {"torso_lean": 30.0}, None),
-    ("shoulders_raised", "trumpet", {"neck_ratio": 0.3}, "both"),
+    ("shoulders_raised", "trumpet", {"neck_ratio": 0.45 * RELAXED["neck_ratio"]}, "both"),
     ("slouching", "trumpet", {"torso_lean": 30.0}, None),
     ("trumpet_head_down", "trumpet", {"head_drop": 0.2}, None),
-    ("trumpet_elbows_pinned", "trumpet", {"elbow_gap_left": 0.05}, "left"),
+    ("trumpet_elbows_pinned", "trumpet", {"elbow_gap_left": 0.02}, "left"),
 ]
 RULE_CASES = pytest.mark.parametrize("rule, instrument, bad, side", BREAKING, ids=[f"{b[1]}-{b[0]}" for b in BREAKING])
 
@@ -132,7 +132,7 @@ def test_confidence_drops_with_the_share_of_frames_where_the_measure_was_present
 
 
 def test_shoulders_raised_is_judged_against_the_baseline():
-    frames = timeline((2.0, {"neck_ratio": 0.6}), (2.0, {"neck_ratio": 0.4}))
+    frames = timeline((2.0, {"neck_ratio": 0.6}), (2.0, {"neck_ratio": 0.27}))
     result = analyse(frames, "violin", "t1")
     assert result["baseline"]["neck_ratio"] == pytest.approx(0.6)
     assert result["baseline"]["head_drop"] == pytest.approx(-0.05)
@@ -142,21 +142,26 @@ def test_shoulders_raised_is_judged_against_the_baseline():
     assert flag["start_s"] == pytest.approx(2.0, abs=0.1)
     threshold = config.SHOULDERS_RAISED_RATIO * 0.6
     assert flag["threshold"] == pytest.approx(threshold)
-    assert flag["severity"] == pytest.approx((threshold - 0.4) / config.SEVERITY_SPANS["shoulders_raised"])
+    assert flag["severity"] == pytest.approx((threshold - 0.27) / config.SEVERITY_SPANS["shoulders_raised"])
+
+
+def test_a_mild_neck_dip_and_a_loose_elbow_gap_are_not_flagged():
+    mild_neck = 0.65 * RELAXED["neck_ratio"]  # flagged when the threshold was 0.70 of the baseline
+    assert run("trumpet", (2.0, {"neck_ratio": mild_neck, "elbow_gap_left": 0.08}))["flags"] == []
 
 
 def test_few_baseline_frames_use_the_defaults_and_say_so():
     early = [make_frame(i * 0.1, neck_ratio=0.8) for i in range(4)]
-    late = [make_frame(5.0 + i * 0.1, neck_ratio=0.5) for i in range(30)]
+    late = [make_frame(5.0 + i * 0.1, neck_ratio=0.4) for i in range(30)]
     result = analyse(early + late, "violin", "t1")
     assert result["baseline"] == {"neck_ratio": config.DEFAULT_NECK_RATIO, "head_drop": config.DEFAULT_HEAD_DROP,
                                   "defaulted": True}
-    assert result["flags"] == []  # 0.5 is above the threshold on the default 0.55; the same threshold on a measured 0.8 would have flagged it
+    assert result["flags"] == []  # 0.4 is above the threshold on the default 0.55; the same threshold on a measured 0.8 would have flagged it
 
 
 def test_five_baseline_frames_are_enough():
     early = [make_frame(i * 0.1, neck_ratio=0.8) for i in range(config.BASELINE_MIN_FRAMES)]
-    late = [make_frame(5.0 + i * 0.1, neck_ratio=0.5) for i in range(30)]
+    late = [make_frame(5.0 + i * 0.1, neck_ratio=0.36) for i in range(30)]
     result = analyse(early + late, "violin", "t1")
     assert result["baseline"]["defaulted"] is False
     assert result["baseline"]["neck_ratio"] == pytest.approx(0.8)

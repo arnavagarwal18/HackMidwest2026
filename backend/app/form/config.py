@@ -27,13 +27,13 @@ DEFAULT_HEAD_DROP = -0.05
 VIOLIN_ELBOW_LOW_DEG = 20  # elbow_angle below this
 VIOLIN_ELBOW_HIGH_DEG = 85  # elbow_angle above this
 VIOLIN_WRIST_COLLAPSED_DEG = 35  # wrist_bend above this
-SHOULDERS_RAISED_RATIO = 0.70  # neck_ratio below this fraction of the baseline (0.75 flagged ordinary playing in testdata/trumpet_video2.mp4)
+SHOULDERS_RAISED_RATIO = 0.60  # neck_ratio below this fraction of the baseline (0.75 flagged ordinary playing in testdata/trumpet_video2.mp4; 0.70 flagged a bunched hoodie in testdata/form/take5_ode_form_front.mp4)
 SLOUCHING_TORSO_LEAN_DEG = 15  # torso_lean above this
 SLOUCHING_FALLBACK_NECK_RATIO = 0.85  # fallback when torso_lean is missing: neck_ratio below this x baseline ...
 SLOUCHING_FALLBACK_HEAD_DROP = 0.10  # ... and head_drop above baseline plus this
 SLOUCHING_FALLBACK_SPAN = 0.2  # severity span for the fallback, which is judged on neck_ratio (a ratio, not degrees)
 TRUMPET_HEAD_DOWN_DROP = 0.15  # head_drop above baseline plus this
-TRUMPET_ELBOWS_PINNED_GAP = 0.10  # elbow_gap below this
+TRUMPET_ELBOWS_PINNED_GAP = 0.05  # elbow_gap below this (0.10 flagged gaps of 0.07-0.10 in testdata/form/take5_ode_form_front.mp4)
 
 # Severity spans: how far past its threshold a measure must go for severity 1.0 (angles in degrees, others as ratios)
 SEVERITY_SPANS = {
@@ -76,7 +76,7 @@ FORM_FILE_SUFFIX = "_form.json"
 VIEW_SIDE_MAX = 1.0  # median shoulder width / shoulder-to-nose height below this: the camera sees the player from the side
 VIEW_MIN_FRAMES = 5  # fewer usable frames than this: the view is 'front'
 SIDE_HEAD_PITCH_DELTA = 15  # side view: head_pitch above baseline plus this many degrees
-SIDE_NECK_RATIO = SHOULDERS_RAISED_RATIO  # side view: neck_side below this fraction of the baseline; kept equal to the front ratio (0.70)
+SIDE_NECK_RATIO = 0.70  # side view: neck_side below this fraction of the baseline (set on its own; the front ratio is 0.60)
 SIDE_NECK_SPAN_FRACTION = 0.35  # severity span for side shoulders_raised, as a share of the baseline (front: 0.2 of a 0.55 baseline)
 SIDE_HEAD_PITCH_SPAN_DEG = 20  # severity span for side trumpet_head_down
 
