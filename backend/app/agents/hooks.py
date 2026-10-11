@@ -13,6 +13,7 @@ from app.agents.chat_checker import check_reply
 from app.agents.checker import check_feedback, check_plan
 from app.agents.context import CheckContext
 from app.agents.holder import ReplyHolder, RunHolder
+from app.agents.orphans import ORPHAN_REASON, orphaned_indexes
 from app.agents.plan_rules import EXERCISE_COUNT
 from app.agents.trace import Trace
 
@@ -34,14 +35,15 @@ class SubmitSpec:
     accept: Callable[[Any, dict, list[dict]], None]  # called with the holder
     min_items: int = 1  # fewer items than this left after dropping is a refusal, not an acceptance
     input_key: Optional[str] = "output"  # the tool argument holding the output; None when the arguments are the output
+    drop_orphans: bool = False  # also drop a kept sentence that opens with "This/It/..." right after a dropped one
 
 
 FEEDBACK_SUBMIT = SubmitSpec("submit_feedback", "sentences", "sentence", check_feedback,
-                             RunHolder.note_feedback_check, RunHolder.accept_feedback)
+                             RunHolder.note_feedback_check, RunHolder.accept_feedback, drop_orphans=True)
 PLAN_SUBMIT = SubmitSpec("submit_plan", "exercises", "exercise", check_plan,
                          RunHolder.note_plan_check, RunHolder.accept_plan, min_items=EXERCISE_COUNT[0])
 CHAT_SUBMIT = SubmitSpec("submit_reply", "sentences", "sentence", check_reply,
-                         ReplyHolder.note_check, ReplyHolder.accept, input_key=None)
+                         ReplyHolder.note_check, ReplyHolder.accept, input_key=None, drop_orphans=True)
 
 
 def _result_content(event: AfterToolCallEvent, verdict: dict) -> dict:
@@ -118,6 +120,9 @@ class CheckerHook(HookProvider):
         reasons: dict[int, list[str]] = {}
         for problem in problems:
             reasons.setdefault(problem["index"], []).append(problem["reason"])
+        if self.spec.drop_orphans:
+            for index in orphaned_indexes(items, set(reasons)):
+                reasons[index] = [ORPHAN_REASON]
         kept = [item for i, item in enumerate(items) if i not in reasons]
         if len(kept) < self.spec.min_items:
             return None
