@@ -337,9 +337,10 @@ test('a screen that was replaced without a hashchange cleans up on the next key 
   assert.equal(t.dom.document.count('keydown'), 0);
 });
 
-test('space is left to a focused button, and held keys are ignored', async () => {
+test('space is left to a focused button or a Details/History row, and held keys are ignored', async () => {
   const t = await setup();
   t.dom.document.dispatch('keydown', space({ target: { tagName: 'BUTTON' } }));
+  t.dom.document.dispatch('keydown', space({ target: { tagName: 'SUMMARY' } }));
   t.dom.document.dispatch('keydown', space({ repeat: true }));
   await settle();
   assert.equal(t.rec.log.takes.length, 0);

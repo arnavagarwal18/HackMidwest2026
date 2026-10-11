@@ -10,7 +10,7 @@ import { element } from '../dom.js';
 
 const BUSY_PHASES = ['loading', 'recording', 'sending', 'scoring', 'complete'];
 const SPACE_PHASES = ['ready', 'result', 'not_counted', 'recording'];
-const KEYS_THAT_OWN_SPACE = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'];
+const KEYS_THAT_OWN_SPACE = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'SUMMARY'];
 
 // options: { sessionId, ex, beatsPerBar, countInBeats, metronomeOn, onFullTake, thresholds }
 // deps: { getExercise, uploadRep, getRep, openStream, recordTake, stopStream }
