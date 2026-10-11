@@ -1,20 +1,21 @@
-/* Practice Coach - "Brass & Ivory". The design tokens live here, in :root, and every stylesheet uses them.
-   Brass is an accent (links, focus, the active state); the one filled primary action is --primary.
-   No web fonts and no gradients. Depth comes from 1px lines first, then the three soft shadows (--shadow-1..3).
-   Component styles (cards, buttons, chips, toasts...) live in components.css and use only these tokens. */
+/* Practice Coach - a quiet, Apple-style design system. The design tokens live here, in :root, and every stylesheet uses them.
+   One system font stack; four text sizes (caption, body, headline, title); one spacing scale (4-pt); one accent colour,
+   used only for the primary action, the focus ring and status. Depth comes from a hairline, not from shadows.
+   Component styles (cards, buttons, chips, toasts...) live in components.css and use only these tokens.
+   When in doubt, leave it out. */
 
 :root {
   color-scheme: light dark;
 
-  /* Colour - light. Contrast ratios are WCAG 2.x, against --bg unless noted. */
-  --bg: #faf6ec;            /* ivory */
+  /* Colour - light. Contrast ratios are WCAG 2.x (text needs 4.5:1, non-text 3:1); checked in tests/components.test.mjs. */
+  --bg: #f7f6f2;
   --surface: #ffffff;       /* cards, inputs */
-  --ink: #2a2018;           /* 14.76:1 */
-  --muted: #6b5d4d;         /* 5.90:1 */
-  --line: #8c7f6e;          /* 3.62:1, for borders and icons (non-text needs 3:1) */
-  --brass: #8a5f0a;         /* links, focus, accent: 5.23:1 */
-  --primary: #7a5208;       /* the filled primary button */
-  --primary-ink: #ffffff;   /* 6.91:1 on --primary */
+  --ink: #1f1c18;
+  --muted: #5c564d;         /* secondary text, still 4.5:1 on --bg and --surface-2 */
+  --line-strong: #8a8378;   /* the edge of a control (input, segmented): 3:1 */
+  --accent: #7a5208;        /* the one accent: the primary action, the focus ring */
+  --primary: var(--accent);
+  --primary-ink: #ffffff;
   --primary-hover: #664506;
   --ok: #1f7a4d;            /* in tune */
   --flat: #1f5fa8;          /* flat / early */
@@ -23,9 +24,11 @@
   --error-solid: #b3261e;   /* the same red in both modes, behind white text */
   --on-error-solid: #ffffff;
 
-  /* Tints and fills derived from the tokens above, so they follow the dark mode too */
+  /* Derived: the hairline and the tints follow the dark mode too */
+  --line: color-mix(in srgb, var(--ink) 14%, var(--bg));   /* a decorative hairline, not for text or control edges */
   --surface-2: color-mix(in srgb, var(--ink) 5%, var(--bg));
-  --brass-soft: color-mix(in srgb, var(--brass) 12%, var(--surface));
+  --brass: var(--accent);   /* the older name for --accent, kept for the screen stylesheets */
+  --brass-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
   --ok-soft: color-mix(in srgb, var(--ok) 10%, var(--surface));
   --flat-soft: color-mix(in srgb, var(--flat) 10%, var(--surface));
   --sharp-soft: color-mix(in srgb, var(--sharp) 10%, var(--surface));
@@ -37,29 +40,33 @@
   --on-media-accent: #f0c15a;
   --qr-bg: #ffffff;
 
-  /* Type */
+  /* Type: the system font for everything. Four sizes: caption 13, body 16, headline 20, title 28 (34 on wide screens).
+     The other --fs-* names are kept for the screen stylesheets and point at these four. */
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, serif;
+  --font-display: var(--font-body);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 25px; --fs-2xl: 31px; --fs-3xl: 39px;
+  --fs-caption: 13px; --fs-body: 16px; --fs-headline: 20px; --fs-title: 28px;
+  --fs-xs: var(--fs-caption); --fs-sm: var(--fs-body); --fs-md: var(--fs-body);
+  --fs-lg: var(--fs-headline); --fs-xl: var(--fs-title); --fs-2xl: var(--fs-title); --fs-3xl: var(--fs-title);
 
   /* Space (4-pt base), shape, targets */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --sp-6: 48px; --sp-7: 64px;
-  --radius: 8px;
+  --radius: 10px;
   --radius-card: 12px;
-  --tap: 44px;               /* minimum touch target */
-  --focus-ring: 3px solid var(--brass);
   --radius-pill: 999px;
+  --tap: 44px;               /* minimum touch target */
+  --focus-ring: 3px solid var(--accent);
+  --page-w: 64rem;           /* one content width: the header and every screen share its left edge */
+  --page-pad: var(--sp-4);
 
-  /* Elevation: 1 = resting card, 2 = raised (toast, sticky bar), 3 = overlay */
-  --shadow-color: 42 32 24;
-  --shadow-1: 0 1px 2px rgb(var(--shadow-color) / 0.08), 0 1px 1px rgb(var(--shadow-color) / 0.04);
-  --shadow-2: 0 4px 12px rgb(var(--shadow-color) / 0.12), 0 1px 3px rgb(var(--shadow-color) / 0.08);
-  --shadow-3: 0 12px 32px rgb(var(--shadow-color) / 0.18), 0 2px 6px rgb(var(--shadow-color) / 0.1);
+  /* Elevation: resting cards are flat. Only what floats (toast, banner, overlay) has a soft shadow. */
+  --shadow-color: 31 28 24;
+  --shadow-1: none;
+  --shadow-2: 0 4px 16px rgb(var(--shadow-color) / 0.12);
+  --shadow-3: 0 8px 28px rgb(var(--shadow-color) / 0.16);
 
-  /* Page-title type ramp: the display serif, one step up at 40rem */
-  --title-size: var(--fs-2xl);
-  --title-lead: var(--fs-md);
+  --title-size: var(--fs-title);
+  --title-lead: var(--fs-body);
   --header-h: 60px;
 
   /* Motion: one easing, a short and a medium duration. Both drop to 0 for readers who ask for less motion. */
@@ -68,18 +75,18 @@
   --dur: 200ms;
 }
 
-@media (min-width: 40rem) { :root { --title-size: var(--fs-3xl); --title-lead: var(--fs-lg); } }
+@media (min-width: 40rem) { :root { --title-size: 34px; --title-lead: var(--fs-headline); } }
+@media (max-width: 40rem) { :root { --page-pad: var(--sp-3); --header-h: 52px; } }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1612;            /* 15.12:1 with --ink */
-    --surface: #261f18;
-    --ink: #f3ebdd;
-    --muted: #b8a994;         /* 7.79:1 */
-    --line: #7d705f;          /* 3.71:1 */
-    --brass: #d4a340;         /* 7.77:1 */
-    --primary: #d4a340;
-    --primary-ink: #1c1612;   /* 7.77:1 on --primary */
+    --bg: #161412;
+    --surface: #211e1b;
+    --ink: #f2eee7;
+    --muted: #b5aea3;
+    --line-strong: #7d766b;
+    --accent: #d4a340;
+    --primary-ink: #161412;
     --primary-hover: #e2b459;
     --ok: #6cc48b;
     --flat: #8fb0ef;
@@ -98,106 +105,74 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 var(--fs-md)/1.5 var(--font-body);
+  font: 400 var(--fs-body)/1.5 var(--font-body);
   font-variant-numeric: tabular-nums; /* scores, cents, ms and BPM line up */
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
-h1 { font-size: var(--title-size); margin: var(--sp-2) 0 var(--sp-3); letter-spacing: -0.02em; }
-h2 { font-size: var(--fs-lg); margin: var(--sp-4) 0 var(--sp-3); }
-h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-2); }
+h1, h2, h3 { font-weight: 600; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: var(--title-size); margin: var(--sp-2) 0 var(--sp-3); }
+h2 { font-size: var(--fs-headline); margin: var(--sp-4) 0 var(--sp-3); }
+h3 { font-size: var(--fs-body); margin: 0 0 var(--sp-2); }
 p { text-wrap: pretty; }
-a { color: var(--brass); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a { color: var(--ink); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: var(--focus-ring); outline-offset: 2px; border-radius: var(--radius); }
 ::selection { background: var(--brass-soft); }
 .muted { color: var(--muted); }
 [hidden] { display: none !important; } /* the display rules below must not show what a screen hides */
 
-/* ---------- Header and nav: a slim bar, brand left, pill nav, room for a Coach button on the right ---------- */
+/* ---------- Header: the app name and at most two links, on the same left edge as the page ---------- */
 header {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
   min-height: var(--header-h);
-  padding: var(--sp-2) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-2) max(var(--sp-4), env(safe-area-inset-left));
+  padding: var(--sp-2) max(var(--page-pad), calc((100% - var(--page-w)) / 2 + var(--page-pad)), env(safe-area-inset-right)) var(--sp-2) max(var(--page-pad), calc((100% - var(--page-w)) / 2 + var(--page-pad)), env(safe-area-inset-left));
   padding-top: max(var(--sp-2), env(safe-area-inset-top));
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-}
+.brand { color: var(--ink); font-size: var(--fs-headline); font-weight: 600; white-space: nowrap; text-decoration: none; }
 
-.brand-mark { flex: none; width: 28px; height: 28px; color: var(--brass); }
-
-nav { display: flex; gap: var(--sp-1); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-nav::-webkit-scrollbar { display: none; }
+nav { display: flex; gap: var(--sp-1); max-width: 100%; margin-right: auto; }
 
 nav a {
-  flex: none;
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 var(--sp-3);
-  border-radius: var(--radius-pill);
+  min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  border-bottom: 2px solid transparent;
   color: var(--muted);
-  font-size: var(--fs-sm);
-  font-weight: 500;
   text-decoration: none;
-  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition: color var(--dur-fast) var(--ease);
 }
 
-nav a:hover { color: var(--ink); background: var(--surface-2); }
-nav a.current { color: var(--brass); font-weight: 600; background: var(--brass-soft); }
-nav a.current::before { content: "\25CF\00a0"; font-size: 0.6em; } /* a glyph too, so the tab is not marked by colour alone */
+nav a:hover { color: var(--ink); }
+nav a.current { color: var(--ink); font-weight: 600; border-bottom-color: currentColor; } /* weight and an underline, not colour alone */
 
 #header-actions { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
 #header-actions:empty { display: none; }
-nav { margin-right: auto; margin-left: var(--sp-3); }
 
 @media (max-width: 40rem) {
-  :root { --header-h: 52px; }
-  header { position: static; flex-wrap: wrap; gap: var(--sp-2); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); }
-  #header-actions { order: 2; }
-  nav { /* a full-width strip of the tabs, so every tab shows with no sideways scrolling */
-    order: 3;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    overflow: visible;
-  }
-  nav a { justify-content: center; padding: 0 var(--sp-1); }
+  header { position: static; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); }
+  nav { order: 3; width: 100%; margin: 0; }
 }
 
 main {
-  max-width: 62rem;
+  max-width: var(--page-w);
   margin: 0 auto;
-  padding: var(--sp-4) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-6) max(var(--sp-4), env(safe-area-inset-left));
+  padding: var(--sp-4) var(--page-pad) var(--sp-6);
 }
 
 main > * + * { margin-top: var(--sp-3); }
-@media (max-width: 40rem) { main { padding-top: var(--sp-3); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); } }
+@media (max-width: 40rem) { main { padding-top: var(--sp-3); } }
 
-/* ---------- Banner: a toast-like bar under the header (the same look as .toast in components.css) ---------- */
+/* ---------- Banner: a quiet notice under the header (the same look as .toast in components.css) ---------- */
 .banner {
   position: sticky;
   top: calc(var(--header-h) + var(--sp-2));
@@ -211,7 +186,6 @@ main > * + * { margin-top: var(--sp-3); }
   max-width: calc(100% - 2 * var(--sp-3));
   margin: var(--sp-2) auto 0;
   padding: var(--sp-2) var(--sp-3);
-  border: 1px solid currentColor;
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-2);
   font-weight: 600;
@@ -219,13 +193,13 @@ main > * + * { margin-top: var(--sp-3); }
 }
 
 .banner-error { background: var(--error-soft); color: var(--error); }
-.banner-notice { background: var(--brass-soft); color: var(--brass); }
-.banner button { color: inherit; border-color: currentColor; min-height: 36px; }
+.banner-notice { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.banner button { color: inherit; }
 @media (max-width: 40rem) { .banner { position: static; top: auto; } }
 
 @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
-/* ---------- Buttons: primary (filled), secondary (outlined, the default) and text ---------- */
+/* ---------- Buttons: one filled style (primary); every other button is plain, or ghost with no edge ---------- */
 button {
   display: inline-flex;
   align-items: center;
@@ -233,16 +207,16 @@ button {
   gap: var(--sp-2);
   min-height: var(--tap);
   padding: 0 var(--sp-3);
-  font: 600 var(--fs-sm)/1.25 var(--font-body);
+  font: 600 var(--fs-body)/1.25 var(--font-body);
   color: var(--ink);
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  transition: background-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
 
-button:hover { border-color: var(--ink); background: var(--surface-2); }
+button:hover { background: var(--surface-2); }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -265,61 +239,62 @@ button.text, .sentence-text, .tab {
   border-color: transparent;
 }
 
-button.text { color: var(--brass); }
-button.text:hover { border-color: transparent; background: transparent; text-decoration: underline; }
+button.text { text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+button.text:hover { background: transparent; text-decoration-thickness: 2px; }
 
-/* A link that looks like a secondary button (the chip is in components.css) */
+/* A link that looks like a plain button (the chip is in components.css) */
 .button-link {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
   padding: 0 var(--sp-3);
-  border: 1px solid var(--brass);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  color: var(--brass);
-  font-size: var(--fs-sm);
+  color: var(--ink);
   font-weight: 600;
   text-decoration: none;
   transition: background-color var(--dur-fast) var(--ease);
 }
 
-.button-link:hover { background: var(--brass-soft); }
+.button-link:hover { background: var(--surface-2); }
 
 /* ---------- Forms: 16px text so iOS Safari does not zoom on focus ---------- */
 input[type="number"], input[type="text"], textarea, select {
   min-height: var(--tap);
   padding: 0 var(--sp-3);
-  font: 400 var(--fs-md)/1.5 var(--font-body);
+  font: 400 var(--fs-body)/1.5 var(--font-body);
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
 }
 
 textarea { padding: var(--sp-2) var(--sp-3); }
 input, textarea, select { transition: border-color var(--dur-fast) var(--ease); }
-input:focus, textarea:focus, select:focus { outline: var(--focus-ring); outline-offset: 2px; border-color: var(--brass); }
-label { font-size: var(--fs-sm); color: var(--muted); }
-input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--brass); }
-input[type="file"] { max-width: 100%; font: 400 var(--fs-md)/1.5 var(--font-body); color: var(--muted); }
+input:focus, textarea:focus, select:focus { outline: var(--focus-ring); outline-offset: 2px; border-color: var(--accent); }
+label { color: var(--muted); }
+label:has(> input[type="checkbox"], > input[type="radio"]) { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap); }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--accent); }
+input[type="file"] { max-width: 100%; font: 400 var(--fs-body)/1.5 var(--font-body); color: var(--muted); }
 
 input[type="file"]::file-selector-button {
   min-height: var(--tap);
   margin-right: var(--sp-3);
   padding: 0 var(--sp-3);
-  font: 600 var(--fs-sm)/1.25 var(--font-body);
+  font: 600 var(--fs-body)/1.25 var(--font-body);
   color: var(--ink);
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   cursor: pointer;
 }
 
 /* ---------- Card surfaces: the blocks of the bare screens ----------
+   A subtle surface with a hairline and no shadow. A .segmented control is a control, not a card.
    :where() keeps the specificity at zero, so any screen stylesheet can still adjust a card. */
 :where(
   main > section:not(.results):not(:empty),
-  main > div:not(:empty):not(.tabs),
+  main > div:not(:empty):not(.segmented),
   main > ol.calibrate-steps,
   main > form.take-form,
   main > table.progress-table,
@@ -337,7 +312,7 @@ input[type="file"]::file-selector-button {
 @media (max-width: 40rem) {
   :where(
     main > section:not(.results):not(:empty),
-    main > div:not(:empty):not(.tabs),
+    main > div:not(:empty):not(.segmented),
     main > ol.calibrate-steps,
     main > form.take-form,
     main > .empty-state,
@@ -355,7 +330,7 @@ pre.response {
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--line);
-  font: var(--fs-sm)/1.5 var(--font-mono);
+  font: var(--fs-caption)/1.5 var(--font-mono);
 }
 
 /* ---------- Results screen: analysis on the left, Instructor chat panel on the right ---------- */
@@ -364,7 +339,6 @@ main.with-chat {
   grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 1fr);
   gap: var(--sp-4);
   align-items: start;
-  max-width: 82rem;
 }
 
 main.with-chat > * + * { margin-top: 0; }
@@ -377,7 +351,7 @@ main.with-chat > * + * { margin-top: 0; }
 .progress-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; width: 100%; padding: 0; overflow: hidden; }
 .progress-table th, .progress-table td { padding: var(--sp-3); text-align: left; border-bottom: 1px solid var(--line); }
 .progress-table tbody tr:last-child > * { border-bottom: 0; }
-.progress-table thead th { background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; }
+.progress-table thead th { color: var(--muted); font-size: var(--fs-caption); font-weight: 600; }
 .progress-table tbody th { font-weight: 600; }
 .exercise-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
 .exercise-item { padding: var(--sp-3); }
@@ -387,7 +361,7 @@ main.with-chat > * + * { margin-top: 0; }
 /* ---------- Trace screen: one colour per agent, named in the heading too ---------- */
 .trace-group { --agent: var(--muted); border-left: 4px solid var(--agent); }
 .trace-group h3 { margin: 0 0 var(--sp-2); color: var(--agent); }
-.agent-orchestrator { --agent: var(--brass); }
+.agent-orchestrator { --agent: var(--accent); }
 .agent-coach { --agent: var(--flat); }
 .agent-planner { --agent: var(--sharp); }
 .agent-checker { --agent: var(--ok); }
@@ -395,11 +369,11 @@ main.with-chat > * + * { margin-top: 0; }
 .trace-event { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 0; border-top: 1px solid var(--line); }
 .trace-event:first-child { border-top: 0; }
 .trace-time { min-width: 4rem; color: var(--muted); }
-.trace-marker { padding: 0 var(--sp-2); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; }
+.trace-marker { padding: 0 var(--sp-2); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-caption); font-weight: 600; }
 .trace-check_pass .trace-marker { background: var(--ok-soft); color: var(--ok); }
 .trace-check_fail .trace-marker { background: var(--error-soft); color: var(--error); }
 .trace-dropped .trace-marker, .trace-fallback .trace-marker { background: var(--sharp-soft); color: var(--sharp); }
-.trace-detail { flex-basis: 100%; margin: 0 0 0 5rem; font: var(--fs-sm)/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.trace-detail { flex-basis: 100%; margin: 0 0 0 5rem; font: var(--fs-caption)/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 40rem) { .trace-detail { margin-left: 0; } }
 
 /* Short fades and slides only; none at all when the reader asks for less motion */
