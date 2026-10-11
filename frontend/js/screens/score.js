@@ -1,32 +1,21 @@
-// Score: three ways to give the app the piece (photo, file, built-in), then check the scan and confirm it.
-import { createSession, getScoreStatus } from '../api.js';
+// Change piece: a built-in piece (default; one tap, no review), a file or a photo (check the scan, then confirm). All end on Play.
+import { getScoreStatus } from '../api.js';
 import { clearBanner, reportError } from '../banner.js';
-import { clearSession, setSession, state } from '../state.js';
+import { state } from '../state.js';
 import { createBuiltinTab } from '../score/builtin_tab.js';
 import { createFileTab } from '../score/file_tab.js';
 import { createPhotoTab } from '../score/photo_tab.js';
 import { createScanPanel } from '../score/scan_panel.js';
+import { chooseAndConfirmBuiltin, openSession } from '../score/session.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
 
-const CONFIRMED_NOTICE = 'This session already has a confirmed score. Choosing another score starts a new session.';
-
-// A confirmed score is locked (409 wrong_state), so a new score needs a new session on the same instrument.
-async function openSession() {
-  if (state.score.status !== 'confirmed') return state.session_id;
-  const session = await createSession(state.instrument);
-  clearSession();
-  setSession(session.session_id, session.instrument);
-  return session.session_id;
-}
+const CONFIRMED_NOTICE = 'Choosing another piece starts a new practice session.';
+const PLAY_HASH = '#/take';
 
 export async function render(root) {
-  if (!state.session_id) {
-    window.location.hash = '#/start';
-    return;
-  }
   loadScoreStyles();
   const panel = createScanPanel({
-    onConfirmed: () => { window.location.hash = '#/calibrate'; },
+    onConfirmed: () => { window.location.hash = PLAY_HASH; },
     onRescan: () => selectTab('photo'),
     onChooseFile: () => selectTab('file'),
   });
@@ -40,10 +29,16 @@ export async function render(root) {
     await panel.show(answer, source);
   }
 
+  async function chooseBuiltin(pieceId) {
+    await chooseAndConfirmBuiltin(await openSession(), pieceId);
+    clearBanner();
+    window.location.hash = PLAY_HASH;
+  }
+
   const tabs = [
-    { id: 'photo', label: 'Photo', body: createPhotoTab({ submit }) },
+    { id: 'builtin', label: 'Built-in', body: createBuiltinTab({ choose: chooseBuiltin }) },
     { id: 'file', label: 'File', body: createFileTab({ submit }) },
-    { id: 'builtin', label: 'Built-in', body: createBuiltinTab({ submit }) },
+    { id: 'photo', label: 'Photo', body: createPhotoTab({ submit }) },
   ];
   const tabButtons = tabs.map((tab) => {
     const node = button(tab.label, () => selectTab(tab.id), 'tab');
@@ -58,20 +53,22 @@ export async function render(root) {
     tabs.forEach((tab) => { tab.body.hidden = tab.id !== id; });
   }
 
-  root.append(el('h1', { text: 'Your score' }));
+  root.append(el('h1', { text: 'Change piece' }));
   if (state.score.status === 'confirmed') root.append(el('p', { text: CONFIRMED_NOTICE, className: 'muted' }));
   root.append(
     el('div', { className: 'tabs', attrs: { role: 'tablist' }, children: tabButtons }),
     ...tabs.map((tab) => tab.body),
     panel.element,
   );
-  selectTab('photo');
+  selectTab(hasScanInProgress() ? 'photo' : 'builtin');
   await showExistingScan(panel);
 }
 
 // Arriving mid-scan or with an unconfirmed scan (after a reload): pick up where it left off.
+const hasScanInProgress = () => ['scanning', 'scanned'].includes(state.score.status);
+
 async function showExistingScan(panel) {
-  if (!['scanning', 'scanned'].includes(state.score.status)) return;
+  if (!hasScanInProgress()) return;
   try {
     await panel.show(await getScoreStatus(state.session_id), 'photo');
   } catch (err) {

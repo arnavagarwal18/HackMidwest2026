@@ -88,9 +88,9 @@ nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0
 
 @media (max-width: 40rem) {
   header { position: static; flex-wrap: wrap; gap: var(--s2); padding: var(--s2) var(--s4); }
-  nav { /* a full-width strip of four tabs a row, so every tab shows with no sideways scrolling */
+  nav { /* a full-width strip of the two tabs, so every tab shows with no sideways scrolling */
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     width: calc(100% + 2 * var(--s4));
     max-width: none;
     margin: 0 calc(-1 * var(--s4));
@@ -100,7 +100,7 @@ nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0
     border-radius: 0;
     overflow: visible;
   }
-  nav a { justify-content: center; min-height: 36px; padding: 0 var(--s1); }
+  nav a { justify-content: center; min-height: 44px; padding: 0 var(--s1); }
 }
 
 main { max-width: 62rem; margin: 0 auto; padding: var(--s5) var(--s5) var(--s7); }
@@ -145,8 +145,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 /* The primary action of each screen, reached by the classes and positions the screens already have. */
 button.primary,
-.start-button,
-.builtin-list button,
 .crop-stage p:last-child > button:last-child {
   background: var(--primary);
   color: var(--primary-ink);
@@ -154,14 +152,11 @@ button.primary,
 }
 
 button.primary:hover,
-.start-button:hover,
-.builtin-list button:hover,
 .crop-stage p:last-child > button:last-child:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
 }
 
-.start-button { min-height: 52px; padding: 0 1.6rem; font-size: var(--fs-md); }
 
 /* ---------- Forms ---------- */
 input[type="number"], input[type="text"], textarea, select {

@@ -7,7 +7,7 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 
 | Path | Job |
 | --- | --- |
-| `index.html` | The single page: header nav, red/blue banner strip (`#banner`), screen mount (`#screen`). |
+| `index.html` | The single page: header nav (Play `#/take`, Progress `#/progress` only; other screens are reached in context), red/blue banner strip (`#banner`), screen mount (`#screen`). |
 | `css/app.css` | All styles. |
 | `js/router.js` | Hash router. Maps `#/start`, `#/score`, `#/calibrate`, `#/take`, `#/results/:take`, `#/exercise/:ex`, `#/progress`, `#/trace/:fb` to `js/screens/<name>.js` and calls its `render(root, params)`. |
 | `js/screens/*.js` | One module per screen, each exporting `render(root, params)`. Today they are placeholders (`placeholder.js` prints the saved response of each call the real screen will make). `chat.js` is the Instructor panel (logic in `js/chat/`: `model.js` checks and limits, `transcript.js` drawing, `panel.js` the panel); `results.js` renders it beside the results. |
@@ -17,6 +17,8 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 | `js/mock.js` | Mock mode: route table mapping method + path to `mock/*.json`. |
 | `js/state.js` | The one shared `state` object; `session_id` is also kept in localStorage. |
 | `js/resume.js` | On load, rebuilds state from `GET /sessions/{id}` and picks the start screen. |
+| `js/screens/start.js`, `js/score/session.js` | `#/start` is not a gate: with no session it creates one, picks the last-used built-in piece (`localStorage`, else the first of `GET /builtins`), confirms it and goes to `#/take`. On failure: the message, a primary "Try again" and a "Choose a piece" link (`#/score`). |
+| `js/screens/score.js`, `js/score/*` | `#/score` ("Change piece"): tabs Built-in (default; one tap chooses and confirms), File, Photo (both show the scan review and Confirm). Every confirm goes to `#/take`. |
 | `js/banner.js` | Banner helpers: `reportError`, `showNotice`, `showUnreachable`, `clearBanner`. |
 | `js/config.js` | URL switches: `?mock=1`, `?api=<origin>`. |
 | `tone.html`, `js/tone/*.js`, `css/tone.css` | The standalone tone page opened on a phone (see "Calibration screen and tone page"). |
@@ -40,7 +42,7 @@ Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. Fas
 - Fetch rejects (server not running) -> the banner above; inputs stay in memory.
 - Reload: `resume.js` reads the stored session id and `GET`s the session. Not confirmed -> `#/score`, confirmed -> `#/take`, except that a confirmed session stays on a deep link
   (`#/calibrate`, `#/results/...`, ...). In mock mode a deep link with no stored session starts the mock session `sess_mock1`.
-  `404 session_not_found` clears localStorage, goes to `#/start` and shows "Your earlier session was not found; starting fresh."
+  `404 session_not_found` clears localStorage, goes to `#/start` (which opens a new session on its own) and shows "Your earlier session was not found; starting fresh."
 
 ## Mock mode
 

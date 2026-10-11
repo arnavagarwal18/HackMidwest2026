@@ -1,30 +1,38 @@
-// Start: open a trumpet session and go to the score screen.
-import { createSession } from '../api.js';
-import { clearSession, setSession } from '../state.js';
-import { button, el, loadScoreStyles, runGuarded } from '../score/ui.js';
+// Start: not a gate. With no session it opens one on the last-used built-in piece and goes straight to Play (#/take).
+import { isRequestCancelled } from '../request_cancelled.js';
+import { startOnDefaultPiece } from '../score/session.js';
+import { button, el, loadScoreStyles } from '../score/ui.js';
 
-const INSTRUMENT = 'trumpet'; // the app is trumpet only
+const WORKING_TEXT = 'Getting your piece ready...';
 
-export function render(root) {
+export function render(root, params, isCurrent = () => true) {
   loadScoreStyles();
-  const start = button('Start (trumpet)', () => startSession([start]), 'start-button');
-  const intro = el('div', {
-    className: 'hero-text',
-    children: [
-      el('p', { text: `For ${INSTRUMENT}`, className: 'eyebrow' }),
-      el('h1', { text: 'Trumpet practice' }),
-      el('p', { text: 'Start a practice session to begin.', className: 'muted lead' }),
-      el('p', { children: [start] }),
-    ],
-  });
-  const staff = el('div', { className: 'hero-staff', attrs: { 'aria-hidden': 'true' } });
-  root.append(el('section', { className: 'hero', children: [intro, staff] }));
-}
+  const status = el('p', { className: 'start-status muted', attrs: { role: 'status' } });
+  root.append(el('section', { className: 'start', children: [status] }));
 
-async function startSession(controls) {
-  const session = await runGuarded(controls, () => createSession(INSTRUMENT));
-  if (!session) return;
-  clearSession();
-  setSession(session.session_id, session.instrument);
-  window.location.hash = '#/score';
+  async function begin() {
+    status.className = 'start-status muted';
+    status.replaceChildren(WORKING_TEXT);
+    try {
+      await startOnDefaultPiece();
+    } catch (err) {
+      if (isRequestCancelled(err) || !isCurrent()) return console.info('Start cancelled by navigation.');
+      console.error('Starting a session failed:', err);
+      return showFailure(err);
+    }
+    if (isCurrent()) window.location.hash = '#/take';
+  }
+
+  function showFailure(err) {
+    const message = err && err.message ? err.message : 'Something went wrong while getting your piece ready.';
+    const retry = button('Try again', begin, 'primary');
+    const choose = el('a', { text: 'Choose a piece', attrs: { href: '#/score' } });
+    status.className = 'start-status';
+    status.replaceChildren(
+      el('span', { text: message, className: 'scan-error' }),
+      el('span', { className: 'start-actions', children: [retry, choose] }),
+    );
+  }
+
+  return begin();
 }
