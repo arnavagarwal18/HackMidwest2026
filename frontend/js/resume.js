@@ -2,6 +2,7 @@
 import { getCalibration, getSession } from './api.js';
 import { MOCK_MODE } from './config.js';
 import { matchRoute } from './router.js';
+import { DEFAULT_PERSONA } from './persona/model.js';
 import { clearSession, loadStoredSessionId, setSession, state } from './state.js';
 
 const SESSION_GONE_NOTICE = 'Your earlier session was not found; starting fresh.';
@@ -26,6 +27,7 @@ export async function resumeSession(currentHash) {
     const session = await getSession(sessionId);
     setSession(session.session_id, session.instrument);
     state.score.status = session.score_status;
+    state.persona = session.persona ?? DEFAULT_PERSONA; // a session from before coach styles has none
     if (session.has_calibration) state.calibration = (await getCalibration(sessionId)).profile;
     const confirmed = session.score_status === 'confirmed';
     return { hash: confirmed ? (isDeepLink(currentHash) ? currentHash : '#/take') : '#/score', notice: null, error: null };

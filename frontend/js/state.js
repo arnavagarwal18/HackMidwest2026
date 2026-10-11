@@ -1,6 +1,7 @@
 // The one shared state object. Everything except session_id is lost on reload;
 // session_id is also kept in localStorage so resume.js can rebuild the rest from the back end.
 import { MOCK_MODE } from './config.js';
+import { DEFAULT_PERSONA } from './persona/model.js';
 
 // Mock mode keeps its own key so a walk-through never overwrites a real session.
 const SESSION_KEY = MOCK_MODE ? 'practice_coach_session_id_mock' : 'practice_coach_session_id';
@@ -12,6 +13,8 @@ function freshState() {
     session_id: null,
     instrument: null,
     score: { status: 'none', bars: null, tempo_bpm: null, time_signature: null },
+    persona: DEFAULT_PERSONA, // the coach style of the session; a session without one is 'standard'
+    personas: null, // GET /personas, cached once read (null: not read yet, or unavailable)
     calibration: null,
     take_setup: {
       bar_from: null,

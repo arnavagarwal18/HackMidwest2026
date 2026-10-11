@@ -27,6 +27,7 @@ export function renderFailureList(container, failures, onRetry) {
     label.textContent = `${failure.asked}: ${failure.text}`;
     const retry = document.createElement('button');
     retry.type = 'button';
+    retry.className = 'btn btn-secondary btn-sm';
     retry.textContent = 'Retry';
     retry.setAttribute('aria-label', `Retry ${failure.asked}`);
     retry.addEventListener('click', () => onRetry(failure.index));
@@ -63,6 +64,7 @@ export function renderSendRetry(container, onTryAgain) {
   note.textContent = 'Your recordings are kept, so there is no need to record again.';
   const tryAgain = document.createElement('button');
   tryAgain.type = 'button';
+  tryAgain.className = 'btn btn-primary primary';
   tryAgain.textContent = 'Try again';
   tryAgain.addEventListener('click', () => onTryAgain());
   container.replaceChildren(note, tryAgain);

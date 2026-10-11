@@ -2,6 +2,9 @@
 // See "Take setup" in frontend/README.md. The pieces live in js/take/.
 import { checkCamera, getScore } from '../api.js';
 import { clearBanner, reportError, showNotice } from '../banner.js';
+import { savePersona } from '../persona/change.js';
+import { loadPersonas } from '../persona/load.js';
+import { createPersonaPicker } from '../persona/picker.js';
 import { rememberCamera, rememberTempo, setupWithPrefs } from '../play/prefs.js';
 import { getAudioContext, openStream, recordTake, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { state } from '../state.js';
@@ -63,6 +66,9 @@ export async function render(root, _params, isCurrent = () => true) {
   const form = createTakeForm({
     setup: initialSetup(score, setupWithPrefs(state.take_setup)), bars: score.bars, onKindChange: switchKind, onTempoChange: rememberTempo,
   });
+  const pickerSlot = el('div', { className: 'persona-slot' }); // filled once the personas are read; the screen never waits for them
+  let picker = null;
+  let inputsLocked = false;
   const camera = createCameraPanel({ instrument: state.instrument, check: (jpeg, view) => checkCamera(state.session_id, jpeg, view) });
   const problem = el('div', { className: 'take-problem' });
   const status = el('p', { className: 'muted', attrs: { role: 'status' } });
@@ -84,7 +90,9 @@ export async function render(root, _params, isCurrent = () => true) {
       sendAgainButton.hidden = discardButton.hidden = mode !== 'unsent';
     }
     controls.forEach((control) => { control.disabled = mode === 'sending' || (control === fileInput && mode !== 'idle'); });
-    form.lock(mode === 'recording' || mode === 'sending');
+    inputsLocked = mode === 'recording' || mode === 'sending';
+    picker?.lock(inputsLocked);
+    form.lock(inputsLocked);
   }
 
   function readSetup() {
@@ -92,6 +100,21 @@ export async function render(root, _params, isCurrent = () => true) {
     const message = validateSetup(setup, score.bars);
     if (message) reportError(new Error(message));
     return message ? null : setup;
+  }
+
+  // The coach style picker, when the personas can be read; without them the screen is as it was.
+  async function mountPicker() {
+    const personas = await loadPersonas();
+    if (!personas || disposed || !isCurrent()) return;
+    try {
+      picker = createPersonaPicker({
+        personas, sessionId: state.session_id, writtenTempoBpm: score.tempo_bpm, savePersona, onTempo: form.setTempo, reportError,
+      });
+      pickerSlot.append(picker.element);
+      picker.lock(inputsLocked);
+    } catch (err) {
+      console.error('The coach style picker could not be shown.', err);
+    }
   }
 
   async function openFor(kind) {
@@ -294,6 +317,7 @@ export async function render(root, _params, isCurrent = () => true) {
       el('h1', { text: score.title || 'Play' }),
       el('a', { text: 'Change piece', className: 'chip', attrs: { href: '#/score' } }),
     ] }),
+    pickerSlot,
     form.element,
     camera.element,
     problem,
@@ -306,5 +330,6 @@ export async function render(root, _params, isCurrent = () => true) {
     el('p', { children: [el('a', { text: 'Fine-tune for your room and microphone (optional)', attrs: { href: '#/calibrate' } })] }),
   );
   setMode('idle');
+  mountPicker();
   if (form.read().kind === 'video') await openFor('video');
 }

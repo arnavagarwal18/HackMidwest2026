@@ -1,13 +1,17 @@
 // Session and piece steps shared by the Start screen (automatic) and the Score screen ("Change piece").
 import { chooseBuiltinScore, confirmScore, createSession, getBuiltins } from '../api.js';
+import { DEFAULT_PERSONA } from '../persona/model.js';
 import { clearSession, loadLastPieceId, loadSessionPieceId, rememberPieceId, rememberSessionPiece, setSession, state } from '../state.js';
 
 export const INSTRUMENT = 'trumpet'; // the app is trumpet only
 
-export async function startFreshSession(instrument = state.instrument ?? INSTRUMENT) {
-  const session = await createSession(instrument);
+// A new session keeps the coach style the learner chose (nothing is sent for the default).
+export async function startFreshSession(instrument = state.instrument ?? INSTRUMENT, persona = state.persona) {
+  const chosen = persona !== DEFAULT_PERSONA ? persona : undefined;
+  const session = await createSession(instrument, chosen);
   clearSession();
   setSession(session.session_id, session.instrument);
+  state.persona = session.persona ?? persona ?? DEFAULT_PERSONA;
   return session.session_id;
 }
 

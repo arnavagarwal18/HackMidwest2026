@@ -4,7 +4,7 @@
 // err.message in the red banner (reportError in banner.js) and keeps the learner's inputs.
 // If the server is unreachable the call waits for the learner to press Retry in the banner.
 import { API_BASE, MOCK_MODE } from './config.js';
-import { get, postForm, postJson } from './http.js';
+import { get, patchJson, postForm, postJson } from './http.js';
 import { MOCK_MEDIA_URL } from './mock.js';
 
 import { ApiError } from './http.js';
@@ -19,8 +19,12 @@ const sess = (id) => `/sessions/${encodeURIComponent(id)}`;
 const withInstrument = (path, instrument) => (instrument ? `${path}?instrument=${encodeURIComponent(instrument)}` : path);
 
 // ---- Session and score (LLD-1) ----
-export const createSession = (instrument) => postJson('/sessions', { instrument });
+export const createSession = (instrument, persona) => postJson('/sessions', persona ? { instrument, persona } : { instrument });
 export const getSession = (id) => get(sess(id));
+// ---- Coach style (LLD-1 change 6) ----
+export const getPersonas = () => get('/personas'); // { personas: [{ id, label, hint, tempo }], default }
+export const patchSession = (id, changes) => patchJson(sess(id), changes); // changes: { persona }
+
 export const getBuiltins = (instrument) => get(withInstrument('/builtins', instrument));
 export const uploadScorePhoto = (id, file) => postForm(`${sess(id)}/score/photo`, { file });
 export const getScoreStatus = (id) => get(`${sess(id)}/score/status`); // poll while score_status is 'scanning'
@@ -51,6 +55,8 @@ export const getTracks = (id, take) => get(`${sess(id)}/takes/${encodeURICompone
 export const checkCamera = (id, jpeg, view) => postForm(`${sess(id)}/camera-check`, { file: jpeg }, view ? { view } : {});
 
 // ---- Feedback, trace and chat (LLD-5) ----
+// Builds the take's feedback again (with the session's current persona) and answers with the new record and plan; 409 wrong_state while one is running.
+export const rerunFeedback = (id, take) => postJson(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
 export const getFeedback = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
 export const getTrace = (id, feedbackId) => get(`${sess(id)}/feedback/${encodeURIComponent(feedbackId)}/trace`);
 export const getChat = (id) => get(`${sess(id)}/chat`);
