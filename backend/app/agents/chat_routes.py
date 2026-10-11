@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app import store
 from app.agents.chat_run import answer
 from app.agents.chat_store import append_turn, load_turns, new_turn
+from app.agents.personas import get_persona
 from app.agents.trace import Trace
 from app.errors import AppError
 
@@ -67,7 +68,8 @@ def post_chat(session_id: str, body: ChatRequest) -> dict:
         user_turn = new_turn(turns, "user", message, take_id)
         append_turn(session_id, user_turn)
         reply = answer(session_id, take, turns, message, trace)
-        instructor_turn = new_turn([*turns, user_turn], "instructor", reply.text, take_id, mode=reply.mode,
+        persona = get_persona(store.get(session_id).persona).id  # the style the reply was written in
+        instructor_turn = new_turn([*turns, user_turn], "instructor", reply.text, take_id, mode=reply.mode, persona=persona,
                                    fallback_reason=reply.fallback_reason, sentences=reply.sentences, dropped=reply.dropped,
                                    duration_ms=round((time.monotonic() - started) * 1000))
         append_turn(session_id, instructor_turn)
