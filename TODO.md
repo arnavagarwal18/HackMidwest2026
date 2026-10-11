@@ -5,7 +5,7 @@ The one shared checklist for all 5 of us. Each person's Yui works from this file
 State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91 passed, 3 skipped, 0 failed.
 
 ## Xavier (ThinkPad X1 Carbon, Intel Core Ultra 7, 32 GB): integration
-- [ ] Merge the rushing and missed-notes fix (LLD-3 r4-B, branch task/TASK-41) to main
+- [x] Merge the rushing and missed-notes fix (LLD-3 r4-B, branch task/TASK-41) to main
 - [ ] Re-run the key search, check the feedback updates, and record it in testdata/RESULTS_integration.md (LLD-3 r4-D)
 - [ ] Confirm Jameson's one-line fault descriptions (LLD-4 comment 01a128f9)
 - [ ] Final full test run on main after everyone's merges
