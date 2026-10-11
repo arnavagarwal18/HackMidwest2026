@@ -25,7 +25,7 @@ const RECORD_A_REP = async (page) => {
 };
 const SCREENS = [
   { name: 'start', hash: '#/start', ready: `location.hash === '#/start' && document.querySelector('main').children.length > 0`, session: false },
-  { name: 'score', hash: '#/take', ready: `document.querySelector('.piece-line') !== null`, session: true, then: { run: `location.hash = '#/score'`, ready: `document.querySelectorAll('.piece-card').length > 0` } },
+  { name: 'score', hash: '#/take', ready: `document.querySelector('.take-form') !== null`, session: true, then: { run: `location.hash = '#/score'`, ready: `document.querySelectorAll('.piece-card').length > 0` } },
   { name: 'score-scan', hash: '#/score', ready: `document.querySelectorAll('.doubtful-card').length > 0`, session: 'sess_unconfirmed' },
   { name: 'calibrate', hash: '#/calibrate', ready: `document.querySelector('.calibrate-stepper') !== null && document.querySelector('.calibrate-qr svg') !== null`, session: true },
   { name: 'take', hash: '#/take', ready: `document.querySelector('main').children.length > 0`, session: true },
