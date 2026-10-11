@@ -8,7 +8,7 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [x] Merge the rushing and missed-notes fix (LLD-3 r4-B, branch task/TASK-41) to main
 - [x] Re-run the key search, check the feedback updates, and record it in testdata/RESULTS_integration.md (LLD-3 r4-D)
 - [ ] Confirm Jameson's one-line fault descriptions (LLD-4 comment 01a128f9)
-- [ ] Final full test run on main after everyone's merges
+- [x] Final full test run on main after everyone's merges (done 2026-10-11, see testdata/RESULTS_mvp.md)
 - [ ] Final end-to-end sign-off
 - [ ] Optional clips: good posture that then goes bad; bad posture from the side; front-view good/bad pair; puffed cheeks close up; take 5 side view with hips in frame
 - [x] Fault videos, flags with the new limits (once TEAM-10's testdata/youtube/fault_candidates_reviewed.csv is on main; no existing script batch-runs the flags, so first add a small backend/scripts/ one that does what backend/tests/test_form_real_video.py does with `add_form_take` and `form.run`, trumpet only): from the repo root fetch the 20 videos with `backend/.venv/bin/python backend/scripts/fetch_youtube.py --list testdata/youtube/fault_candidates.csv` (Windows: `backend/.venv/Scripts/python`; one is unavailable, FSsO_-LrqE4, so exit code 1 is expected; the videos stay git-ignored under testdata/youtube/fault_videos/), run it over them with main at b811213 or later, and compare each video's flags with fault_candidates_reviewed.csv. Done: a per-video match table appended to testdata/RESULTS_form_runs.md and committed, and a summary posted on LLD-4 comment 01a128f9 (done 2026-10-11, see testdata/RESULTS_form_runs.md; LLD-4 summary still to post)
