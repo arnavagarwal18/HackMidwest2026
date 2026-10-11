@@ -4,25 +4,26 @@ import { element } from '../dom.js';
 import { fetchResultsOnce, stageLabel, STAGES, unwrapFeedback } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
 import { refreshAfterKeyChange } from '../results/rerun.js';
+import { createCoachSlot } from '../results/coach_slot.js';
 import { mountOverlay } from '../results/overlay.js';
 import { renderRequestFailed, renderTooLong, renderWorking } from '../results/status.js';
 import { renderDone, renderFailed } from '../results/view.js';
 import { render as renderChat } from './chat.js';
 
 // Results for one take: poll the analysis, then show the hero and its rows (see results/view.js).
-// The coach sheet is mounted into #coach-root; it stays closed until the 'Ask coach' button (or anything else) fires 'coach:open'.
-// From 901px wide the results and #coach-root sit side by side (.results-layout in css/results.css); below that #coach-root follows the results.
+// The coach panel is mounted into #coach-root only while the results are on screen (results/coach_slot.js): not while the take is being
+// processed, and not after a failed analysis or a failed request. On narrow screens it stays closed until the 'Ask coach' button (or anything
+// else) fires 'coach:open'. From 901px wide the results and #coach-root sit side by side (.results-layout in css/results.css); below that #coach-root follows the results.
 export async function render(root, params) {
   const { take } = params;
   const sessionId = state.session_id ?? 'no-session';
   state.current_take_id = take;
   const view = element('section', '', 'results');
-  const coachRoot = element('div', '', '', { id: 'coach-root' });
   const layout = element('div', '', 'results-layout');
-  layout.append(view, coachRoot);
+  layout.append(view);
   root.append(layout);
   let shown = null; // the analysis, feedback and plan on screen, so a new coach style can redraw them with its feedback
-  const chat = renderChat(coachRoot, { take, onFeedback: redrawWithFeedback });
+  const coachSlot = createCoachSlot(layout, (coachRoot) => renderChat(coachRoot, { take, onFeedback: redrawWithFeedback }));
 
   // The coach style changed and the feedback was built again: draw the results again with it (nothing to redraw before they are shown).
   function redrawWithFeedback(body) {
@@ -36,17 +37,18 @@ export async function render(root, params) {
     overlay?.destroy();
     overlay = null;
     if (result.analysis.status === 'failed') {
-      chat.setResults({});
+      coachSlot.hide();
       return renderFailed(view, result.analysis);
     }
     const rendered = renderDone(view, result, { sessionId, take, rerun: restartAfterTransposition });
     overlay = rendered?.player ? mountOverlay(rendered, { sessionId, take }) : null; // a can't-tell take has no player
     overlay?.onAnalysis(result.analysis);
-    chat.setResults({ jumpContext: rendered ? { index: rendered.index, jumper: rendered.jumper } : null, feedback: result.feedback });
+    coachSlot.show().setResults({ jumpContext: rendered ? { index: rendered.index, jumper: rendered.jumper } : null, feedback: result.feedback });
   };
 
   function failRequest(err) {
     if (!isActive()) return;
+    coachSlot.hide();
     reportError(err);
     renderRequestFailed(view, checkAgain);
   }
@@ -67,6 +69,7 @@ export async function render(root, params) {
     const previousFeedbackId = state.current_feedback_id;
     const setTo = `Transposition set to ${semitones > 0 ? '+' : ''}${semitones}`;
     showNotice(`${setTo}; checking your take again.`);
+    coachSlot.hide(); // the take is being checked again
     renderWorking(view, STAGES.processing, false);
     try {
       const refreshed = await refreshAfterKeyChange({ sessionId, take, semitones, previousFeedbackId, isActive });
@@ -75,6 +78,7 @@ export async function render(root, params) {
         showNotice(`${setTo}; your take was checked again.`); // the 'checking' notice must not outlive the check
         show(refreshed.result);
       } else if (refreshed.outcome === 'timeout') {
+        coachSlot.hide();
         renderTooLong(view, STAGES.transcribed, checkAgain);
       }
     } catch (err) {

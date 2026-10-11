@@ -123,6 +123,15 @@ await test('from 901px the coach gets a 360px column only while a docked panel s
   assert.deepEqual(await widths(), [layoutWidth, layoutWidth], 'a collapsed panel gives the width back');
 });
 
+await test('the coach panel is not on the page while the take is processed, and appears with the results', async (open) => {
+  const page = await open('take_1', 'poll_ms=400');
+  await page.waitFor(`document.querySelector('.wait-steps')`);
+  assert.equal(await count(page, '#coach-root, .coach-sheet'), 0, 'no coach panel while processing');
+  await page.waitFor(`document.querySelector('.hero')`);
+  assert.equal(await count(page, '#coach-root .coach-sheet'), 1, 'the coach panel is mounted with the results');
+  assert.equal(await count(page, '#coach-root'), 1);
+});
+
 await test('Ask coach opens the coach sheet through the coach:open event, and Try again goes to the take screen', async (open) => {
   const page = await open('take_1');
   await page.waitFor(`document.getElementById('ask-coach')`);
@@ -232,6 +241,7 @@ await test('a failed analysis shows the back end message and Record again', asyn
   await page.waitFor(`document.querySelector('.stopped-message')`);
   assert.deepEqual(await text(page, '.stopped-message'), ['There was no sound in that recording. Check the microphone and record again.']);
   assert.equal(await count(page, 'select'), 0);
+  assert.equal(await count(page, '#coach-root, .coach-sheet'), 0, 'no coach panel after a failed analysis');
   await click(page, 'button.record-again');
   await page.waitFor(`location.hash === '#/take'`);
 });
@@ -272,6 +282,7 @@ await test('a mock analysis that never finishes shows Still working, then stops 
   await page.waitFor(`document.querySelector('.too-long')`, 8000);
   assert.deepEqual(await text(page, '.too-long .stage'), ['This is taking too long']);
   assert.deepEqual(await text(page, '.too-long button'), ['Try again', 'Record again']);
+  assert.equal(await count(page, '#coach-root, .coach-sheet'), 0, 'no coach panel when processing gave up');
   const polled = await analysisRequests(page);
   await new Promise((resolve) => setTimeout(resolve, 1000));
   assert.equal(await analysisRequests(page), polled, 'no polling after the limit');

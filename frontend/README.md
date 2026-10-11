@@ -153,8 +153,7 @@ stops it when done.
 
 The coach is a bottom sheet (centred, at most 40rem, at every width): closed until `document.dispatchEvent(new CustomEvent('coach:open'))`,
 opens at half height and expands to full with the grabber (tap or drag) or closes with Close, Escape or the backdrop. It is an
-`aria-modal` dialog: focus moves in on open and back on close, and Tab stays inside. `results.js` mounts it into its root (which loads
-`GET /sessions/{id}/chat`) and calls `chat.setResults({ jumpContext, feedback })` when the take's results are on screen: the first feedback
+`aria-modal` dialog: focus moves in on open and back on close, and Tab stays inside. `results.js` mounts it (via `results/coach_slot.js`) only when the take's results are on screen, never while the take is processed or after a failed analysis or request (so `GET /sessions/{id}/chat` is not loaded before then), and calls `chat.setResults({ jumpContext, feedback })` straight away: the first feedback
 sentence is the coach's opening line (the page already shows the rest), and three chips ('Fix my pitch', 'Practice plan', 'Why was bar N off?'
 for the first problem's bar) send a question when tapped; they go once a question has been asked. A sentence's text is its bar reference:
 tapping it closes the sheet and jumps (turns about another take, or a take with no results, show plain text). The header holds the
