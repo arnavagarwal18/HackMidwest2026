@@ -139,3 +139,50 @@ def test_fewer_than_three_anchors_leaves_pass_one_standing():
     played = [{"midi": 60, "onset_s": 1.0}, {"midi": 99, "onset_s": 1.5}, {"midi": 62, "onset_s": 2.0}]
 
     assert build_time_map(expected, played, [(i, i) for i in range(3)]) is None
+
+
+def test_anchor_off_the_line_of_its_neighbours_by_over_half_a_beat_is_dropped():
+    expected = [expected_note(beat, 60 + beat) for beat in range(8)]
+    onsets = [1.0 + 0.5 * beat for beat in range(8)]
+    onsets[4] += 0.3  # 0.6 beat late: pass 1 paired the wrong copy of a repeated note
+    played = [{"midi": 60 + beat, "onset_s": onset_s} for beat, onset_s in enumerate(onsets)]
+
+    time_map = build_time_map(expected, played, [(i, i) for i in range(8)])
+
+    assert [beat for beat, _ in time_map.anchors] == [0, 1, 2, 3, 5, 6, 7]
+
+
+def test_anchor_off_by_less_than_half_a_beat_is_kept():
+    expected = [expected_note(beat, 60 + beat) for beat in range(8)]
+    onsets = [1.0 + 0.5 * beat for beat in range(8)]
+    onsets[4] += 0.2  # 0.4 beat late: ordinary playing
+    played = [{"midi": 60 + beat, "onset_s": onset_s} for beat, onset_s in enumerate(onsets)]
+
+    time_map = build_time_map(expected, played, [(i, i) for i in range(8)])
+
+    assert len(time_map.anchors) == 8
+
+
+def test_a_steady_seven_percent_rush_over_sixteen_bars_keeps_every_anchor():
+    midis = long_scale_midis()
+    total_beats = len(midis)
+    # the beat gets shorter in a straight line, ending 7% faster than it began
+    seconds, onset_s = [], 1.0
+    for beat in range(total_beats):
+        seconds.append(onset_s)
+        onset_s += 0.5 / (1 + 0.07 * beat / (total_beats - 1))
+    played = [{"midi": midi, "onset_s": at} for midi, at in zip(midis, seconds)]
+    expected = [expected_note(beat, midi) for beat, midi in enumerate(midis)]
+
+    time_map = build_time_map(expected, played, [(i, i) for i in range(total_beats)])
+
+    assert len(time_map.anchors) == total_beats
+
+
+def test_a_steady_seven_percent_rush_is_all_ok_and_not_a_rushing_problem():
+    played = tempo_by_bar_played(long_scale_midis(), lambda bar: 0.5 / (1 + 0.07 * (bar - 1) / 15))
+
+    diagnosis = timed(played)
+
+    assert [n["status"] for n in diagnosis["notes"]].count("ok") == 64
+    assert not [p for p in rank("t1", diagnosis, [])["problems"] if p["kind"] in ("rushing", "dragging")]

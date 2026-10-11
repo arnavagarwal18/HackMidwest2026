@@ -126,28 +126,38 @@ def _same_midi_anchors(expected: list[ExpectedNote], played: list[dict], pass1: 
     return anchors
 
 
-def _drop_off_beat_anchors(anchors: list[tuple[float, float]], fit: Fit) -> list[tuple[float, float]]:
-    """Drop an anchor whose distance from the least-squares line (in beats) differs by more than
-    ANCHOR_MAX_OFF_BEATS from its neighbours' median distance: pass 1 paired a repeated note with the wrong copy
-    (or a stray note), and the map would bend through that pair. A steady speed-up changes the distance only slowly."""
-    offsets = [(time - (fit.offset_s + beat * fit.sec_per_beat)) / fit.sec_per_beat for beat, time in anchors]
+def _off_line(index: int, anchors: list[tuple[float, float]], sec_per_beat: float) -> bool:
+    """True when the anchor's onset is more than ANCHOR_MAX_OFF_BEATS from the line through its neighbours
+    (up to ANCHOR_NEIGHBOURS on each side, itself excluded); False with too few neighbours to fit a line."""
     reach = config.ANCHOR_NEIGHBOURS
-    kept = []
-    for index, anchor in enumerate(anchors):
-        neighbours = offsets[max(0, index - reach):index] + offsets[index + 1:index + 1 + reach]
-        if abs(offsets[index] - median(neighbours)) <= config.ANCHOR_MAX_OFF_BEATS:
-            kept.append(anchor)
-    return kept
+    neighbours = anchors[max(0, index - reach):index] + anchors[index + 1:index + 1 + reach]
+    line = fit_line(neighbours, min_points=2)
+    if line is None:
+        return False
+    beat, onset_s = anchors[index]
+    return abs(onset_s - (line.offset_s + beat * line.sec_per_beat)) > config.ANCHOR_MAX_OFF_BEATS * sec_per_beat
+
+
+def _drop_off_line_anchors(anchors: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Drop anchors that sit off the line their neighbours make (pass 1 paired a repeated note with the wrong copy,
+    and the map would bend through that pair); a second round catches neighbours whose fit the first drop changed.
+    A steady speed-up stays on its neighbours' line, so it keeps its anchors."""
+    for _ in range(config.ANCHOR_ROUNDS):
+        overall = fit_line(anchors)
+        if overall is None:
+            return anchors
+        kept = [a for i, a in enumerate(anchors) if not _off_line(i, anchors, overall.sec_per_beat)]
+        if len(kept) == len(anchors):
+            break
+        anchors = kept
+    return anchors
 
 
 def build_time_map(expected: list[ExpectedNote], played: list[dict], pass1: list[Pair]) -> TimeMap | None:
     """The step 3 time map from pass 1's pairs; None (pass 1 stands) with fewer than MIN_FIT_PAIRS anchors or no
     rising line through them."""
     anchors = _same_midi_anchors(expected, played, pass1)
-    first_fit = fit_line(anchors)
-    if first_fit is None:
-        return None
-    anchors = _drop_off_beat_anchors(anchors, first_fit)
+    anchors = _drop_off_line_anchors(anchors)
     fit = fit_line(anchors)
     return None if fit is None else TimeMap(anchors, fit)
 

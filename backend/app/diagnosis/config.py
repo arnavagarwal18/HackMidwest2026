@@ -11,10 +11,12 @@ PASS2_WINDOW_BEATS = 1.0
 # Pass 2 takes off this x min(1, distance in beats from the time map's time) from every pair's score, so the
 # closer pairing wins a tie.
 PASS2_TIME_PENALTY = 0.5
-# An anchor whose distance from the least-squares line differs by more than this many beats from the median of its
-# ANCHOR_NEIGHBOURS neighbours on each side is dropped (pass 1 paired a repeated note with the wrong copy).
+# An anchor whose played onset is more than this many beats from the line fitted through its neighbouring anchors
+# (up to ANCHOR_NEIGHBOURS on each side) is dropped (pass 1 paired a repeated note with the wrong copy); the check
+# runs ANCHOR_ROUNDS times, as a drop changes its neighbours' fits.
 ANCHOR_MAX_OFF_BEATS = 0.5
-ANCHOR_NEIGHBOURS = 2
+ANCHOR_NEIGHBOURS = 3
+ANCHOR_ROUNDS = 2
 # The time map (and the least-squares line onset_s = offset_s + beat * sec_per_beat) needs this many anchors.
 MIN_FIT_PAIRS = 3
 
