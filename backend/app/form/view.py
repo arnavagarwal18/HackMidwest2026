@@ -22,17 +22,27 @@ def _view_ratio(pose) -> float | None:
     return width / height if height > 0 else None
 
 
+def view_ratio_of(frame: dict, aspect: float = 1.0) -> float | None:
+    """The view ratio of one frame's pose (None when it has no pose or no height). `aspect` is width / height of the image."""
+    return _view_ratio(_scale_x(frame.get("pose"), aspect))
+
+
+def view_for_ratio(ratio: float | None) -> str:
+    """'side' when the ratio is under VIEW_SIDE_MAX, else 'front' (also when there is no ratio)."""
+    return SIDE if ratio is not None and ratio < config.VIEW_SIDE_MAX else FRONT
+
+
 def detect_view(frames: list[dict], aspect: float = 1.0) -> tuple[str, float | None]:
     """(view, view_ratio): the median ratio over the tracked frames, 'side' when under VIEW_SIDE_MAX.
 
     With fewer than VIEW_MIN_FRAMES usable frames the view is 'front' and the ratio None. `aspect` is width / height of the video.
     """
-    ratios = [r for r in (_view_ratio(_scale_x(f.get("pose"), aspect)) for f in frames if f.get("pose")) if r is not None]
+    ratios = [r for r in (view_ratio_of(f, aspect) for f in frames if f.get("pose")) if r is not None]
     if len(ratios) < config.VIEW_MIN_FRAMES:
         logger.warning("camera view: only %d usable frames, assuming a front view", len(ratios))
         return FRONT, None
     ratio = median(ratios)
-    return (SIDE if ratio < config.VIEW_SIDE_MAX else FRONT), round(ratio, config.COORDINATE_DECIMALS)
+    return view_for_ratio(ratio), round(ratio, config.COORDINATE_DECIMALS)
 
 
 def near_side(frames: list[dict]) -> str:

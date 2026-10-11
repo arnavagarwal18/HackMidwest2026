@@ -41,12 +41,13 @@ def error_of(response):
 
 def test_a_good_photo_is_ok_for_the_trumpet(client):
     response = check(client, new_session(client), jpeg(GOOD_PHOTO))
-    assert (response.status_code, response.json()) == (200, {"ok": True, "missing": [], "too_small": False, "too_dark": False})
+    assert (response.status_code, response.json()) == (200, {"ok": True, "missing": [], "too_small": False, "too_dark": False,
+                                                              "view": "front", "near_side": None})
 
 
 def test_the_whole_fixture_photo_shows_every_point_but_is_too_small(client):
     body = check(client, new_session(client), PHOTO.read_bytes()).json()
-    assert body == {"ok": False, "missing": [], "too_small": True, "too_dark": False}
+    assert body == {"ok": False, "missing": [], "too_small": True, "too_dark": False, "view": "front", "near_side": None}
 
 
 def test_a_photo_cropped_above_the_elbows_lists_the_elbows_and_hips(client):

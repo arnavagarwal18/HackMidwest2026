@@ -4,7 +4,7 @@ import logging
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, File, Request, Response, UploadFile
+from fastapi import APIRouter, File, Form, Request, Response, UploadFile
 
 from .. import store
 from ..errors import AppError, storage_error
@@ -16,6 +16,7 @@ from .track import tracks_path
 
 logger = logging.getLogger("app.form.routes")
 router = APIRouter()
+VIEW_CHOICES = "^(front|left|right)$"  # camera-check `view`: front, or the side of the learner facing the camera
 
 
 def _accepts_gzip(request: Request) -> bool:
@@ -55,11 +56,11 @@ def _decode_frame(upload: UploadFile) -> np.ndarray:
 
 
 @router.post("/sessions/{session_id}/camera-check")
-def camera_check(session_id: str, file: UploadFile = File(...)) -> dict:
+def camera_check(session_id: str, file: UploadFile = File(...), view: str | None = Form(None, pattern=VIEW_CHOICES)) -> dict:
     session = store.get(session_id)
     frame = _decode_frame(file)
     try:
-        return check_camera_frame(frame, session.instrument)
+        return check_camera_frame(frame, session.instrument, view)
     except FormUnavailable as exc:
         logger.error("Camera check unavailable for session %s: %s", session_id, exc)
         raise AppError(503, exc.code, exc.message)
