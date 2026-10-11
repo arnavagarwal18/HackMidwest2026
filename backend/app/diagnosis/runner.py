@@ -10,7 +10,7 @@ from .rank import rank
 from .saving import save_diagnosis
 from .take_data import form_flags
 from .timing import add_timing, save_clean_tempo
-from .transposition import align_with_transposition
+from .transposition import align_with_transposition, remember_transposition
 
 logger = logging.getLogger("app.diagnosis")
 
@@ -48,9 +48,8 @@ def _analyse(session_id: str, take: dict) -> dict:
     timed = add_timing(aligned, played, take_input)
     diagnosis = {"transposition": transposition, **{key: timed[key] for key in DIAGNOSIS_KEYS}}
     diagnosis.update(rank(take["take_id"], diagnosis, form_flags(take)))
+    remember_transposition(session_id, session, transposition, aligned)
     if not diagnosis["cant_tell"]:
-        if session.transposition is None:
-            store.update(session_id, "transposition", transposition)
         save_clean_tempo(session_id, take_input, diagnosis)
     return diagnosis
 

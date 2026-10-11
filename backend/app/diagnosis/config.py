@@ -28,6 +28,7 @@ OUTSIDE_MARGIN_BEATS = 1.0
 # "Can't tell" verdicts
 MIN_EXPECTED_NOTES = 3
 MIN_ALIGNMENT_QUALITY = 0.4
+MAX_ALIGNMENT_QUALITY = 1.0
 MIN_PAIRED_FRACTION = 0.5
 
 CANT_TELL_TOO_SHORT = "too_short"
@@ -62,7 +63,6 @@ CLEAN_FALLBACK_FRACTION = 0.7
 
 # Transposition (step 2)
 INSTRUMENT_DEFAULT_TRANSPOSITION = {"trumpet": -2, "violin": 0, "piano": 0}
-DETECTION_CANDIDATES = (0, -2, -3, -7, -9)
 DETECTION_MIN_GAIN = 0.15
 # Quality gains are sums of fractions; this absorbs float noise so an exact +0.15 counts.
 DETECTION_EPSILON = 1e-9

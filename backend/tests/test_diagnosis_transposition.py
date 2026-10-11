@@ -8,6 +8,8 @@ from app import store
 from app.diagnosis import config, transposition
 from app.diagnosis.take_alignment import align_take
 from tests.diagnosis_samples import SCALE_BARS, make_scale_score, make_score, make_take, perfect_played, played_note
+from app.takes.take_store import get_take
+from tests.diagnosis_session import add_transcribed_take, make_session
 from tests.test_sessions import assert_error
 
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
@@ -105,9 +107,121 @@ def test_locked_transposition_is_reused_without_trying_candidates(monkeypatch):
     assert calls == [0]
 
 
-def test_candidates_are_deduplicated_and_start_with_base():
-    assert transposition._candidates(-2) == [-2, 0, -3, -7, -9]
-    assert transposition._candidates(5) == [5, 0, -2, -3, -7, -9]
+def test_candidates_cover_the_range_nearest_the_base_first():
+    candidates = transposition._candidates(-2)
+    assert len(candidates) == 25 and sorted(candidates) == list(range(-12, 13))
+    assert candidates[:5] == [-2, -3, -1, -4, 0]
+
+
+def test_candidates_include_a_base_outside_the_range():
+    assert transposition._candidates(14)[0] == 14
+
+
+def test_ties_go_to_the_offset_nearest_the_base(monkeypatch):
+    fake_qualities(monkeypatch, {-2: 0.2, -4: 0.8, 0: 0.8, 5: 0.8})
+    chosen, _ = transposition.detect_transposition(scale_with(), [], make_take(), DEFAULT_BASE)
+    assert chosen == {"semitones": -4, "source": "detected"}
+
+
+def test_a_base_that_cannot_be_beaten_skips_the_search(monkeypatch):
+    calls = []
+
+    def counting_align(score, played, take, semitones):
+        calls.append(semitones)
+        return {"alignment_quality": 0.9}
+
+    monkeypatch.setattr(transposition, "align_take", counting_align)
+    chosen, _ = transposition.detect_transposition(scale_with(), [], make_take(), DEFAULT_BASE)
+    assert chosen == DEFAULT_BASE and calls == [-2]
+
+
+def test_search_reaches_offsets_beyond_the_old_fixed_list():
+    played = perfect_played([m + 5 for m in SCALE_MIDIS])
+    chosen, alignment = transposition.align_with_transposition(scale_with(), played, make_take(), "trumpet", None)
+    assert chosen == {"semitones": 5, "source": "detected"}
+    assert alignment["alignment_quality"] == 1.0
+
+
+# ---- Test 7: detection through diagnosis.run ----------------------------------------------
+
+# A scale lines up partly at neighbouring offsets, so these tests use a leapy tune that doesn't.
+TUNE_BARS = [[60, 67, 62, 71], [64, 59, 69, 65], [72, 61, 66, 70], [63, 68, 58, 73]]
+TUNE_MIDIS = [midi for bar in TUNE_BARS for midi in bar]
+
+
+def trumpet_session() -> str:
+    return make_session(make_score(TUNE_BARS), instrument="trumpet")
+
+
+def diagnose(session_id: str, midis: list[int]) -> dict:
+    take_id = add_transcribed_take(session_id, perfect_played(midis))
+    app.diagnosis.run(session_id, take_id)
+    return get_take(session_id, take_id)["diagnosis"]
+
+
+def test_take_four_semitones_below_the_written_part_is_detected(sessions_root):
+    session_id = trumpet_session()
+
+    result = diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+
+    assert result["transposition"] == {"semitones": -4, "source": "detected"}
+    assert result["cant_tell"] is False
+    assert store.get(session_id).transposition == {"semitones": -4, "source": "detected"}
+
+
+def test_user_transposition_is_never_searched(sessions_root, monkeypatch):
+    session_id = trumpet_session()
+    user = {"semitones": -2, "source": "user"}
+    store.update(session_id, "transposition", user)
+    searched = []
+    monkeypatch.setattr(transposition, "detect_transposition", lambda *args: searched.append(args))
+
+    result = diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+
+    assert searched == []
+    assert result["transposition"] == user
+    assert (result["cant_tell"], result["cant_tell_reason"]) == (True, "low_match")
+    assert store.get(session_id).transposition == user
+
+
+def test_later_low_match_take_searches_again(sessions_root):
+    session_id = trumpet_session()
+    assert diagnose(session_id, [m - 2 for m in TUNE_MIDIS])["transposition"] == DEFAULT_BASE
+
+    result = diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+
+    assert result["transposition"] == {"semitones": -4, "source": "detected"}
+    assert result["cant_tell"] is False
+    assert store.get(session_id).transposition == {"semitones": -4, "source": "detected"}
+
+
+def test_later_good_take_does_not_search(sessions_root, monkeypatch):
+    session_id = trumpet_session()
+    diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+    monkeypatch.setattr(transposition, "detect_transposition", lambda *args: pytest.fail("searched"))
+
+    result = diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+
+    assert result["transposition"] == {"semitones": -4, "source": "detected"}
+
+
+def test_earlier_takes_keep_their_diagnosis_until_rerun(sessions_root):
+    session_id = trumpet_session()
+    first = add_transcribed_take(session_id, perfect_played([m - 2 for m in TUNE_MIDIS]))
+    app.diagnosis.run(session_id, first)
+    saved = get_take(session_id, first)["diagnosis"]
+    diagnose(session_id, [m - 4 for m in TUNE_MIDIS])
+
+    assert get_take(session_id, first)["diagnosis"] == saved
+
+
+def test_unmatchable_take_stays_cant_tell_and_keeps_the_session_unlocked(sessions_root):
+    session_id = trumpet_session()
+
+    result = diagnose(session_id, [30, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30, 31, 30, 31])
+
+    assert result["cant_tell"] is True
+    assert store.get(session_id).transposition is None
 
 
 # ---- Test 7: POST /transposition ----------------------------------------------------------
