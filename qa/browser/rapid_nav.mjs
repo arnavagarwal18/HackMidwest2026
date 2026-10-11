@@ -1,12 +1,12 @@
 // Cycles through every hash route quickly, three times, in one page load, then looks for errors and for timers, microphone streams and
 // audio contexts left open. A final move to #/start shows what is still open after leaving every screen.
-import { prepareStorage, sleep } from './check_screen.mjs';
+import { prepareStorage, sleep, splitExpected } from './check_screen.mjs';
 
 const CYCLES = 3;
 const STEP_MS = 120;
 const SETTLE_MS = 2500;
 
-export async function rapidNavigation({ page, probe, origin, mode, hashes, stored }) {
+export async function rapidNavigation({ page, probe, origin, mode, hashes, stored, expected = [] }) {
   await prepareStorage(page, origin, mode, stored);
   await page.goto(`${origin}/${mode === 'mock' ? '?mock=1' : ''}#/take`);
   await page.waitFor(`document.getElementById('screen').children.length > 0`);
@@ -23,6 +23,15 @@ export async function rapidNavigation({ page, probe, origin, mode, hashes, store
   await page.eval(`location.hash = '#/start'`);
   await sleep(SETTLE_MS);
   const afterStart = await probe.snapshotOpenResources(page);
-  return { name: `rapid navigation (${CYCLES} cycles of ${hashes.length} routes)`, mode, ...afterCycles.seen, hash: afterCycles.hash,
-    openResourcesAfterCycles: afterCycles.openResources, openResourcesAfterLeavingToStart: afterStart };
+  const errors = splitExpected(afterCycles.seen.consoleErrors, expected);
+  const failures = splitExpected(afterCycles.seen.failedRequests, expected);
+  return { name: `rapid navigation (${CYCLES} cycles of ${hashes.length} routes)`, mode, ...afterCycles.seen,
+    consoleErrors: errors.unexpected, failedRequests: failures.unexpected, expectedCount: errors.expected.length + failures.expected.length,
+    hash: afterCycles.hash, openResourcesAfterCycles: afterCycles.openResources, openResourcesAfterLeavingToStart: afterStart };
+}
+
+// What is wrong with a rapid-navigation record: unexpected errors, or anything still open after leaving every screen.
+export function rapidProblems(record) {
+  const stillOpen = Object.entries(record.openResourcesAfterLeavingToStart).filter(([, count]) => count > 0).map(([name, count]) => `${count} ${name} still open`);
+  return [...record.exceptions, ...record.consoleErrors, ...record.consoleWarnings, ...record.failedRequests, ...stillOpen].map((p) => `rapid navigation [${record.mode}]: ${p}`);
 }

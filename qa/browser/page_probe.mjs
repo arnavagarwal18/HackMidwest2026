@@ -56,8 +56,22 @@ export async function attachProbe(browserWsUrl, page) {
   const target = await findTargetByTitle(port, title);
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('DevTools probe connection failed.')); });
+
   let nextId = 0;
-  const send = (method, params = {}) => socket.send(JSON.stringify({ id: ++nextId, method, params }));
+  const pending = new Map();
+  const probeFailures = []; // the probe itself broke: what it reports can no longer be trusted, so these count as exceptions
+  let closedOnPurpose = false;
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = ++nextId;
+    pending.set(id, { method, resolve, reject });
+    socket.send(JSON.stringify({ id, method, params }));
+  });
+  socket.onerror = () => probeFailures.push('[probe] DevTools probe connection error');
+  socket.onclose = () => {
+    if (!closedOnPurpose) probeFailures.push('[probe] DevTools probe connection closed unexpectedly; later results are incomplete');
+    pending.forEach(({ method, reject }) => reject(new Error(`DevTools probe closed before ${method} was answered.`)));
+    pending.clear();
+  };
 
   let seen = empty();
   const urls = new Map();
@@ -65,8 +79,7 @@ export async function attachProbe(browserWsUrl, page) {
   function empty() {
     return { consoleErrors: [], consoleWarnings: [], exceptions: [], failedRequests: [], cancelledRequests: [] };
   }
-  socket.onmessage = ({ data }) => {
-    const { method, params } = JSON.parse(data);
+  function recordEvent(method, params) {
     if (method === 'Runtime.consoleAPICalled' && (params.type === 'error' || params.type === 'assert')) {
       seen.consoleErrors.push(`${describeArgs(params.args)}${where(params.stackTrace?.callFrames[0])}`);
     } else if (method === 'Runtime.consoleAPICalled' && params.type === 'warning') {
@@ -88,17 +101,29 @@ export async function attachProbe(browserWsUrl, page) {
       const entry = `${urls.get(params.requestId) ?? params.requestId} -> ${params.errorText}`;
       (params.canceled ? seen.cancelledRequests : seen.failedRequests).push(entry);
     }
+  }
+  socket.onmessage = ({ data }) => {
+    const message = JSON.parse(data);
+    if (message.id !== undefined) { // the answer to one of our commands
+      const call = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) call?.reject(new Error(`DevTools ${call.method} failed: ${message.error.message}`));
+      else call?.resolve(message.result);
+    } else {
+      recordEvent(message.method, message.params);
+    }
   };
-  send('Runtime.enable');
-  send('Log.enable');
-  send('Network.enable');
-  send('Page.enable');
-  send('Page.addScriptToEvaluateOnNewDocument', { source: TRACKING_SCRIPT });
+  await Promise.all(['Runtime.enable', 'Log.enable', 'Network.enable', 'Page.enable'].map((method) => send(method)));
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: TRACKING_SCRIPT });
 
   return {
     reset: () => { seen = empty(); urls.clear(); },
-    seen: () => structuredClone(seen),
-    snapshotOpenResources: (inPage) => inPage.eval(SNAPSHOT_EXPRESSION),
-    close: () => socket.close(),
+    seen: () => ({ ...structuredClone(seen), exceptions: [...seen.exceptions, ...probeFailures] }),
+    async snapshotOpenResources(inPage) {
+      const snapshot = await inPage.eval(SNAPSHOT_EXPRESSION);
+      if (!snapshot) throw new Error('The open-resource tracker is missing from the page, so leftover timers and streams cannot be checked.');
+      return snapshot;
+    },
+    close: () => { closedOnPurpose = true; socket.close(); },
   };
 }

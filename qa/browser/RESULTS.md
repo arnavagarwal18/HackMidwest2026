@@ -7,8 +7,10 @@ Nothing was clicked: every screen was only loaded and left for 2.5 s. Recording,
 ## Result: 34 screen loads, 34 OK, 0 with errors
 
 Per load the script records console errors and warnings, uncaught exceptions, failed requests (URL + status), the main heading, the text in the screen,
-the red banner, and a blank-screen check. "OK*" means the only failures were requests/console errors that the situation is meant to produce
-(listed in `routes.mjs`, field `expected`); they are described under "Expected failures" below.
+the red banner, and a blank-screen check. the script's table cell "OK (only the expected failure)" (written "OK*" below) means the only failures were requests/console errors
+that the situation is meant to produce (listed in `routes.mjs`, field `expected`); they are described under "Expected failures" below.
+A load also counts as a problem if it is blank, times out, or ends on a different hash than the one requested (compared in `check_screen.mjs`).
+`run.mjs` exits 1 and prints `RESULT: FAILED` (or `INCOMPLETE`) if any load has a problem, a rapid-navigation run has unexpected errors or anything still open, or not every screen was checked; this run printed `RESULT: PASSED`.
 
 | Screen | Mock (`?mock=1`) | Real back end |
 |---|---|---|
@@ -27,7 +29,7 @@ the red banner, and a blank-screen check. "OK*" means the only failures were req
 | tone.html?instrument=trumpet | OK | OK |
 | #/start with a stored session id the server does not know | OK (banner "Your earlier session was not found; starting fresh.") | OK* (GET /sessions/no_such_session 404, same banner) |
 
-No uncaught exceptions, no console warnings, no blank screen, no redirect away from the requested hash, and no request cancelled by the app in any load.
+No uncaught exceptions, no console warnings, no blank screen and no redirect away from the requested hash (checked by the script) in any load. Cancelled requests are kept in `results.json` but not counted as problems; there were none.
 The real-mode data was built through the API: session, built-in trumpet score, confirm, calibration skip, one synthetic take that transcribes
 (`synth_take.mjs`), one silent take that fails (`no_notes_heard`), and its fallback feedback and plan (AI off, so `mode: fallback`).
 
@@ -39,7 +41,7 @@ Counted by a script injected before the app: open `setInterval`s, pending `setTi
 | Mode | Console errors | Exceptions | Failed requests | After cycles | After leaving to #/start |
 |---|---|---|---|---|---|
 | mock | 0 | 0 | 0 | all 0 | all 0 |
-| real | 3 (all GET /lan-address, once per visit to #/calibrate) | 0 | 3 (same 404s) | all 0 | all 0 |
+| real | 0 unexpected (3 expected: GET /lan-address, once per visit to #/calibrate) | 0 | 0 unexpected (3 expected 404s, the same calls) | all 0 | all 0 |
 
 No leftover timers, streams or audio contexts. (The take screen left no live microphone track just by being loaded.)
 

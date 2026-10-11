@@ -31,7 +31,7 @@ const readRenderedState = (root) => `(() => {
 const matchesAny = (patterns, text) => patterns.some((pattern) => pattern.test(text));
 
 // Splits log lines into the ones the screen is meant to produce here (see `expected` in routes.mjs) and the rest.
-function splitExpected(lines, expectedPatterns) {
+export function splitExpected(lines, expectedPatterns) {
   const expected = lines.filter((line) => matchesAny(expectedPatterns, line));
   return { unexpected: lines.filter((line) => !expected.includes(line)), expected };
 }
@@ -55,12 +55,14 @@ export async function checkScreen({ page, probe, origin, mode, spec }) {
   const failures = splitExpected(seen.failedRequests, spec.expected);
   const errors = splitExpected(seen.consoleErrors, spec.expected);
   const blank = rendered.elementCount === 0 && rendered.bannerText === null;
+  const requestedHash = spec.url.includes('#') ? spec.url.slice(spec.url.indexOf('#')) : null;
   return {
     name: spec.name,
     mode,
     url: spec.url,
     ...rendered,
     blank,
+    redirectedTo: requestedHash && requestedHash !== rendered.hash ? rendered.hash : null, // the app moved us off the route we asked for
     loadError,
     consoleErrors: errors.unexpected,
     consoleWarnings: seen.consoleWarnings,
@@ -73,5 +75,5 @@ export async function checkScreen({ page, probe, origin, mode, spec }) {
   };
 }
 
-export const hasProblems = (record) => record.blank || record.loadError || record.consoleErrors.length || record.consoleWarnings.length
+export const hasProblems = (record) => record.blank || record.loadError || record.redirectedTo || record.consoleErrors.length || record.consoleWarnings.length
   || record.exceptions.length || record.failedRequests.length;

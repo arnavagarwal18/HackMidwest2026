@@ -20,7 +20,7 @@ export const MOCK_SCREENS = [
   spec('start (stored session is gone)', '/?mock=1#/start', { stored: 'sess_gone' }),
 ];
 
-const NO_LAN_ADDRESS = [/lan-address/]; // GET /lan-address has no back-end route
+export const NO_LAN_ADDRESS = [/lan-address/]; // GET /lan-address has no back-end route
 
 export function realScreens(fixtures) {
   const confirmed = { stored: fixtures.sessionId };

@@ -1,6 +1,6 @@
 // Builds real-mode test data through the real API (no AI: the server must run with AI_ENABLED unset or false):
 // a confirmed session with one analysed take (transcribed from a synthetic recording), its fallback feedback and plan, and one take that failed.
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { synthTakeWav } from './synth_take.mjs';
 
@@ -51,6 +51,7 @@ async function confirmedSession(origin) {
 }
 
 export async function buildRealFixtures(origin) {
+  mkdirSync(SCRATCH_DIR, { recursive: true });
   const goodWav = join(SCRATCH_DIR, 'take.wav');
   synthTakeWav(goodWav);
   const unconfirmedSessionId = await newSession(origin);

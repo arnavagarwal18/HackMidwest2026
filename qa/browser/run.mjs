@@ -4,10 +4,10 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { buildRealFixtures } from './fixtures.mjs';
 import { checkScreen } from './check_screen.mjs';
-import { NAV_HASHES, MOCK_SCREENS, realScreens } from './routes.mjs';
+import { NAV_HASHES, MOCK_SCREENS, NO_LAN_ADDRESS, realScreens } from './routes.mjs';
 import { rapidNavigation } from './rapid_nav.mjs';
 import { attachProbe } from './page_probe.mjs';
-import { countOutcomes, problemList, summaryTable } from './report.mjs';
+import { countOutcomes, problemList, runProblems, summaryTable } from './report.mjs';
 
 const origin = process.argv[2] ?? 'http://127.0.0.1:8120';
 const here = new URL('.', import.meta.url).pathname;
@@ -57,7 +57,7 @@ try {
     }
   }
   rapid.push(await rapidNavigation({ page, probe, origin, mode: 'mock', hashes: NAV_HASHES.mock, stored: null }));
-  rapid.push(await rapidNavigation({ page, probe, origin, mode: 'real', hashes: NAV_HASHES.real(fixtures), stored: fixtures.sessionId }));
+  rapid.push(await rapidNavigation({ page, probe, origin, mode: 'real', hashes: NAV_HASHES.real(fixtures), stored: fixtures.sessionId, expected: NO_LAN_ADDRESS }));
 } catch (err) {
   console.error(`The check run failed: ${err.stack}`);
   process.exitCode = 1;
@@ -68,4 +68,7 @@ try {
 mkdirSync(here, { recursive: true });
 writeFileSync(RESULTS_FILE, JSON.stringify({ origin, fixtures, records, rapid }, null, 2));
 console.log(`\n${summaryTable(records)}\n\n${JSON.stringify(countOutcomes(records))}\n\nProblems:\n${problemList(records)}`);
+const failures = runProblems({ records, rapid, expectedScreens: MOCK_SCREENS.length + realScreens(fixtures).length, expectedRapid: 2 });
+if (failures.length) process.exitCode = 1;
 console.log(`\nRapid navigation:\n${JSON.stringify(rapid, null, 2)}\nFull data: ${RESULTS_FILE}`);
+console.log(failures.length ? `\nRESULT: FAILED (${failures.length} problems)\n${failures.join('\n')}` : '\nRESULT: PASSED');
