@@ -91,6 +91,23 @@ for (const [mode, t] of [['light', light], ['dark', dark]]) {
   });
 }
 
+const traceCss = readFileSync(new URL('../css/trace.css', import.meta.url), 'utf8');
+const ruleBody = (css, selector) => css.match(new RegExp(String.raw`^${selector.replace(/\./g, String.raw`\.`)} \{([^}]*)\}`, 'm'))[1];
+const tokenIn = (body, property) => body.match(new RegExp(String.raw`(?:^|[\s;])${property}:\s*var\(--([a-z0-9-]+)\)`))[1];
+
+for (const [mode, t] of [['light', light], ['dark', dark]]) {
+  test(`${mode}: the trace time and marker text has at least 4.5:1 on the event and marker backgrounds`, () => {
+    const eventBg = tokenIn(ruleBody(traceCss, '.trace-event, .trace-event:first-child'), 'background');
+    const marker = ruleBody(appCss, '.trace-marker');
+    const pairs = [
+      ['trace time on the event', tokenIn(ruleBody(appCss, '.trace-time'), 'color'), eventBg],
+      ['trace marker on its own fill', tokenIn(marker, 'color'), tokenIn(marker, 'background')],
+      ['trace marker on the event', tokenIn(marker, 'color'), eventBg],
+    ];
+    for (const [name, fg, bg] of pairs) assert.ok(ratio(t[fg], t[bg]) >= 4.5, `${name} (${fg} on ${bg}): ${ratio(t[fg], t[bg]).toFixed(2)}:1`);
+  });
+}
+
 test('tap targets are at least 44px, in the buttons, nav, chips and segmented control', () => {
   assert.match(appCss, /--tap:\s*44px/);
   for (const [css, selector] of [[appCss, /\nnav a \{[^}]*min-height: var\(--tap\)/], [appCss, /\nbutton \{[^}]*min-height: var\(--tap\)/],

@@ -378,8 +378,8 @@ main.with-chat > * + * { margin-top: 0; }
 .trace-events { list-style: none; margin: 0; padding: 0; }
 .trace-event { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 0; border-top: 1px solid var(--line); }
 .trace-event:first-child { border-top: 0; }
-.trace-time { min-width: 4rem; color: var(--muted); }
-.trace-marker { padding: 0 var(--sp-2); border-radius: var(--radius); background: var(--surface-2); color: var(--muted); font-size: var(--fs-caption); font-weight: 600; }
+.trace-time { min-width: 4rem; color: var(--ink); }
+.trace-marker { padding: 0 var(--sp-2); border-radius: var(--radius); background: var(--surface-2); color: var(--ink); font-size: var(--fs-caption); font-weight: 600; }
 .trace-check_pass .trace-marker { background: var(--ok-soft); color: var(--ok); }
 .trace-check_fail .trace-marker { background: var(--error-soft); color: var(--error); }
 .trace-dropped .trace-marker, .trace-fallback .trace-marker { background: var(--sharp-soft); color: var(--sharp); }
