@@ -8,7 +8,9 @@ from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
 from app.agents.hooks import FEEDBACK_SUBMIT, CheckerHook, TraceHook
 from app.agents.model import with_max_tokens
-from app.agents.prompts import COACH_PROMPT
+from app.agents.persona_hooks import style_hooks
+from app.agents.persona_run import PersonaRun, tag_agent
+from app.agents.prompts import COACH_PROMPT, with_persona
 from app.agents.trace import Trace
 
 COACH_MAX_TOKENS = 1500  # up to 6 cited sentences with their claims, as one submit_feedback call
@@ -53,11 +55,14 @@ def submit_feedback(output: CoachOutput) -> dict:
     return {"accepted": True}  # the CheckerHook replaces this with the Checker's verdict
 
 
-def build_coach_agent(model: Any, measurement_tools: list[Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace) -> Agent:
-    return Agent(
+def build_coach_agent(model: Any, measurement_tools: list[Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace,
+                      style: PersonaRun = PersonaRun()) -> Agent:
+    agent = Agent(
         model=with_max_tokens(model, COACH_MAX_TOKENS),
         tools=[*[tool(fn) for fn in measurement_tools], submit_feedback],
-        system_prompt=COACH_PROMPT,
-        hooks=[TraceHook(trace, "coach"), CheckerHook(FEEDBACK_SUBMIT, ctx, holder, trace)],
+        system_prompt=with_persona(COACH_PROMPT, style.persona, "coach"),
+        hooks=[TraceHook(trace, "coach"), *style_hooks(style.persona, FEEDBACK_SUBMIT, trace, "coach"),
+               CheckerHook(FEEDBACK_SUBMIT, ctx, holder, trace)],
         callback_handler=None,
     )
+    return tag_agent(agent, style)
