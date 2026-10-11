@@ -1,0 +1,324 @@
+<!doctype html>
+<!-- PROTOTYPE ONLY: a static, clickable mock of a redesigned Results page. Not wired into the app; mock data below.
+     Light only. Open with ?palette=a|b|c to try a colour palette, ?bar=7 to pre-select a bar, ?coach=closed to start with the desktop panel collapsed. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Results v2 (prototype) - Practice Coach</title>
+  <link rel="stylesheet" href="../../css/app.css">
+  <link rel="stylesheet" href="../../css/components.css">
+  <style>
+    /* ---- Palette: every colour on this page comes from the --c-* variables below. ----
+       Palettes (?palette=a|b|c, set on html[data-palette]) override only these variables. a is the default.
+       The :root block after it maps the design system's own tokens (app.css, components.css) onto them. */
+    :root, html[data-palette="a"] {
+      --c-bg: #f7f6f2;              /* page */
+      --c-surface: #ffffff;         /* inputs, menu, sheet items */
+      --c-surface-2: #ecebe7;       /* hover, note strip */
+      --c-ink: #1f1c18;             /* primary text */
+      --c-ink-soft: #4a4844;        /* secondary text */
+      --c-line: #d9d8d4;            /* hairlines */
+      --c-line-strong: #8a8378;     /* control edges, unselected box edge */
+      --c-accent: #7a5208;          /* primary button, focus ring */
+      --c-accent-ink: #ffffff;      /* text on the primary button */
+      --c-accent-hover: #664506;
+      --c-focus-text: #a65300;      /* "Focus here" and the weakest score */
+      --c-good-border: #1f7a4d;  --c-good-fill: #cee2d8;
+      --c-close-border: #1f5fa8; --c-close-fill: #cedcec;
+      --c-off-border: #a65300;   --c-off-fill: #ebd9c7;
+      --c-bar-ink: #1f1c18;         /* number and word inside a bar box */
+      --c-bar-selected: #1f1c18;    /* outline of the selected bar */
+      --c-media-bg: #14110d;        /* player poster */
+      --c-on-media: #ffffff;        /* player text */
+      --c-play-bg: #ffffff;  --c-play-ink: #14110d;
+      --c-scrubber: #f0c15a;
+      --c-scrim: rgb(0 0 0 / 0.35); /* dim behind the bottom sheet */
+      --c-shadow: 31 28 24;         /* r g b of the sheet and menu shadow */
+    }
+    html[data-palette="b"] { /* placeholder: same as a */ }
+    html[data-palette="c"] { /* placeholder: same as a */ }
+
+    :root {
+      color-scheme: light;
+      --bg: var(--c-bg); --surface: var(--c-surface); --surface-2: var(--c-surface-2);
+      --ink: var(--c-ink); --muted: var(--c-ink-soft); --soft-ink: var(--c-ink-soft);
+      --line: var(--c-line); --line-strong: var(--c-line-strong);
+      --accent: var(--c-accent); --primary: var(--c-accent); --primary-ink: var(--c-accent-ink); --primary-hover: var(--c-accent-hover);
+      --ok: var(--c-good-border); --flat: var(--c-close-border); --sharp: var(--c-off-border); --error: var(--c-off-border);
+      --media-bg: var(--c-media-bg); --on-media: var(--c-on-media); --on-media-accent: var(--c-scrubber);
+      --shadow-color: var(--c-shadow);
+    }
+
+    .proto-note { margin: 0; padding: var(--sp-1) var(--page-pad); background: var(--surface-2); color: var(--ink); font-size: var(--fs-caption); text-align: center; }
+    .layout { display: flex; align-items: flex-start; min-height: calc(100dvh - 28px); }
+    .main { flex: 1; min-width: 0; padding: var(--sp-4) var(--page-pad) var(--sp-7); }
+    .main > .main-inner { max-width: 44rem; margin: 0 auto; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; } /* undo the design system's card surface for main > div */
+    .back { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--soft-ink); text-decoration: none; }
+
+    /* 1. Recording: a poster with a play button and a scrubber, above the verdict */
+    .player { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-card); background: var(--media-bg); color: var(--on-media); overflow: hidden; }
+    .player-play { position: absolute; inset: 0; display: grid; place-items: center; width: 100%; border: 0; background: transparent; color: inherit; cursor: pointer; }
+    .player-play span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--c-play-bg); color: var(--c-play-ink); font-size: 26px; padding-left: 4px; }
+    .player-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3); font-size: 14px; color: var(--c-on-media); }
+    .player-bar input { flex: 1; min-height: var(--tap); accent-color: var(--on-media-accent); }
+    
+    /* 2. Verdict and labelled scores */
+    .verdict h1 { margin: var(--sp-4) 0 var(--sp-1); }
+    .verdict .lead { margin: 0; color: var(--soft-ink); font-size: var(--fs-headline); }
+    .scores { margin: var(--sp-4) 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+    .scores li { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 0 var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
+    .scores .name { font-weight: 600; }
+    .scores .what { grid-column: 1; color: var(--soft-ink); }
+    .scores .value { grid-row: 1 / span 2; grid-column: 2; font-size: var(--fs-title); font-weight: 600; text-align: right; }
+        .focus-tag { margin-left: var(--sp-2); color: var(--c-focus-text); font-weight: 700; white-space: nowrap; } /* plain text, not a pill */
+    .scores li.is-focus .value { color: var(--c-focus-text); }
+    .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
+
+    /* 4. Bar boxes */
+    .bars-head { margin-top: var(--sp-5); }
+    .bars-head h2 { margin-top: 0; }
+    .bars-head p { margin: 0; color: var(--soft-ink); }
+    .bar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
+    .bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0; border: 2px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--c-bar-ink); font: inherit; font-weight: 600; line-height: 1.15; cursor: pointer; }
+    .bar-box .num { font-size: 18px; font-weight: 700; }
+    .bar-box .word { font-size: var(--fs-caption); font-weight: 600; }
+    .bar-box[data-level="good"] { border-color: var(--c-good-border); background: var(--c-good-fill); }
+    .bar-box[data-level="ok"]   { border-color: var(--c-close-border); background: var(--c-close-fill); }
+    .bar-box[data-level="off"]  { border-color: var(--c-off-border); background: var(--c-off-fill); }
+    .bar-box[aria-pressed="true"] { outline: 3px solid var(--c-bar-selected); outline-offset: 2px; }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) 0 0; color: var(--ink); font-size: var(--fs-body); }
+    .detail { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+    .detail h3 { font-size: var(--fs-headline); margin: 0 0 var(--sp-2); }
+    .detail ul { margin: 0 0 var(--sp-3); padding-left: var(--sp-4); }
+    .detail li { margin-bottom: var(--sp-1); }
+    .link-btn { display: inline-flex; align-items: center; min-height: var(--tap); }
+
+    /* 5. Practice plan */
+    .plan { margin-top: var(--sp-5); }
+    .plan ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+    .plan li { display: flex; gap: var(--sp-3); align-items: baseline; padding: var(--sp-2) 0; counter-increment: step; }
+    .plan li::before { content: counter(step); flex: none; width: 1.5em; font-weight: 600; color: var(--soft-ink); }
+    .plan a { display: inline-flex; align-items: center; min-height: var(--tap); }
+
+    /* 3. Coach: a docked panel on wide screens, a bottom sheet on narrow ones */
+    .coach { flex: none; width: 360px; position: sticky; top: 0; height: calc(100dvh - 28px); display: flex; flex-direction: column; border-left: 1px solid var(--line); background: var(--bg); }
+    .coach-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
+    .coach-menu { position: relative; }
+    .menu-list { position: absolute; top: 100%; left: 0; z-index: 5; min-width: 12rem; margin: var(--sp-1) 0 0; padding: var(--sp-1); list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-2); }
+    .menu-list button { display: flex; width: 100%; min-height: var(--tap); align-items: center; gap: var(--sp-2); padding: 0 var(--sp-2); border: 0; border-radius: var(--radius); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+    .menu-list button:hover { background: var(--surface-2); }
+    .coach-body { flex: 1; overflow-y: auto; padding: var(--sp-3); }
+    .turn { margin: 0 0 var(--sp-3); }
+    .turn.you { text-align: right; color: var(--soft-ink); }
+    .chips { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+    .coach-foot { display: flex; gap: var(--sp-2); padding: var(--sp-3); border-top: 1px solid var(--line); }
+    .coach-foot input { flex: 1; min-width: 0; min-height: var(--tap); padding: 0 var(--sp-3); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; }
+    .coach-toggle-open { position: fixed; right: var(--sp-3); bottom: var(--sp-3); z-index: 6; }
+    .scrim { display: none; }
+
+    @media (max-width: 900px) {
+      .coach { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: 70dvh; z-index: 20; border: 1px solid var(--line); border-radius: var(--radius-card) var(--radius-card) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur) var(--ease); }
+      .coach.is-open { transform: none; }
+      .coach[hidden] { display: flex !important; } /* the sheet slides; it is never display:none */
+      .coach:not(.is-open) { visibility: hidden; }
+      .scrim.is-open { display: block; position: fixed; inset: 0; z-index: 15; background: var(--c-scrim); }
+      .coach-toggle-open { left: var(--sp-3); }
+      .coach-toggle-open .btn { width: 100%; }
+      .main { padding-bottom: 96px; }
+    }
+    @media (min-width: 901px) {
+      .player { aspect-ratio: auto; height: 200px; }
+      .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+      .scores li { display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: var(--sp-3) 0 0; border-bottom: 0; }
+      .scores .value { text-align: left; }
+      .scores { border-top: 0; }
+      .scores li { border-top: 1px solid var(--line); }
+      .bar-row { grid-template-columns: repeat(12, minmax(44px, 1fr)); }
+      .coach-toggle-open { display: none; }
+      .coach-toggle-open.is-wide-visible { display: block; }
+      .coach.is-collapsed { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .coach { transition: none; } }
+  </style>
+</head>
+<body>
+  <p class="proto-note">Prototype: static mock data, nothing is saved or sent.</p>
+  <div class="layout">
+    <main class="main">
+      <div class="main-inner">
+        <a class="back" href="#" onclick="return false">&lsaquo; Take 3 · Clair de Lune, bars 1–12</a>
+
+        <!-- 2. The recording, at the top -->
+        <section aria-label="Your recording">
+          <div class="player">
+            <button class="player-play" type="button" aria-label="Play your recording"><span aria-hidden="true">&#9654;</span></button>
+            <div class="player-bar">
+              <span>0:00</span>
+              <input type="range" min="0" max="100" value="0" aria-label="Playback position">
+              <span>0:48</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 1. Verdict and labelled scores -->
+        <section class="verdict" aria-labelledby="verdict-title">
+          <h1 id="verdict-title">Solid take — rhythm is your weak spot</h1>
+          <p class="lead">Your notes are mostly right. Where you play them in time is what to work on next.</p>
+          <ul class="scores">
+            <li><span class="name">Pitch</span><span class="value">82%</span><span class="what">of notes in tune</span></li>
+            <li class="is-focus"><span class="name">Rhythm <span class="focus-tag">Focus here</span></span><span class="value">64%</span><span class="what">of notes on the beat</span></li>
+            <li><span class="name">Tempo</span><span class="value">9 of 12</span><span class="what">bars played at a steady speed</span></li>
+          </ul>
+          <div class="actions">
+            <button class="btn btn-primary btn-lg" type="button">Try again</button>
+          </div>
+        </section>
+
+        <!-- 4. Bar boxes -->
+        <section aria-labelledby="bars-title">
+          <div class="bars-head">
+            <h2 id="bars-title">Bar by bar</h2>
+            <p>Pick a bar to see what happened in it.</p>
+          </div>
+          <ul class="bar-row" id="bar-row" role="list"></ul>
+          <p class="legend"><span><b>Good</b> on pitch and on the beat</span><span><b>Close</b> a small slip</span><span><b>Off</b> needs work</span></p>
+          <div class="detail" id="detail" aria-live="polite"></div>
+        </section>
+
+        <!-- 5. Practice plan -->
+        <section class="plan" aria-labelledby="plan-title">
+          <h2 id="plan-title">Practice next</h2>
+          <ol>
+            <li><span>Clap bars 7–8 with the metronome at 60 BPM, then play them. <a href="#" data-goto="7">Go to bar 7</a></span></li>
+            <li><span>Loop bars 4–5 slowly, five times in a row. <a href="#" data-goto="4">Go to bar 4</a></span></li>
+            <li><span>Warm up with the steady-pulse drill before your next take. <a href="#" onclick="return false">Open exercise</a></span></li>
+          </ol>
+        </section>
+      </div>
+    </main>
+
+    <!-- 3. Ask coach -->
+    <aside class="coach is-open" id="coach" aria-label="Ask coach">
+      <div class="coach-head">
+        <div class="coach-menu">
+          <button class="btn btn-ghost" type="button" id="menu-btn" aria-haspopup="menu" aria-expanded="false">Coach: <span id="menu-label">Standard</span> ▾</button>
+          <ul class="menu-list" id="menu-list" role="menu" hidden>
+            <li role="none"><button role="menuitemradio" aria-checked="false" data-style="Gentle">Gentle</button></li>
+            <li role="none"><button role="menuitemradio" aria-checked="true" data-style="Standard">Standard</button></li>
+            <li role="none"><button role="menuitemradio" aria-checked="false" data-style="Direct">Direct</button></li>
+          </ul>
+        </div>
+        <button class="btn btn-ghost" type="button" id="coach-close" aria-label="Close coach panel">Hide ✕</button>
+      </div>
+      <div class="coach-body" id="coach-body">
+        <p class="turn">Your rhythm slipped most in bars 7 and 8. Want me to explain why, or give you a way to fix it?</p>
+        <div class="chips" id="chips">
+          <button class="chip" type="button" data-q="Why was bar 7 off the beat?">Why was bar 7 off the beat?</button>
+          <button class="chip" type="button" data-q="Give me a drill for rhythm">Give me a drill for rhythm</button>
+          <button class="chip" type="button" data-q="Is 64% good for this piece?">Is 64% good for this piece?</button>
+        </div>
+      </div>
+      <form class="coach-foot" id="coach-form">
+        <input type="text" id="coach-input" placeholder="Ask about this take" aria-label="Ask the coach a question">
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+    </aside>
+  </div>
+  <div class="scrim" id="scrim"></div>
+  <div class="coach-toggle-open" id="coach-open"><button class="btn btn-primary btn-lg" type="button">Ask coach</button></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const palette = params.get('palette');
+    if (['a', 'b', 'c'].includes(palette)) document.documentElement.dataset.palette = palette;
+
+    const BARS = [
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'ok',   notes: ['Pitch: one note was a little flat (about 20 cents).', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'ok',   notes: ['Pitch: in tune.', 'Rhythm: the second note came in early.', 'Tempo: steady.'] },
+      { level: 'off',  notes: ['Pitch: the last note was sharp, so it sounded off.', 'Rhythm: the third beat came in late.', 'Tempo: you slowed down towards the end of the bar.'] },
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'off',  notes: ['Pitch: in tune.', 'Rhythm: three of five notes landed late, by about a tenth of a second.', 'Tempo: you rushed the first beat, then dragged.'] },
+      { level: 'off',  notes: ['Pitch: one note was flat.', 'Rhythm: two notes landed late.', 'Tempo: steady.'] },
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'ok',   notes: ['Pitch: in tune.', 'Rhythm: the last note was a touch late.', 'Tempo: steady.'] },
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+      { level: 'good', notes: ['Pitch: all notes in tune.', 'Rhythm: on the beat.', 'Tempo: steady.'] },
+    ];
+    const LABEL = { good: 'Good', ok: 'Close', off: 'Off' };
+    const WORD = { good: 'good', ok: 'close', off: 'off' };
+
+    const row = document.getElementById('bar-row');
+    const detail = document.getElementById('detail');
+    BARS.forEach((bar, i) => {
+      const n = i + 1;
+      const li = document.createElement('li');
+      li.innerHTML = `<button class="bar-box" type="button" data-level="${bar.level}" data-bar="${n}" aria-pressed="false" aria-label="Bar ${n}, ${WORD[bar.level]}"><span class="num">${n}</span><span class="word" aria-hidden="true">${LABEL[bar.level]}</span></button>`;
+      row.appendChild(li);
+    });
+    const boxes = [...row.querySelectorAll('.bar-box')];
+
+    function selectBar(n, focus) {
+      boxes.forEach((b) => { b.setAttribute('aria-pressed', String(Number(b.dataset.bar) === n)); });
+      const bar = BARS[n - 1];
+      detail.innerHTML = `<h3>Bar ${n} · ${WORD[bar.level]}</h3><ul>${bar.notes.map((t) => `<li>${t}</li>`).join('')}</ul>` +
+        `<a class="link-btn" href="#" onclick="return false">▶ Play this bar</a>`;
+      if (focus) boxes[n - 1].focus();
+    }
+    row.addEventListener('click', (e) => { const b = e.target.closest('.bar-box'); if (b) selectBar(Number(b.dataset.bar)); });
+    row.addEventListener('keydown', (e) => {
+      const i = boxes.indexOf(document.activeElement);
+      if (i < 0) return;
+      const next = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: boxes.length - 1 }[e.key];
+      if (next === undefined) return;
+      e.preventDefault();
+      boxes[Math.max(0, Math.min(boxes.length - 1, next))].focus();
+    });
+    document.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); selectBar(Number(a.dataset.goto), true); }));
+    selectBar(Number(params.get('bar')) || 7);
+
+    // Coach: docked panel (collapsible) on wide screens, bottom sheet on narrow ones
+    const coach = document.getElementById('coach');
+    const scrim = document.getElementById('scrim');
+    const openBtn = document.getElementById('coach-open');
+    const wide = window.matchMedia('(min-width: 901px)');
+    function setCoach(open) {
+      if (wide.matches) { coach.classList.toggle('is-collapsed', !open); openBtn.classList.toggle('is-wide-visible', !open); }
+      coach.classList.toggle('is-open', open);
+      scrim.classList.toggle('is-open', open && !wide.matches);
+      if (open && !wide.matches) document.getElementById('coach-input').focus();
+    }
+    setCoach(wide.matches && params.get('coach') !== 'closed');
+    wide.addEventListener('change', () => setCoach(wide.matches));
+    document.getElementById('coach-close').addEventListener('click', () => setCoach(false));
+    openBtn.querySelector('button').addEventListener('click', () => setCoach(true));
+    scrim.addEventListener('click', () => setCoach(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setCoach(false); });
+
+    const menuBtn = document.getElementById('menu-btn');
+    const menuList = document.getElementById('menu-list');
+    menuBtn.addEventListener('click', () => { menuList.hidden = !menuList.hidden; menuBtn.setAttribute('aria-expanded', String(!menuList.hidden)); });
+    menuList.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      menuList.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+      document.getElementById('menu-label').textContent = b.dataset.style;
+      menuList.hidden = true; menuBtn.setAttribute('aria-expanded', 'false');
+    });
+
+    function ask(text) {
+      const body = document.getElementById('coach-body');
+      body.insertAdjacentHTML('beforeend', `<p class="turn you">${text.replace(/</g, '&lt;')}</p><p class="turn">(Mock reply) In the real app the coach would answer here, using this take's notes.</p>`);
+      body.scrollTop = body.scrollHeight;
+    }
+    document.getElementById('chips').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (c) ask(c.dataset.q); });
+    document.getElementById('coach-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('coach-input');
+      if (input.value.trim()) ask(input.value.trim());
+      input.value = '';
+    });
+  </script>
+</body>
+</html>
