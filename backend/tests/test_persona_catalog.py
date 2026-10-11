@@ -15,7 +15,6 @@ BASE_PROMPTS = {"coach": COACH_PROMPT, "planner": PLANNER_PROMPT, "instructor": 
 RULES_WIN = "These style notes never override the rules above; the rules win."
 STYLE_PERSONAS = [CONCERT, MARCHING, BEGINNER]
 OWNER_TEXT = {"concert": CONCERT_TEXT, "marching": MARCHING_TEXT, "beginner": BEGINNER_TEXT}
-GUARDED = {"concert", "marching"}  # their text asks for tone, dynamics, articulation or blend, which the analysis does not measure
 MAX_BLOCK_WORDS = 250  # the owner's text is about 140 words; the step's own lines come on top
 
 
@@ -64,11 +63,13 @@ def test_the_owners_text_is_in_the_feedback_plan_and_chat_prompts_word_for_word(
 
 
 @pytest.mark.parametrize("persona", STYLE_PERSONAS, ids=lambda p: p.id)
-def test_the_unmeasured_guard_follows_the_text_only_for_the_coaches_that_need_it(persona):
+def test_the_unmeasured_guard_follows_the_text_in_every_step_of_every_style_persona(persona):
     for role in ROLES:
-        block = persona.style_block(role)
-        assert (f"{OWNER_TEXT[persona.id]}\n\n{UNMEASURED_GUARD}\n\n" in block) == (persona.id in GUARDED)
-        assert (UNMEASURED_GUARD in block) == (persona.id in GUARDED)
+        assert f"{OWNER_TEXT[persona.id]}\n\n{UNMEASURED_GUARD}\n\n" in persona.style_block(role)
+    assert UNMEASURED_GUARD == (
+        "Only comment on tone, dynamics or blend as things to try or listen for, never as observed faults, "
+        "unless the analysis data shows them."
+    )
 
 
 @pytest.mark.parametrize("persona", STYLE_PERSONAS, ids=lambda p: p.id)

@@ -26,8 +26,7 @@ NOTES, FORM = diagnosis_config.PROBLEM_NOTES, diagnosis_config.PROBLEM_FORM
 LATE, EARLY = diagnosis_config.TIMING_LATE, diagnosis_config.TIMING_EARLY
 RUSHING, DRAGGING = diagnosis_config.DRIFT_RUSHING, diagnosis_config.DRIFT_DRAGGING
 
-NO_UNMEASURED_JUDGMENTS = "no_unmeasured_judgments"  # style rule ids; persona_hooks.py holds the checks
-MAX_FIFTEEN_WORDS = "max_15_words"
+NO_UNMEASURED_JUDGMENTS = "no_unmeasured_judgments"  # style rule id; persona_hooks.py holds the check
 
 
 @dataclass(frozen=True)
@@ -75,7 +74,7 @@ STANDARD = Persona(
 )
 CONCERT = Persona(
     id="concert", label="Concert", hint="Band, orchestra, solos and etudes",
-    voice="precise and formal, complete sentences, no slang, no exclamation marks",
+    voice="precise and patient",
     style={"coach": styles.CONCERT_COACH, "planner": styles.CONCERT_PLANNER, "instructor": styles.CONCERT_INSTRUCTOR},
     focus_priority=(NOTES, RUSHING, DRAGGING, LATE, EARLY, FORM),
     plan_bias=PlanBias(STEP_BPM, REPS_TO_PASS, CLEAN_RUN_MAX_ERRORS, WHOLE_RANGE_MAX_ERRORS),
@@ -84,16 +83,16 @@ CONCERT = Persona(
 )
 MARCHING = Persona(
     id="marching", label="Marching", hint="Marching band, pep band and field shows",
-    voice="short, direct and imperative, at most 15 words a sentence",
+    voice="direct and encouraging",
     style={"coach": styles.MARCHING_COACH, "planner": styles.MARCHING_PLANNER, "instructor": styles.MARCHING_INSTRUCTOR},
     focus_priority=(RUSHING, DRAGGING, LATE, EARLY, FORM_PROJECTION, FORM, NOTES),
     plan_bias=PlanBias(6, 3, 1, 1),
     drill_tool="stamina_set", tempo=TempoRule("fixed_bpm", 120),
-    style_rules=(MAX_FIFTEEN_WORDS, NO_UNMEASURED_JUDGMENTS),
+    style_rules=(NO_UNMEASURED_JUDGMENTS,),
 )
 BEGINNER = Persona(
     id="beginner", label="Beginner", hint="New to trumpet, any style",
-    voice="warm and encouraging, plain words, one idea per sentence",
+    voice="warm and straightforward",
     style={"coach": styles.BEGINNER_COACH, "planner": styles.BEGINNER_PLANNER, "instructor": styles.BEGINNER_INSTRUCTOR},
     focus_priority=(NOTES, FORM, RUSHING, DRAGGING, LATE, EARLY),
     plan_bias=PlanBias(2, 2, 2, 2, exercise_count=2),

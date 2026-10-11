@@ -11,23 +11,17 @@ from typing import Any, Callable
 from strands.hooks import AfterToolCallEvent, HookProvider, HookRegistry
 
 from app.agents.hooks import SubmitSpec
-from app.agents.personas import MAX_FIFTEEN_WORDS, NO_UNMEASURED_JUDGMENTS, Persona
+from app.agents.personas import NO_UNMEASURED_JUDGMENTS, Persona
 from app.agents.trace import Trace
 
 log = logging.getLogger(__name__)
 
-MAX_WORDS_PER_SENTENCE = 15
 # Judgments of qualities the app does not measure (dynamics, volume, tone, attack quality, stamina)
 UNMEASURED_JUDGMENTS = (
     "too soft", "too loud", "too quiet", "too weak", "too thin", "thin tone", "weak tone", "weak attack", "sloppy attack",
     "tired", "tiring", "fatigue", "your tone was", "your volume", "your dynamics",
 )
 _UNMEASURED_PATTERN = re.compile(r"\b(" + "|".join(re.escape(p) for p in UNMEASURED_JUDGMENTS) + r")\b", re.IGNORECASE)
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
-
-
-def _within_sentence_limit(text: str) -> bool:
-    return all(len(sentence.split()) <= MAX_WORDS_PER_SENTENCE for sentence in _SENTENCE_END.split(text.strip()))
 
 
 def _free_of_unmeasured_judgments(text: str) -> bool:
@@ -35,7 +29,6 @@ def _free_of_unmeasured_judgments(text: str) -> bool:
 
 
 STYLE_RULES: dict[str, Callable[[str], bool]] = {
-    MAX_FIFTEEN_WORDS: _within_sentence_limit,
     NO_UNMEASURED_JUDGMENTS: _free_of_unmeasured_judgments,
 }
 

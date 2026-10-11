@@ -11,7 +11,7 @@ OWN_INSIGHT = (
     "The example drill in the rules above only shows the format: never reuse it, give your own style's drill. "
     "Never judge swing or feel: the app scores every note as written, straight."
 )
-# Added after the text of a coach that asks for judgments of tone, dynamics or blend, which the analysis does not measure
+# Added after every persona text: the analysis does not measure tone, dynamics or blend, and the text may ask a coach to judge them
 UNMEASURED_GUARD = (
     "Only comment on tone, dynamics or blend as things to try or listen for, never as observed faults, "
     "unless the analysis data shows them."
@@ -45,4 +45,4 @@ CONCERT_COACH, CONCERT_PLANNER, CONCERT_INSTRUCTOR = _persona_blocks(persona_tex
 MARCHING_COACH, MARCHING_PLANNER, MARCHING_INSTRUCTOR = _persona_blocks(
     persona_texts.MARCHING_TEXT, MARCHING_PLAN_SHAPE, UNMEASURED_GUARD
 )
-BEGINNER_COACH, BEGINNER_PLANNER, BEGINNER_INSTRUCTOR = _persona_blocks(persona_texts.BEGINNER_TEXT, BEGINNER_PLAN_SHAPE)
+BEGINNER_COACH, BEGINNER_PLANNER, BEGINNER_INSTRUCTOR = _persona_blocks(persona_texts.BEGINNER_TEXT, BEGINNER_PLAN_SHAPE, UNMEASURED_GUARD)

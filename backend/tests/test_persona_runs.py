@@ -163,19 +163,26 @@ def style_events(trace):
     return [(e["event"], e["agent"], json.loads(e["detail"])) for e in trace if e["event"].startswith("style_")]
 
 
-def test_marching_text_within_15_words_passes_the_style_check_for_coach_and_planner(sessions_root, fixture_data, ai_on, monkeypatch):
+def test_a_clean_marching_submission_passes_the_style_check_for_the_coach(sessions_root, fixture_data, ai_on, monkeypatch):
     use_persona_agents(monkeypatch, MARCHING)
     _, _, trace = run_for(fixture_data, "marching")
     assert {(event, agent) for event, agent, _ in style_events(trace)} >= {("style_pass", "coach")}
 
 
 def test_a_style_break_is_traced_but_the_feedback_is_kept_unchanged(sessions_root, fixture_data, ai_on, monkeypatch):
+    text = "Bar 3 is late by about 88 ms on 2 notes and your volume was weak."
+    use_persona_agents(monkeypatch, MARCHING, coach_text=text)
+    feedback, _, trace = run_for(fixture_data, "marching")
+    assert [s["text"] for s in feedback["sentences"]] == [text] and feedback["mode"] == "ai"
+    fails = [d for event, agent, d in style_events(trace) if event == "style_fail" and agent == "coach"]
+    assert fails == [{"agent": "coach", "rule": "no_unmeasured_judgments", "index": 0}]
+
+
+def test_a_long_marching_sentence_is_no_style_fail_because_the_text_sets_no_word_limit(sessions_root, fixture_data, ai_on, monkeypatch):
     long_text = "Bar 3 is late by about 88 ms on 2 notes, so keep your feet marking time and play with a full breath every time."
     use_persona_agents(monkeypatch, MARCHING, coach_text=long_text)
-    feedback, _, trace = run_for(fixture_data, "marching")
-    assert [s["text"] for s in feedback["sentences"]] == [long_text] and feedback["mode"] == "ai"
-    fails = [d for event, agent, d in style_events(trace) if event == "style_fail" and agent == "coach"]
-    assert fails == [{"agent": "coach", "rule": "max_15_words", "index": 0}]
+    _, _, trace = run_for(fixture_data, "marching")
+    assert not [e for e in style_events(trace) if e[0] == "style_fail"]
 
 
 def test_a_judgment_of_an_unmeasured_quality_is_traced_as_a_style_fail(sessions_root, fixture_data, ai_on, monkeypatch):
