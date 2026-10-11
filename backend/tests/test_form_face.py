@@ -96,6 +96,15 @@ def test_a_smile_embouchure_inside_a_note_is_flagged(run_form, stub_face):
     assert flag["value"] == pytest.approx(0.6) and flag["threshold"] == 0.5
 
 
+def test_a_take_analysed_before_as_side_view_is_cropped_by_the_ear(run_form, stub_face, monkeypatch):
+    views = []
+    real_crop = face.crop_face
+    monkeypatch.setattr(face, "crop_face", lambda bgr, pose, view: views.append(view) or real_crop(bgr, pose, view))
+    stub_face(lambda i: NEUTRAL)
+    run_form([(0.0, 4.0)], form={"view": "side"})
+    assert set(views) == {"side"}
+
+
 def test_the_larger_smile_side_counts(run_form, stub_face):
     stub_face(lambda i: {**NEUTRAL, "mouthSmileLeft": 0.2, "mouthSmileRight": 0.8})
     [flag] = face_flags(run_form([(0.0, 4.0)]))

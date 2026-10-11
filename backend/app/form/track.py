@@ -153,7 +153,8 @@ def track_take(session_id: str, take_id: str) -> TrackResult:
     take = get_take(session_id, take_id)
     instrument = store.get(session_id).instrument
     video_path = store.session_dir(session_id) / take["file"]
-    reader = FaceReader(take.get("notes") or [], (take.get("form") or {}).get("view")) if config.FACE_ENABLED and instrument == "trumpet" else None
+    view = (take.get("form") or {}).get("view")  # known only when the take was analysed before; a first run crops as front
+    reader = FaceReader(take.get("notes") or [], view) if config.FACE_ENABLED and instrument == "trumpet" else None
     with reader or nullcontext():
         result = track_video(video_path, instrument == "violin", on_frame=reader.read if reader else None)
     result.face = reader.result if reader else None
