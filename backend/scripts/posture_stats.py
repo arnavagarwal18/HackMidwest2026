@@ -1,9 +1,10 @@
 """Good-posture statistics from the approved YouTube trumpet videos (LLD-4 change 10).
 
-Usage (from the repo root): backend/.venv/bin/python backend/scripts/posture_stats.py [--fps 5] [--cap-s 120] [--limit N]
+Usage (from the repo root): backend/.venv/bin/python backend/scripts/posture_stats.py [--fps 5] [--cap-s 120] [--max-seconds 290] [--limit N]
 
 Reads testdata/youtube/manifest.csv, and for each downloaded video (one at a time, the pose landmarker freed after each):
-tracks it with app.form.track.track_video at --fps for the first --cap-s seconds of video, detects the view (front or side) with
+tracks it with app.form.track.track_video at --fps for the first --cap-s seconds of video (never more than --max-seconds, default 290,
+the video-length cap of video_cap.py that bounds memory use; 0 lifts it, for deliberate full-length runs on other machines), detects the view (front or side) with
 app.form.view, skips it if no pose is found in more than 70% of the sampled frames, and takes the absolute (not baseline-relative)
 posture measures of app.form.measures / side_measures plus the bell-angle proxy (defined in posture_stats_measures.py) on
 every tracked frame. Writes testdata/youtube/posture_stats.csv (one row per video x measure: 1st/5th/50th/95th/99th percentiles), each video's rows as soon as it is done,
@@ -22,10 +23,10 @@ sys.path.insert(0, str(Path(__file__).parent))  # for the sibling posture_stats_
 
 from app.form import config  # noqa: E402
 from app.form.measures import frame_measures  # noqa: E402
-from app.form.track import track_video  # noqa: E402
 from app.form.view import detect_view, near_side  # noqa: E402
 from posture_stats_measures import PERCENTILES, measure_specs, percentiles  # noqa: E402
 from posture_stats_report import write_results_section  # noqa: E402
+from video_cap import add_max_seconds_argument, analysis_window, track_video_capped  # noqa: E402
 
 YOUTUBE_DIR = Path(__file__).parents[2] / "testdata" / "youtube"
 MANIFEST_CSV = YOUTUBE_DIR / "manifest.csv"
@@ -42,10 +43,6 @@ WALL_LIMIT_S = 900  # track_video's own wall-clock limit; far above what a cappe
 log = logging.getLogger("posture_stats")
 
 
-class CapReached(Exception):
-    """Raised from track_video's per-frame callback to stop once the video-time cap has been passed."""
-
-
 @dataclass
 class VideoStats:
     video_id: str
@@ -58,27 +55,11 @@ class VideoStats:
     short_measures: dict[str, int] = field(default_factory=dict)  # measure -> usable frames, when under MIN_MEASURE_FRAMES
 
 
-def track_capped(video: Path, cap_s: float) -> tuple[list[dict], float]:
-    """(frames, aspect): the tracked frames of the first cap_s seconds of video time (the app's {t, pose, ...} dicts)."""
-    frames, aspects = [], []
-
-    def collect(full_bgr, seconds: float, frame: dict) -> None:
-        if seconds > cap_s:
-            raise CapReached
-        aspects.append(full_bgr.shape[1] / full_bgr.shape[0])
-        frames.append({"t": seconds, **frame})
-
-    try:
-        track_video(video, with_hands=False, time_limit_s=WALL_LIMIT_S, on_frame=collect)
-    except CapReached:
-        pass
-    return frames, aspects[0] if aspects else 1.0
-
-
 def analyse_video(video_id: str, video: Path, cap_s: float) -> VideoStats:
     """Track one video and take its measures. A skipped video comes back with skip_reason set."""
     stats = VideoStats(video_id)
-    frames, aspect = track_capped(video, cap_s)
+    track = track_video_capped(video, cap_s, WALL_LIMIT_S)
+    frames, aspect = track.frames, track.aspect
     stats.frames_sampled = len(frames)
     stats.frames_tracked = sum(1 for f in frames if f["pose"] is not None)
     if stats.frames_tracked < MIN_TRACKED_FRACTION * stats.frames_sampled:
@@ -130,9 +111,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--fps", type=float, default=DEFAULT_FPS, help="sample rate in frames per second of video")
     parser.add_argument("--cap-s", type=float, default=DEFAULT_CAP_S, help="analyse only the first N seconds of each video")
+    add_max_seconds_argument(parser)
     parser.add_argument("--limit", type=int, help="only the first N manifest rows")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    window_s = analysis_window(args.cap_s, args.max_seconds)  # seconds of each video actually analysed
     config.FPS = args.fps  # track_video reads the sample rate from here; this script's own process only
 
     with MANIFEST_CSV.open(encoding="utf-8", newline="") as f:
@@ -142,13 +125,13 @@ def main() -> int:
         writer = csv.DictWriter(f, fieldnames=STATS_FIELDS)
         writer.writeheader()
         for number, row in enumerate(rows, 1):
-            stats = process_manifest_row(row, args.cap_s)
+            stats = process_manifest_row(row, window_s)
             log.info("[%d/%d] %s: %s", number, len(rows), row["id"], stats.skip_reason or f"{stats.view}, {stats.frames_tracked}/{stats.frames_sampled} frames")
             writer.writerows(stats_rows(stats))
             f.flush()  # each video's rows reach the disk as soon as it is done, so a crash loses nothing earlier
             all_stats.append(stats)
             gc.collect()  # the landmarker was closed by track_video; drop its frames before the next video
-    write_results_section(RESULTS_MD, all_stats, args.fps, args.cap_s)
+    write_results_section(RESULTS_MD, all_stats, args.fps, window_s)
     log.info("wrote %s and the results section of %s", STATS_CSV, RESULTS_MD)
     return 0
 
