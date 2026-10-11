@@ -249,6 +249,14 @@ test('bars 1-8 are tried first, in the best key so far, and the first window tha
   assert.deepEqual(log.progress.at(-1), { bars: { from: 1, to: 8 }, semitones: -4, tried: 1, total: 8 });
 });
 
+test('after the best key, a window tries the keys nearest to the best key', async () => {
+  const bestKey = createBestKey();
+  bestKey.note(-4, { alignment_quality: 0.15 });
+  const { running, log } = windowSearch({ bestKey, passes: () => false, rerunsLeft: 6 });
+  await running;
+  assert.deepEqual(log.tries.filter(([take]) => take === 'take_1').map(([, key]) => key), [-4, -5, -3]);
+});
+
 test('a window that matches as uploaded needs no key change, and bars 9-16 are tried when 1-8 fail', async () => {
   const first = await windowSearch({ passes: (bars, key) => bars.from === 1 && key === 0 }).running;
   assert.deepEqual([first.take, first.rerun, first.semitones], ['take_1', false, 0]);

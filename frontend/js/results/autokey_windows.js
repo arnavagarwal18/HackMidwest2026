@@ -1,7 +1,7 @@
 // The bar-window fallback of the automatic key search: when no key matches the bars the take was uploaded with, the take
 // may cover only part of them (a 28 s take scored against bars 1-16). The same file is uploaded again as a new take
 // for the first and then the second half of the bars, and each half is tried in the best key found so far, in the key
-// its own notes point to, and in the nearest keys. Pure logic: the screen supplies uploadWindow and tryKey.
+// its own notes point to, and in the keys nearest to the best one. Pure logic: the screen supplies uploadWindow and tryKey.
 import { createBestKey, isMatch, keyOrder, searchKeys } from './autokey.js';
 
 export const MAX_TOTAL_RERUNS = 40; // key changes over the whole search, the first pass on the uploaded bars included
@@ -40,7 +40,7 @@ export async function searchBarWindows({ windows, original, bestKey, rerunsLeft,
     bestKey.note(checkedIn, analysis);
     if (isMatch(analysis)) return { outcome: 'found', take, bars, semitones: checkedIn, analysis, rerun: false };
 
-    const keys = keyOrder({ around: original, skip: checkedIn, analysis, prefer: [bestKey.semitones] })
+    const keys = keyOrder({ around: bestKey.semitones ?? original, skip: checkedIn, analysis, prefer: [bestKey.semitones] })
       .slice(0, Math.floor(left / (windows.length - index))); // each window gets an equal share of what is left
     const search = await searchKeys({
       keys,
