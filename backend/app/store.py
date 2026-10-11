@@ -16,6 +16,7 @@ logger = logging.getLogger("app.store")
 SESSIONS_ROOT = Path(__file__).resolve().parents[2] / "data" / "sessions"
 SESSION_FILE = "session.json"
 INSTRUMENTS = ("violin", "trumpet")
+DEFAULT_PERSONA = "standard"  # the coach style of a session that never picked one
 
 
 class SessionNotFound(AppError):
@@ -41,6 +42,7 @@ class Session:
     plans: dict[str, dict] = field(default_factory=dict)
     progress: dict = field(default_factory=dict)
     clean_tempo: dict[str, float] = field(default_factory=dict)  # '{bar_from}-{bar_to}' -> BPM
+    persona: str = DEFAULT_PERSONA  # the coach style the learner picked; session files from before personas load as 'standard'
 
 
 _READ_ONLY_FIELDS = ("session_id", "created_at")
@@ -83,13 +85,14 @@ def _load(session_id: str) -> Session | None:
         raise storage_error()
 
 
-def create(instrument: str) -> Session:
+def create(instrument: str, persona: str = DEFAULT_PERSONA) -> Session:
     if instrument not in INSTRUMENTS:
         raise AppError(422, "bad_request", "Pick violin or trumpet.")
     session = Session(
         session_id=uuid.uuid4().hex,
         instrument=instrument,
         created_at=datetime.now(timezone.utc).isoformat(),
+        persona=persona,
     )
     with _lock_for(session.session_id):
         _save(session)
