@@ -81,7 +81,7 @@ def check_sentence(index: int, sentence: Any, ctx: CheckContext, report: Report)
     jump = sentence.get("jump") or {}
     jump_numbers = [jump[k] for k in ("bar", "time_s") if is_number(jump.get(k))]
     allowed = [*_bars_cited(sentence, ctx), *jump_numbers]
-    for reason in check_text(sentence["text"], claims, allowed):
+    for reason in check_text(sentence["text"], claims, allowed, ctx):
         report.add(index, reason)
     for reason in _check_jump(sentence, ctx):
         report.add(index, reason)

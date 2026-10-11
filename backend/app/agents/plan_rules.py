@@ -92,7 +92,7 @@ def _check_text_and_claims(index: int, ex: dict, ctx: CheckContext, report: Repo
     mark = ex["pass_mark"] if isinstance(ex.get("pass_mark"), dict) else {}
     own_numbers = [ex.get(k) for k in _REQUIRED_NUMBERS] + [mark.get("max_errors"), mark.get("max_mean_timing_ms")]
     cited_bars = [b for pid in ex.get("problem_ids") or [] for b in item_bars(ctx.find(pid) or {})]
-    for reason in check_text(text, claims, [n for n in own_numbers if is_number(n)] + cited_bars):
+    for reason in check_text(text, claims, [n for n in own_numbers if is_number(n)] + cited_bars, ctx):
         report.add(index, reason)
 
 

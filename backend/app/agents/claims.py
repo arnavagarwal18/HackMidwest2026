@@ -127,10 +127,19 @@ def _check_pitch(claim: dict, item: dict) -> Optional[str]:
     return None
 
 
+def _normalized(text: Any) -> str:
+    return " ".join(text.lower().split()) if isinstance(text, str) else ""
+
+
+def _form_names(flag: dict) -> set[str]:
+    """The names a form claim may use for a stored flag: its rule id or its display label."""
+    return {_normalized(flag.get("rule")), _normalized(flag.get("label"))} - {""}
+
+
 def _check_form(claim: dict, item: dict) -> Optional[str]:
     if item_kind(item.get("id")) != "flag":
         return f"form mismatch: {claim['id']} is not a form flag"
-    if claim.get("value") != item.get("rule"):
+    if _normalized(claim.get("value")) not in _form_names(item):
         return f"form mismatch: claimed rule {claim.get('value')}, stored {item.get('rule')}"
     time_s = claim.get("time_s")
     if not is_number(time_s):
@@ -192,7 +201,18 @@ def text_numbers(text: str) -> list[tuple[str, float]]:
     return found
 
 
-def check_text(text: str, claims: list[dict], allowed_numbers: Iterable[float]) -> list[str]:
+def _flag_label_directions(claims: list[dict], ctx: CheckContext) -> set[str]:
+    """Direction words in the labels of the form flags the claims name ('low' for 'bell too low')."""
+    flags = [ctx.find(c.get("id")) for c in claims if c.get("type") == "form"]
+    return {
+        canonical_direction(word)
+        for flag in flags
+        if flag and item_kind(flag.get("id")) == "flag"
+        for word in _DIRECTION_WORD.findall(str(flag.get("label") or ""))
+    }
+
+
+def check_text(text: str, claims: list[dict], allowed_numbers: Iterable[float], ctx: CheckContext) -> list[str]:
     """Reasons the text says something no claim or cited bar backs (rule c)."""
     allowed = {round_half_up(n) for n in [*claim_numbers(claims), *allowed_numbers]}
     reasons = [
@@ -204,7 +224,7 @@ def check_text(text: str, claims: list[dict], allowed_numbers: Iterable[float]) 
         canonical_direction(c["value"])
         for c in claims
         if c.get("type") == "direction" and isinstance(c.get("value"), str)
-    }
+    } | _flag_label_directions(claims, ctx)
     for word in sorted({canonical_direction(w) for w in _DIRECTION_WORD.findall(text)} - claimed):
         reasons.append(f"unclaimed direction: '{word}' in text has no matching direction claim")
     return reasons
