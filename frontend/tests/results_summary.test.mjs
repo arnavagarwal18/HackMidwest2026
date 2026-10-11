@@ -15,8 +15,8 @@ const { currentStep, renderStepList, WAIT_STEPS } = await import('../js/results/
 const { STAGES } = await import('../js/results/load.js');
 const { renderStatStrip } = await import('../js/results/stats.js');
 const { tempoScore } = await import('../js/results/scores.js');
-const { overallShare, scoresOf, STEADY_SUGGESTION, suggestionFor, verdictWord, weakestName, NO_SCORE_WORD, NO_SCORE_SUGGESTION } = await import('../js/results/verdict.js');
-const { renderHero } = await import('../js/results/hero.js');
+const { overallShare, scoreMeasure, scoresOf, STEADY_SUGGESTION, suggestionFor, verdictHeadline, verdictWord, weakestName, NO_SCORE_WORD, NO_SCORE_SUGGESTION } = await import('../js/results/verdict.js');
+const { FOCUS_TEXT, renderHero } = await import('../js/results/hero.js');
 const { renderCantTell } = await import('../js/results/cant_tell.js');
 const { renderWorking } = await import('../js/results/status.js');
 
@@ -128,7 +128,7 @@ test('the word follows the mean of the scores there are, and the suggestion is a
   assert.equal(verdictWord(0.9), 'Great take');
   assert.equal(verdictWord(0.7), 'Good take');
   assert.equal(verdictWord(0.5), 'Getting there');
-  assert.equal(verdictWord(0.1), 'Keep at it');
+  assert.equal(verdictWord(0.1), 'Rough take', 'the vague "Keep at it" is gone');
   assert.equal(verdictWord(null), NO_SCORE_WORD);
   const scores = { Pitch: { share: 0.9 }, Rhythm: { share: 0.4 }, Tempo: null };
   assert.equal(overallShare(scores), 0.65);
@@ -137,11 +137,50 @@ test('the word follows the mean of the scores there are, and the suggestion is a
   assert.equal(suggestionFor({ Pitch: null, Rhythm: null, Tempo: null }), NO_SCORE_SUGGESTION);
 });
 
-test('the hero marks only the weakest score, in words, and has Ask coach and Try again', () => {
-  const hero = renderHero({ ...analysis, bars: analysis.bars.map((bar) => ({ ...bar, drift: 'steady' })) });
-  assert.deepEqual(hero.texts('mini-flag'), ['Weakest']);
-  assert.equal(hero.withClass('weakest').length, 1);
-  assert.ok(hero.withClass('weakest')[0].texts('mini-label')[0] === 'Rhythm');
+const steadyAnalysis = { ...analysis, bars: analysis.bars.map((bar) => ({ ...bar, drift: 'steady' })) };
+const scoreItems = (hero) => hero.withClass('score-item');
+
+test('the verdict headline names the weakest area, and only the word is left when there is nothing to compare', () => {
+  const hero = renderHero(steadyAnalysis);
+  assert.deepEqual(hero.texts('verdict-title'), ['Good take — rhythm is your weak spot']);
+  assert.equal(verdictHeadline({ Pitch: { share: 0.3 }, Rhythm: { share: 0.6 }, Tempo: { share: 0.7 } }), 'Getting there — pitch is your weak spot');
+  assert.match(verdictHeadline({ Pitch: { share: 0.95 }, Rhythm: { share: 0.92 }, Tempo: null }), /^Great take — even rhythm, your lowest, held up$/);
+  assert.equal(verdictHeadline({ Pitch: { share: 0.6 }, Rhythm: null, Tempo: null }), 'Getting there');
+  assert.equal(renderHero({ bars: [] }).texts('verdict-title')[0], NO_SCORE_WORD);
+});
+
+test('each score says what it measures, worded for its number, and says plainly when it was not measured', () => {
+  const items = scoreItems(renderHero(steadyAnalysis));
+  assert.deepEqual(items.map((item) => item.texts('score-name')[0].replace(FOCUS_TEXT, '')), ['Pitch', 'Rhythm', 'Tempo']);
+  assert.deepEqual(items.map((item) => item.texts('score-value')[0]), ['75%', '67%', '2 of 2']);
+  assert.deepEqual(items.map((item) => item.texts('score-measure')[0]), [
+    'of notes played right (6 of 8)',
+    'of notes on the beat (2 of 3)',
+    'bars at a steady tempo',
+  ]);
+  assert.deepEqual(scoreMeasure('Tempo', null), { value: '–', measure: 'Not measured: no bar tempos' });
+  const unmeasured = scoreItems(renderHero(analysis))[2];
+  assert.ok(unmeasured.className.includes('not-measured'));
+  assert.equal(unmeasured.texts('score-measure')[0], 'Not measured: no bar tempos');
+});
+
+test('the hero marks only the weakest score with "Focus here" in words, and has Ask coach and Try again', () => {
+  const hero = renderHero(steadyAnalysis);
+  assert.deepEqual(hero.texts('focus-tag'), [FOCUS_TEXT]);
+  assert.equal(FOCUS_TEXT, 'Focus here');
+  assert.equal(hero.withClass('is-focus').length, 1);
+  assert.equal(hero.withClass('is-focus')[0].texts('score-name')[0], `Rhythm${FOCUS_TEXT}`);
+  assert.equal(hero.withClass('badge').length + hero.withClass('pill').length, 0, 'a plain word, no pill');
   assert.equal(scoresOf(analysis).Tempo, null);
-  assert.equal(renderHero({ bars: [] }).texts('mini-flag').length, 0, 'nothing is highlighted when there is nothing to compare');
+  assert.equal(renderHero({ bars: [] }).texts('focus-tag').length, 0, 'nothing is marked when there is nothing to compare');
+  assert.ok(hero.button('Ask coach') && hero.button('Try again'));
+});
+
+test('Ask coach (#ask-coach) dispatches coach:open on the document', () => {
+  const opened = [];
+  dom.document.dispatchEvent = (event) => opened.push(event.type);
+  const askCoach = renderHero(steadyAnalysis).button('Ask coach');
+  assert.equal(askCoach.id, 'ask-coach');
+  askCoach.click();
+  assert.deepEqual(opened, ['coach:open']);
 });

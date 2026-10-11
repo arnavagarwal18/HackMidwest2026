@@ -1,11 +1,10 @@
-// Renders a finished analysis. First glance: the hero (results/hero.js). Everything else sits behind quiet tap-to-open rows:
-//   Bar by bar (strip)  Bars to work on (reasons)  The numbers (scores, key)  Detailed feedback  Your recording  Practice plan
-// The can't-tell state (results/cant_tell.js) has no rows.
+// Renders a finished analysis, top to bottom: the recording, the verdict (results/hero.js), Bar by bar (results/strip.js),
+// Practice next (results/plan.js), then quiet tap-to-open rows: The numbers (scores, key) and Detailed feedback (with the trace link).
+// The can't-tell state (results/cant_tell.js) has none of these.
 import { takeMediaUrl } from '../api.js';
 import { element } from '../dom.js';
 import { state } from '../state.js';
-import { emptyState, pageHeader } from '../ui/components.js';
-import { createBarList } from './bars.js';
+import { emptyState } from '../ui/components.js';
 import { createJumper } from './jumper.js';
 import { renderBarActions } from './loop.js';
 import { buildMeasurementIndex } from './measurements.js';
@@ -13,7 +12,7 @@ import { createMediaPlayer, isVideoTake } from './media.js';
 import { renderCantTell } from './cant_tell.js';
 import { renderDetectionChip } from './detection.js';
 import { renderHero } from './hero.js';
-import { renderPlan, renderTraceLink } from './plan.js';
+import { renderPracticeNext, renderTraceLink } from './plan.js';
 import { disclosureRow } from './rows.js';
 import { renderSentenceList } from './sentences.js';
 import { renderStatStrip } from './stats.js';
@@ -27,10 +26,12 @@ export function renderFailed(view, analysis) {
   renderStopped(view, { heading: 'This take could not be checked', message: analysis.error?.message ?? FAILED_DEFAULT_TEXT });
 }
 
-// The tier 1 sentences are the measured results; in fallback mode the coach's sentences repeat them, so drop the repeats.
-function coachSentences(feedback, tier1) {
+// { tier1, coach }: the tier 1 sentences are the measured results; in fallback mode the coach's sentences repeat them, so drop the repeats.
+function feedbackSentences(feedback, analysis) {
+  const tier1 = analysis.tier1 ?? [];
   const measured = new Set(tier1.map((sentence) => sentence.text));
-  return (feedback.sentences ?? []).filter((sentence) => !(feedback.mode === 'fallback' && measured.has(sentence.text)));
+  const coach = (feedback.sentences ?? []).filter((sentence) => !(feedback.mode === 'fallback' && measured.has(sentence.text)));
+  return { tier1, coach };
 }
 
 // The sentences of one kind (a list with its own small title), for the "Detailed feedback" row.
@@ -41,9 +42,7 @@ function sentenceSection(title, className, sentences, jumpContext) {
 }
 
 // The measured sentences, the coach's notes, the fallback notice and the 'How the AI worked' link, in one row.
-function feedbackRow(feedback, analysis, jumpContext) {
-  const tier1 = analysis.tier1 ?? [];
-  const coach = coachSentences(feedback, tier1);
+function feedbackRow(feedback, { tier1, coach }, jumpContext) {
   const parts = [];
   if (feedback.mode === 'fallback') parts.push(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
   if (tier1.length) parts.push(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
@@ -71,22 +70,18 @@ export function renderDone(view, data, context) {
 
   const video = isVideoTake(analysis, state.take_setup.kind);
   const player = createMediaPlayer({ video, url: takeMediaUrl(context.sessionId, context.take) });
+  const sentences = feedbackSentences(feedback, analysis);
+  let barStrip = null; // a jump selects the bar's box, once the boxes exist (they need the jumper too)
+  const barBoxes = { select: (barNumber, options) => barStrip?.select(barNumber, options) };
+  const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barBoxes }) };
   const renderActions = (bar) => renderBarActions(bar, { plan, analysis });
-  const barList = createBarList(analysis, renderActions);
-  const barsRow = disclosureRow('Bars to work on', 'bars-row', [barList.section]);
-  // A jump to a bar opens the row that holds it, so the highlighted bar is on screen.
-  const revealingList = { highlight: (bar) => { barsRow.open = true; barList.highlight(bar); } };
-  const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList: revealingList }) };
-  const barStrip = createBarStrip(analysis, { ...jumpContext, renderActions });
+  barStrip = createBarStrip(analysis, { jumpContext, sentences: [...sentences.tier1, ...sentences.coach], renderActions });
+  const goToBar = { canShow: (barNumber) => Boolean(barStrip?.hasBar(barNumber)), show: (barNumber) => barBoxes.select(barNumber, { reveal: true }) };
+  const practiceNext = renderPracticeNext(plan, goToBar);
 
-  view.replaceChildren(pageHeader({ title: 'Results' }), renderHero(analysis));
-  if (barStrip) view.append(disclosureRow('Bar by bar', 'strip-row', [barStrip.section]));
-  view.append(
-    barsRow,
-    numbersRow(analysis, context),
-    feedbackRow(feedback, analysis, jumpContext),
-    disclosureRow('Your recording', 'media-row', [player.section]),
-    disclosureRow('Practice plan', 'plan-row', [renderPlan(plan, { heading: false })]),
-  );
-  return { ...jumpContext, player, barList, barStrip, analysis, feedback };
+  view.replaceChildren(player.section, renderHero(analysis));
+  if (barStrip) view.append(barStrip.section);
+  if (practiceNext) view.append(practiceNext);
+  view.append(numbersRow(analysis, context), feedbackRow(feedback, sentences, jumpContext));
+  return { ...jumpContext, player, barStrip, analysis, feedback };
 }

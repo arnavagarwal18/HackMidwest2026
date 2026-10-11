@@ -6,7 +6,9 @@ import { installFakeDom } from './fake_dom.mjs';
 const dom = installFakeDom();
 dom.window.location.search = '?mock=1';
 
-const { createBarList, problemBars } = await import('../js/results/bars.js');
+const { problemBars } = await import('../js/results/bars.js');
+const { renderBarDetail } = await import('../js/results/bar_detail.js');
+const { buildMeasurementIndex } = await import('../js/results/measurements.js');
 const { problemBarCounts } = await import('../js/results/bar_kinds.js');
 const { reasonsForBar } = await import('../js/results/problem_reasons.js');
 const { renderStatStrip } = await import('../js/results/stats.js');
@@ -46,14 +48,22 @@ test('timing, tempo and unknown kinds each get a reason; a covered bar with clea
   assert.equal(warnings.length, 1);
 });
 
-test('every row of the list says why, and the Bars to work on count equals the rows', () => {
+// The Bar by bar detail of one bar, as one node.
+function barDetail(barToShow) {
+  const node = dom.document.createElement('div');
+  const look = { verdict: { glyph: '!', words: 'needs work' }, level: 'okay', flagged: true };
+  const jumpContext = { index: buildMeasurementIndex(analysis), jumper: { jumpTo() {} } };
+  node.append(...renderBarDetail(barToShow, look, { analysis, jumpContext, sentences: [], renderActions: () => dom.document.createElement('p') }));
+  return node;
+}
+
+test('the detail of every flagged bar says why, and the Bars to work on count equals the flagged bars', () => {
   const listed = problemBars(analysis).map((b) => b.bar);
   assert.deepEqual(listed, [4, 7, 8, 2, 3, 1]);
-  const rows = createBarList(analysis).section.all().filter((n) => n.tagName === 'LI');
-  assert.equal(rows.length, listed.length);
-  rows.forEach((row) => {
-    const text = row.texts('bar-counts')[0] + (row.texts('bar-reason')[0] ?? '');
-    assert.ok(/extra|Flagged: Posture: slouching/.test(text), `row ${row.attributes['data-bar']} gives no reason: ${text}`);
+  problemBars(analysis).forEach((flagged) => {
+    const detail = barDetail(flagged);
+    const text = detail.texts('bar-counts')[0] + (detail.texts('bar-reason')[0] ?? '');
+    assert.ok(/extra|Flagged: Posture: slouching/.test(text), `bar ${flagged.bar} gives no reason: ${text}`);
   });
   const count = renderStatStrip({ ...analysis, bars: analysis.bars.map((b) => ({ ...b })) }).all().find((n) => n.texts('lbl')[0] === 'Bars to work on');
   assert.equal(count.texts('num')[0], String(listed.length));

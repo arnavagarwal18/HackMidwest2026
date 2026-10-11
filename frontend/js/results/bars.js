@@ -1,8 +1,6 @@
-// The problem-bar list: every bar with a problem, worst first. highlight(bar) marks a row and scrolls it into view.
+// The bars with a problem, worst first, and the counts, drift and meter of one bar (the Bar by bar detail shows them).
 import { element } from '../dom.js';
-import { hasMistakes, reasonsForBar } from './problem_reasons.js';
-
-const HIGHLIGHT_CLASS = 'highlighted';
+import { hasMistakes } from './problem_reasons.js';
 
 function barScores(problems) {
   const scores = new Map();
@@ -47,39 +45,11 @@ function renderMeter(bar) {
   return meter;
 }
 
-// The detail of one bar (its number, counts, drift and meter), added to `container`; the bar list rows and the bar strip share it.
+// The detail of one bar (its number, counts, drift and meter), added to `container`.
 export function addBarDetail(container, bar) {
   container.append(element('strong', `Bar ${bar.bar}`), element('span', countsText(bar), 'bar-counts'));
   const drift = driftText(bar);
   if (drift) container.append(element('span', drift, `bar-drift drift-${bar.drift}`));
   container.append(renderMeter(bar));
   return container;
-}
-
-function barRow(bar, analysis, renderActions) {
-  const row = element('li', '', 'bar-row', { id: `bar-row-${bar.bar}`, 'data-bar': String(bar.bar), tabindex: '-1' });
-  addBarDetail(row, bar);
-  const reasons = reasonsForBar(analysis, bar);
-  if (reasons.length) row.append(element('span', `Flagged: ${reasons.join('; ')}`, 'bar-reason'));
-  if (renderActions) row.append(renderActions(bar));
-  return row;
-}
-
-// renderActions(bar) gives the buttons on each row (optional). Returns { section, highlight(bar) }.
-export function createBarList(analysis, renderActions = null) {
-  const section = element('section', '', 'bar-list', { id: 'problem-bars' });
-  const bars = problemBars(analysis);
-  const list = element('ol', '', 'bar-rows');
-  bars.forEach((bar) => list.append(barRow(bar, analysis, renderActions)));
-  section.append(bars.length ? list : element('p', 'No bars with problems.', 'muted'));
-
-  function highlight(barNumber) {
-    list.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((row) => row.classList.remove(HIGHLIGHT_CLASS));
-    const row = list.querySelector(`[data-bar="${barNumber}"]`);
-    if (!row) return;
-    row.classList.add(HIGHLIGHT_CLASS);
-    row.scrollIntoView({ block: 'center' });
-  }
-
-  return { section, highlight };
 }

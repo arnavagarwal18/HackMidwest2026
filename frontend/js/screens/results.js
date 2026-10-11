@@ -11,13 +11,16 @@ import { render as renderChat } from './chat.js';
 
 // Results for one take: poll the analysis, then show the hero and its rows (see results/view.js).
 // The coach sheet is mounted into #coach-root; it stays closed until the 'Ask coach' button (or anything else) fires 'coach:open'.
+// From 901px wide the results and #coach-root sit side by side (.results-layout in css/results.css); below that #coach-root follows the results.
 export async function render(root, params) {
   const { take } = params;
   const sessionId = state.session_id ?? 'no-session';
   state.current_take_id = take;
   const view = element('section', '', 'results');
   const coachRoot = element('div', '', '', { id: 'coach-root' });
-  root.append(view, coachRoot);
+  const layout = element('div', '', 'results-layout');
+  layout.append(view, coachRoot);
+  root.append(layout);
   let shown = null; // the analysis, feedback and plan on screen, so a new coach style can redraw them with its feedback
   const chat = renderChat(coachRoot, { take, onFeedback: redrawWithFeedback });
 

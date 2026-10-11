@@ -1,4 +1,5 @@
-// The take's media: a <video> (with a stage the overlay canvas can sit on) or an <audio> for a mic take.
+// The take's media: a <video> (with a stage the overlay canvas can sit on) or an <audio> for a mic take, at the top of the results.
+// When the recording cannot be loaded the section hides itself (nothing to show), and the error is logged and reported.
 import { reportError } from '../banner.js';
 import { element } from '../dom.js';
 
@@ -13,13 +14,14 @@ export function createMediaPlayer({ video, url }) {
   const stage = element('div', '', 'video-stage', { id: 'video-stage' });
   stage.append(mediaElement);
   const formFlagSlot = element('div', '', 'form-flag-slot', { id: 'form-flag-slot', 'data-slot': 'form-flags' });
-  const section = element('section', '', 'results-media', { id: 'results-media', 'aria-label': 'Your recording' });
-  section.append(element('h2', video ? 'Your video' : 'Your recording'), stage);
+  const section = element('section', '', 'results-media', { id: 'results-media', 'aria-label': video ? 'Your video' : 'Your recording' });
+  section.append(stage);
   if (video) section.append(formFlagSlot);
 
   mediaElement.addEventListener('error', () => {
     const code = mediaElement.error?.code ?? 'unknown';
     console.error(`The take's media could not be loaded (media error ${code}):`, url);
+    section.hidden = true;
     reportError(new Error('The recording could not be loaded, so jumping to a moment will not work.'));
   });
 

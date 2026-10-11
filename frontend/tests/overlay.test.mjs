@@ -138,7 +138,7 @@ function setup({ tag = 'video', analysisOverride = {}, getTracks = async () => t
   const seeks = [];
   const player = { mediaElement, stage, formFlagSlot, seekTo: (seconds) => seeks.push(seconds) };
   const analysisUsed = { ...analysis, ...analysisOverride };
-  const jumper = createJumper({ player, barList: { highlight() {} } });
+  const jumper = createJumper({ player, barBoxes: { select() {} } });
   const rendered = { player, analysis: analysisUsed, index: buildMeasurementIndex(analysisUsed), jumper };
 
   const fetches = [];

@@ -6,7 +6,7 @@
 .results-status .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; }
 .notice { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--brass-soft); color: var(--brass); font-weight: 600; }
 
-.sentences, .bar-rows, .exercises { list-style: none; margin: 0 0 var(--sp-3); padding: 0; }
+.sentences, .exercises { list-style: none; margin: 0 0 var(--sp-3); padding: 0; }
 .results .sentences { display: grid; gap: var(--sp-2); }
 .sentence { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
 .sentence:first-child { border-top: 0; padding-top: 0; }
@@ -26,12 +26,6 @@
 }
 button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 
-.bar-rows { display: grid; gap: var(--sp-2); }
-.bar-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
-.bar-row strong { font-family: var(--font-display); font-size: var(--fs-lg); }
-.bar-row.highlighted { background: var(--brass-soft); }
-.bar-row .meter { grid-column: 2 / -1; grid-row: 2; }
-.bar-row .bar-reason { grid-column: 2 / -1; grid-row: 3; color: var(--muted); font-size: var(--fs-sm); }
 .meter { height: 6px; overflow: hidden; border-radius: var(--radius); background: var(--surface-2); }
 .meter > i { display: block; height: 100%; border-radius: var(--radius); background: var(--ok); }
 .bar-drift { white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
@@ -44,9 +38,10 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .results-skeleton .skeleton-block { height: 6rem; }
 @media (max-width: 40rem) { .score-strip .stat-value { font-size: var(--fs-xl); } }
 
-.results-media { margin: var(--sp-3) 0; }
+.results-media { margin: 0 0 var(--sp-3); }
 .video-stage { position: relative; display: inline-block; max-width: 100%; border-radius: var(--radius-card); overflow: hidden; background: var(--media-bg); }
 .take-video { display: block; max-width: 100%; }
+@media (min-width: 901px) { .take-video { max-height: 200px; } }
 .take-audio { width: 100%; }
 
 .exercises { display: grid; gap: var(--sp-3); }
@@ -73,45 +68,89 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .key-summary, .heard-summary, .next-action { margin: 0 0 var(--sp-2); }
 .next-action { font-weight: 600; }
 
-/* Bar strip: one cell per bar, tinted by result and carrying a glyph. Each cell takes its tone token for the edge and a light tint of it for the fill; the text stays ink. */
-.bar-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr)); gap: var(--sp-2); margin: 0 0 var(--sp-2); }
-.bar-cell { --tone: var(--ok); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-1); min-width: var(--tap); min-height: 3.5rem; padding: var(--sp-1); border: 2px solid var(--tone); border-radius: var(--radius); background: color-mix(in srgb, var(--tone) 10%, var(--surface)); color: var(--ink); line-height: 1.25; }
-.bar-cell:hover { border-color: var(--ink); }
-.bar-cell-num { font-size: var(--fs-sm); font-weight: 600; }
-.bar-cell-glyph { font-size: var(--fs-lg); font-weight: 700; }
-.bar-cell.tone-flat, .bar-cell.tone-early { --tone: var(--flat); }
-.bar-cell.tone-sharp, .bar-cell.tone-late { --tone: var(--sharp); }
-.bar-cell.tone-unclear { --tone: var(--muted); }
-.bar-cell.selected { outline: var(--focus-ring); outline-offset: 2px; }
-.bar-legend { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+/* Bar by bar: one box per bar with its number and a word. Each level has a fill and an edge token; the text stays ink.
+   Until the global palette defines them, the status tokens are set here. In the dark scheme the fills are the edge over the surface. */
+.results {
+  --status-good-fill: #CDEFD8; --status-good-border: #30A46C;
+  --status-okay-fill: #FBE7B5; --status-okay-border: #B7791F;
+  --status-needs-work-fill: #F9D0CE; --status-needs-work-border: #E5484D;
+}
+@media (prefers-color-scheme: dark) {
+  .results {
+    --status-good-fill: color-mix(in srgb, var(--status-good-border) 28%, var(--surface));
+    --status-okay-fill: color-mix(in srgb, var(--status-okay-border) 28%, var(--surface));
+    --status-needs-work-fill: color-mix(in srgb, var(--status-needs-work-border) 28%, var(--surface));
+  }
+}
+.level-good { --fill: var(--status-good-fill); --fill-edge: var(--status-good-border); }
+.level-okay { --fill: var(--status-okay-fill); --fill-edge: var(--status-okay-border); }
+.level-needs-work { --fill: var(--status-needs-work-fill); --fill-edge: var(--status-needs-work-border); }
+.bar-strip-section { margin-top: var(--sp-5); }
+.bar-strip-section h2, .practice-next h2 { margin: 0 0 var(--sp-1); }
+.bars-lead { margin: 0; }
+.bar-strip { display: grid; grid-template-columns: repeat(var(--bar-columns), minmax(44px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0 0; }
+@media (max-width: 900px) { .bar-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.bar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: var(--tap); min-height: 56px; padding: var(--sp-1) 2px; border: 2px solid var(--fill-edge); border-radius: var(--radius); background: var(--fill); color: var(--ink); font: inherit; line-height: 1.15; cursor: pointer; }
+.bar-box-num { font-size: var(--fs-md); font-weight: 700; }
+.bar-box-word { font-size: var(--fs-xs); font-weight: 600; text-align: center; }
+.bar-box.selected { outline: 3px solid var(--accent); outline-offset: 2px; }
+.bar-legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) 0 0; padding: 0; list-style: none; font-size: var(--fs-sm); }
+.bar-legend li::before { content: ""; display: inline-block; width: 0.8em; height: 0.8em; margin-right: var(--sp-1); border: 2px solid var(--fill-edge); border-radius: 2px; background: var(--fill); vertical-align: -0.1em; }
 .bar-detail:empty { display: none; }
-.bar-detail { padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
+.bar-detail { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.bar-detail-title { margin: 0 0 var(--sp-1); font-size: var(--fs-lg); }
 .bar-detail-verdict { margin: 0 0 var(--sp-2); font-weight: 600; }
 .bar-detail-body { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .bar-detail-body .meter { grid-column: 2 / -1; }
-.bar-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 0; }
-.bar-detail > .bar-actions { margin-top: var(--sp-3); }
+.bar-detail .bar-reason { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-sm); }
+.bar-detail .sentences { margin: var(--sp-3) 0 0; }
+.bar-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
+.bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; }
+.bar-detail-actions .btn, .bar-actions a, .bar-actions button { min-height: var(--tap); }
 .loop-hint:empty { display: none; }
 .results .detect-chip { display: flex; }
 
-/* First glance: one word, one number, three small scores (the weakest named in words as well as set apart), one sentence, two buttons. */
-.hero { margin: var(--sp-4) 0 var(--sp-5); }
-.hero-word { margin: 0; font: 600 var(--fs-xl)/1.2 var(--font-display); }
-.hero-number { margin: 0 0 var(--sp-4); font: 700 4rem/1.1 var(--font-display); }
-.mini-scores { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin: 0 0 var(--sp-4); padding: 0; list-style: none; }
-.mini-score { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--sp-1); border-bottom: 2px solid transparent; color: var(--muted); }
-.mini-label { font-size: var(--fs-sm); }
-.mini-value { font: 600 var(--fs-lg)/1.2 var(--font-display); }
-.mini-score.weakest { border-bottom-color: var(--brass); color: var(--ink); }
-.mini-flag { color: var(--brass); font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.suggestion { margin: 0 0 var(--sp-4); font-size: var(--fs-md); }
+/* The verdict: a headline naming the weakest area, three labelled scores (stacked when narrow, side by side from 901px),
+   the weakest marked "Focus here" in words and the accent colour, one sentence, two buttons. Hairlines, no cards. */
+.hero { margin: 0; }
+.verdict-title { margin: var(--sp-2) 0 0; }
+.scores { margin: var(--sp-4) 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.score-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 0 var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
+.score-name { font-weight: 600; }
+.score-measure { grid-column: 1; color: var(--muted); font-size: var(--fs-sm); }
+.score-value { grid-row: 1 / span 2; grid-column: 2; font: 600 var(--fs-xl)/1.2 var(--font-display); text-align: right; white-space: nowrap; }
+.score-item.not-measured .score-value { color: var(--muted); }
+.focus-tag { margin-left: var(--sp-2); color: var(--accent); font-weight: 700; white-space: nowrap; }
+.score-item.is-focus .score-value { color: var(--accent); }
+@media (min-width: 901px) {
+  .scores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); border-top: 0; }
+  .score-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3) 0 0; border-top: 1px solid var(--line); border-bottom: 0; }
+  .score-value { text-align: left; }
+}
+.suggestion { margin: var(--sp-4) 0; font-size: var(--fs-md); }
 .hero .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; }
 .hero .actions .btn { min-height: var(--tap); min-width: var(--tap); }
+
+/* Practice next: the plan's first steps, numbered, each with Go to bar and Practice this. */
+.practice-next { margin-top: var(--sp-5); }
+.practice-steps { margin: var(--sp-2) 0 0; padding: 0; list-style: none; counter-reset: step; }
+.practice-step { display: grid; grid-template-columns: 1.5em minmax(0, 1fr); gap: 0 var(--sp-2); padding: var(--sp-2) 0; border-top: 1px solid var(--line); counter-increment: step; }
+.practice-step::before { content: counter(step); grid-row: 1 / span 2; font-weight: 600; color: var(--muted); }
+.practice-step .step-text { margin: 0; }
+.practice-step .step-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-1) 0 0; }
+.practice-step .btn { min-height: var(--tap); }
+
+.results > .practice-next + .disclosure, .results > .bar-strip-section + .disclosure { margin-top: var(--sp-5); }
 .results > .disclosure { border-top: 1px solid var(--line); }
 .results > .disclosure + .disclosure { margin-top: 0; }
 .results > .disclosure[open] { padding-bottom: var(--sp-3); }
 .tier1 h3, .coach h3 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--fs-md); }
 .exercise a.btn, .results .trace-link, .detect-change { min-height: var(--tap); }
 
-/* The coach sheet's mount point: it holds a fixed-position sheet, so it must not pick up the card look main > div gets. */
-#coach-root { padding: 0; background: none; border: 0; box-shadow: none; }
+/* The results and the coach column. Neither the layout nor the coach sheet's mount point may pick up the card look main > div gets.
+   From 901px: the results, and #coach-root as a column about 360px wide that stays at the top while the results scroll. */
+.results-layout, #coach-root { padding: 0; background: none; border: 0; box-shadow: none; }
+@media (min-width: 901px) {
+  .results-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--sp-5); }
+  .results-layout > #coach-root { position: sticky; top: calc(var(--header-h) + var(--sp-3)); margin-top: 0; }
+}

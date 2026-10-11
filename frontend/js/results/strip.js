@@ -1,63 +1,96 @@
-// The bar strip under the summary: one cell per bar, tinted by its result and carrying a glyph (colour is never the only cue).
-// Tapping a cell shows that bar's detail below the strip and seeks the recording. That is the only second level.
+// Bar by bar: one box per bar, saying its number and a word (Good / Okay / Needs work; colour is never the only cue).
+// The boxes are buttons in one tab stop: arrow keys, Home and End move between them, and the box in focus is selected.
+// The selected box (the worst bar at first) shows its detail below the grid (bar_detail.js). A jump to a bar selects its box.
 import { element } from '../dom.js';
-import { addBarDetail, problemBars } from './bars.js';
-import { barVerdict, GLYPHS, WORDS } from './bar_verdict.js';
-import { resolveId } from './measurements.js';
+import { problemBars } from './bars.js';
+import { barLevel, LEVEL_MEANINGS, LEVEL_WORDS, LEVELS, worstBarIndex } from './bar_level.js';
+import { renderBarDetail } from './bar_detail.js';
+import { barVerdict } from './bar_verdict.js';
 
-const SELECTED_CLASS = 'selected';
+const MAX_COLUMNS = 12; // a wide row holds up to this many boxes, then wraps
+const MOVES = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
+const boxClass = (level, selected) => `bar-box level-${level}${selected ? ' selected' : ''}`;
 
-const cellClass = (verdict, selected) => `bar-cell tone-${verdict.tone}${selected ? ` ${SELECTED_CLASS}` : ''}`;
-
-function cellFor(bar, verdict) {
-  const cell = element('button', '', cellClass(verdict, false), {
+function boxFor(bar, level) {
+  const box = element('button', '', boxClass(level, false), {
     type: 'button',
     'data-bar': String(bar.bar),
+    'data-level': level,
     'aria-pressed': 'false',
     'aria-controls': 'bar-detail',
-    'aria-label': `Bar ${bar.bar}: ${verdict.words}. Show details`,
+    'aria-label': `Bar ${bar.bar}, ${LEVEL_WORDS[level].toLowerCase()}`,
+    tabindex: '-1',
   });
-  cell.append(element('span', String(bar.bar), 'bar-cell-num'), element('span', verdict.glyph, 'bar-cell-glyph', { 'aria-hidden': 'true' }));
-  return cell;
+  box.append(element('span', String(bar.bar), 'bar-box-num'), element('span', LEVEL_WORDS[level], 'bar-box-word', { 'aria-hidden': 'true' }));
+  return box;
 }
 
-function legend(verdicts) {
-  const kinds = [...new Set(verdicts.flatMap((verdict) => verdict.kinds))];
-  const list = element('p', '', 'bar-legend muted');
-  list.textContent = kinds.map((kind) => `${GLYPHS[kind]} ${WORDS[kind]}`).join('   ');
+function legend() {
+  const list = element('ul', '', 'bar-legend', { 'aria-label': 'What the words mean' });
+  LEVELS.forEach((level) => {
+    const item = element('li', '', `level-${level}`);
+    item.append(element('strong', LEVEL_WORDS[level]), ` ${LEVEL_MEANINGS[level]}`);
+    list.append(item);
+  });
   return list;
 }
 
-// context: { index, jumper, renderActions }. renderActions(bar) gives the buttons for a flagged bar.
-// Returns { section, select(barNumber) }, or null when the take has no bars.
-export function createBarStrip(analysis, { index, jumper, renderActions }) {
+// The index to move to from `at` for a key, or null for any other key.
+function targetIndex(key, at, count) {
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  if (!(key in MOVES)) return null;
+  return Math.min(count - 1, Math.max(0, at + MOVES[key]));
+}
+
+// context: { jumpContext, sentences, renderActions } (see bar_detail.js).
+// Returns { section, select(barNumber, { reveal }), hasBar(barNumber) }, or null when the take has no bars.
+export function createBarStrip(analysis, context) {
   const bars = [...(analysis.bars ?? [])].sort((a, b) => a.bar - b.bar);
   if (!bars.length) return null;
-  const flagged = new Set(problemBars(analysis).map((bar) => bar.bar));
-  const verdicts = bars.map((bar) => barVerdict(bar, analysis.notes ?? [], flagged.has(bar.bar)));
-  const section = element('section', '', 'bar-strip-section');
-  const strip = element('div', '', 'bar-strip', { role: 'group', 'aria-label': 'Every bar of this take' });
-  const cells = bars.map((bar, i) => cellFor(bar, verdicts[i]));
-  strip.append(...cells);
+  const detailContext = { ...context, analysis };
+  const problemOrder = problemBars(analysis).map((bar) => bar.bar);
+  const looks = bars.map((bar) => {
+    const flagged = problemOrder.includes(bar.bar);
+    const verdict = barVerdict(bar, analysis.notes ?? [], flagged);
+    return { verdict, flagged, level: barLevel(bar, verdict) };
+  });
+  const section = element('section', '', 'bar-strip-section', { 'aria-labelledby': 'bars-title' });
+  const grid = element('div', '', 'bar-strip', { role: 'group', 'aria-label': 'Every bar of this take', style: `--bar-columns: ${Math.min(bars.length, MAX_COLUMNS)}` });
+  const boxes = bars.map((bar, i) => boxFor(bar, looks[i].level));
+  grid.append(...boxes);
   const detail = element('div', '', 'bar-detail', { id: 'bar-detail', 'aria-live': 'polite' });
-  section.append(strip, legend(verdicts), detail);
+  section.append(
+    element('h2', 'Bar by bar', 'bars-title', { id: 'bars-title' }),
+    element('p', 'Pick a bar to see what happened in it.', 'muted bars-lead'),
+    grid,
+    legend(),
+    detail,
+  );
 
-  function select(barNumber) {
-    const at = bars.findIndex((bar) => bar.bar === barNumber);
-    if (at < 0) return;
-    const bar = bars[at];
-    cells.forEach((cell, i) => {
-      cell.className = cellClass(verdicts[i], i === at);
-      cell.setAttribute('aria-pressed', String(i === at));
+  function selectAt(at, { reveal = false } = {}) {
+    boxes.forEach((box, i) => {
+      box.className = boxClass(looks[i].level, i === at);
+      box.setAttribute('aria-pressed', String(i === at));
+      box.setAttribute('tabindex', i === at ? '0' : '-1');
     });
-    const heading = element('p', `${verdicts[at].glyph} ${verdicts[at].words}`, 'bar-detail-verdict');
-    const body = element('div', '', 'bar-detail-body');
-    addBarDetail(body, bar);
-    detail.replaceChildren(heading, body);
-    if (flagged.has(bar.bar)) detail.append(renderActions(bar));
-    jumper.jumpTo(resolveId(bar.id, index), { highlight: false });
+    detail.replaceChildren(...renderBarDetail(bars[at], looks[at], detailContext));
+    if (reveal) boxes[at].scrollIntoView({ block: 'center' });
   }
 
-  cells.forEach((cell, i) => cell.addEventListener('click', () => select(bars[i].bar)));
-  return { section, select };
+  function select(barNumber, options) {
+    const at = bars.findIndex((bar) => bar.bar === barNumber);
+    if (at >= 0) selectAt(at, options);
+  }
+
+  boxes.forEach((box, i) => box.addEventListener('click', () => selectAt(i)));
+  grid.addEventListener('keydown', (event) => {
+    const at = targetIndex(event.key, boxes.indexOf(event.target), boxes.length);
+    if (at === null) return;
+    event.preventDefault();
+    boxes[at].focus();
+    selectAt(at);
+  });
+  selectAt(worstBarIndex(bars, looks.map((look) => look.level), problemOrder));
+  return { section, select, hasBar: (barNumber) => bars.some((bar) => bar.bar === barNumber) };
 }

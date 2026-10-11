@@ -1,8 +1,8 @@
 // What the results say first: one word and one number for the whole take, and which of Pitch, Rhythm and Tempo was weakest.
-import { pitchScore, rhythmScore, tempoScore } from './scores.js';
+import { percent, pitchScore, rhythmScore, tempoScore } from './scores.js';
 
 export const SCORE_NAMES = ['Pitch', 'Rhythm', 'Tempo'];
-const VERDICT_WORDS = [[0.85, 'Great take'], [0.7, 'Good take'], [0.5, 'Getting there'], [0, 'Keep at it']];
+const VERDICT_WORDS = [[0.85, 'Great take'], [0.7, 'Good take'], [0.5, 'Getting there'], [0, 'Rough take']];
 export const NO_SCORE_WORD = 'Take checked';
 export const NO_SCORE_SUGGESTION = 'There were no notes to score in this take.';
 export const STEADY_SUGGESTION = 'Nicely done. Play it once more to make it stick.';
@@ -12,6 +12,18 @@ const SUGGESTIONS = {
   Tempo: 'Keep the pace steady from the first bar to the last.',
 };
 const NOTHING_TO_FIX_SHARE = 0.9;
+// What each score counts, as its value and the words under it, worded to match the number (scores.js).
+const MEASURES = {
+  Pitch: (score) => ({ value: percent(score.share), measure: `of notes played right (${score.right} of ${score.expected})` }),
+  Rhythm: (score) => ({ value: percent(score.share), measure: `of notes on the beat (${score.onTime} of ${score.timed})` }),
+  Tempo: (score) => ({ value: `${score.steady} of ${score.measured}`, measure: 'bars at a steady tempo' }),
+};
+// What to say when the take gave nothing to count a score by.
+const NOT_MEASURED = {
+  Pitch: 'Not measured: no notes to check',
+  Rhythm: 'Not measured: no note timings',
+  Tempo: 'Not measured: no bar tempos',
+};
 
 // { Pitch, Rhythm, Tempo } as score objects ({ share, ... }), each null when the take has nothing to measure it by.
 export function scoresOf(analysis) {
@@ -40,4 +52,18 @@ export function suggestionFor(scores) {
   const focus = weakestName(scores) ?? SCORE_NAMES.find((name) => scores[name]);
   if (!focus) return NO_SCORE_SUGGESTION;
   return scores[focus].share >= NOTHING_TO_FIX_SHARE ? STEADY_SUGGESTION : SUGGESTIONS[focus];
+}
+
+// The verdict's headline: the word for the take, and the weakest area by name when there is one to name.
+export function verdictHeadline(scores) {
+  const word = verdictWord(overallShare(scores));
+  const weakest = weakestName(scores);
+  if (!weakest) return word;
+  const area = weakest.toLowerCase();
+  return scores[weakest].share >= NOTHING_TO_FIX_SHARE ? `${word} — even ${area}, your lowest, held up` : `${word} — ${area} is your weak spot`;
+}
+
+// { value, measure }: one score as shown, with what it measures; a dash and the reason when it could not be measured.
+export function scoreMeasure(name, score) {
+  return score ? MEASURES[name](score) : { value: '–', measure: NOT_MEASURED[name] };
 }
