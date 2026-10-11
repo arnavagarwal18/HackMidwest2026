@@ -6,16 +6,24 @@
   <title>Practice Coach</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/results.css">
   <link rel="stylesheet" href="css/exercise.css">
 </head>
 <body>
   <header>
-    <strong>Practice Coach</strong>
-    <nav>
+    <a class="brand" href="#/take" aria-label="Practice Coach, go to Play">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M3 13h13l11-6v18l-11-6H3z"/>
+        <path d="M7 19v5a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-5"/>
+      </svg>
+      <span>Practice Coach</span>
+    </a>
+    <nav aria-label="Main">
       <a href="#/take">Play</a>
       <a href="#/progress">Progress</a>
     </nav>
+    <div id="header-actions"></div>
   </header>
   <div id="banner" role="alert" hidden></div>
   <main id="screen"></main>

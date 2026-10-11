@@ -18,7 +18,7 @@ const CHROME_CANDIDATES = [
 export function startServer() {
   const server = createServer((req, res) => {
     const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
-    const file = join(FRONTEND_DIR, path === '/' ? 'index.html' : path);
+    const file = join(FRONTEND_DIR, path === '/' || path === '\\' ? 'index.html' : path);
     if (!file.startsWith(FRONTEND_DIR) || !existsSync(file)) {
       res.writeHead(404).end('not found');
       return;
@@ -97,6 +97,7 @@ export async function openPage(browserWsUrl) {
 
   const page = {
     errors,
+    send, // raw DevTools-protocol call, e.g. page.send('Page.captureScreenshot')
     async goto(url) {
       await send('Page.navigate', { url });
       await page.waitFor('document.readyState === "complete"');

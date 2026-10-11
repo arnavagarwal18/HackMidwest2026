@@ -1,6 +1,7 @@
 /* Practice Coach - "Brass & Ivory". The design tokens live here, in :root, and every stylesheet uses them.
    Brass is an accent (links, focus, the active state); the one filled primary action is --primary.
-   No web fonts, no gradients, no shadows: 1px lines and flat fills only. */
+   No web fonts and no gradients. Depth comes from 1px lines first, then the three soft shadows (--shadow-1..3).
+   Component styles (cards, buttons, chips, toasts...) live in components.css and use only these tokens. */
 
 :root {
   color-scheme: light dark;
@@ -48,7 +49,26 @@
   --radius-card: 12px;
   --tap: 44px;               /* minimum touch target */
   --focus-ring: 3px solid var(--brass);
+  --radius-pill: 999px;
+
+  /* Elevation: 1 = resting card, 2 = raised (toast, sticky bar), 3 = overlay */
+  --shadow-color: 42 32 24;
+  --shadow-1: 0 1px 2px rgb(var(--shadow-color) / 0.08), 0 1px 1px rgb(var(--shadow-color) / 0.04);
+  --shadow-2: 0 4px 12px rgb(var(--shadow-color) / 0.12), 0 1px 3px rgb(var(--shadow-color) / 0.08);
+  --shadow-3: 0 12px 32px rgb(var(--shadow-color) / 0.18), 0 2px 6px rgb(var(--shadow-color) / 0.1);
+
+  /* Page-title type ramp: the display serif, one step up at 40rem */
+  --title-size: var(--fs-2xl);
+  --title-lead: var(--fs-md);
+  --header-h: 60px;
+
+  /* Motion: one easing, a short and a medium duration. Both drop to 0 for readers who ask for less motion. */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 150ms;
+  --dur: 200ms;
 }
+
+@media (min-width: 40rem) { :root { --title-size: var(--fs-3xl); --title-lead: var(--fs-lg); } }
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -65,6 +85,7 @@
     --flat: #8fb0ef;
     --sharp: #f0a25c;
     --error: #f08a80;
+    --shadow-color: 0 0 0;
   }
 }
 
@@ -82,17 +103,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.25; }
-h1 { font-size: var(--fs-2xl); margin: var(--sp-2) 0 var(--sp-3); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font-size: var(--title-size); margin: var(--sp-2) 0 var(--sp-3); letter-spacing: -0.02em; }
 h2 { font-size: var(--fs-lg); margin: var(--sp-4) 0 var(--sp-3); }
 h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-2); }
-@media (min-width: 40rem) { h1 { font-size: var(--fs-3xl); } }
-a { color: var(--brass); }
-:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+p { text-wrap: pretty; }
+a { color: var(--brass); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: var(--focus-ring); outline-offset: 2px; border-radius: var(--radius); }
+::selection { background: var(--brass-soft); }
 .muted { color: var(--muted); }
 [hidden] { display: none !important; } /* the display rules below must not show what a screen hides */
 
-/* ---------- Header and nav ---------- */
+/* ---------- Header and nav: a slim bar, brand left, pill nav, room for a Coach button on the right ---------- */
 header {
   position: sticky;
   top: 0;
@@ -100,60 +123,66 @@ header {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
+  min-height: var(--header-h);
   padding: var(--sp-2) max(var(--sp-4), env(safe-area-inset-right)) var(--sp-2) max(var(--sp-4), env(safe-area-inset-left));
   padding-top: max(var(--sp-2), env(safe-area-inset-top));
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
 }
 
-header > strong {
+.brand {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
+  color: var(--ink);
   font-family: var(--font-display);
   font-size: var(--fs-lg);
+  font-weight: 600;
   white-space: nowrap;
+  text-decoration: none;
 }
 
-header > strong::before { /* brass mark */
-  content: "";
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--brass);
-}
+.brand-mark { flex: none; width: 28px; height: 28px; color: var(--brass); }
 
-nav { display: flex; gap: var(--sp-2); margin-left: auto; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+nav { display: flex; gap: var(--sp-1); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 nav::-webkit-scrollbar { display: none; }
 
 nav a {
   flex: none;
   display: inline-flex;
   align-items: center;
-  min-height: var(--tap);
+  min-height: 36px;
   padding: 0 var(--sp-3);
-  border-bottom: 2px solid transparent;
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   color: var(--muted);
   font-size: var(--fs-sm);
   font-weight: 500;
   text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
-nav a:hover { color: var(--ink); }
-nav a.current { color: var(--ink); font-weight: 600; border-bottom-color: var(--brass); }
-nav a.current::before { content: "\25CF\00a0"; color: var(--brass); font-size: 0.6em; } /* a glyph too, so the tab is not marked by colour alone */
+nav a:hover { color: var(--ink); background: var(--surface-2); }
+nav a.current { color: var(--brass); font-weight: 600; background: var(--brass-soft); }
+nav a.current::before { content: "\25CF\00a0"; font-size: 0.6em; } /* a glyph too, so the tab is not marked by colour alone */
+
+#header-actions { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+#header-actions:empty { display: none; }
+nav { margin-right: auto; margin-left: var(--sp-3); }
 
 @media (max-width: 40rem) {
+  :root { --header-h: 52px; }
   header { position: static; flex-wrap: wrap; gap: var(--sp-2); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); }
-  nav { /* a full-width strip of the two tabs, so every tab shows with no sideways scrolling */
+  #header-actions { order: 2; }
+  nav { /* a full-width strip of the tabs, so every tab shows with no sideways scrolling */
+    order: 3;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    width: calc(100% + 2 * var(--sp-3));
+    width: 100%;
     max-width: none;
-    margin: 0 calc(-1 * var(--sp-3));
-    padding: var(--sp-2) var(--sp-3) 0;
-    border-top: 1px solid var(--line);
+    margin: 0;
+    padding: 0;
     overflow: visible;
   }
   nav a { justify-content: center; padding: 0 var(--sp-1); }
@@ -168,18 +197,33 @@ main {
 main > * + * { margin-top: var(--sp-3); }
 @media (max-width: 40rem) { main { padding-top: var(--sp-3); padding-left: max(var(--sp-3), env(safe-area-inset-left)); padding-right: max(var(--sp-3), env(safe-area-inset-right)); } }
 
-/* ---------- Banner and inline messages ---------- */
+/* ---------- Banner: a toast-like bar under the header (the same look as .toast in components.css) ---------- */
 .banner {
+  position: sticky;
+  top: calc(var(--header-h) + var(--sp-2));
+  z-index: 9;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-4);
+  width: fit-content;
+  min-width: min(28rem, calc(100% - 2 * var(--sp-3)));
+  max-width: calc(100% - 2 * var(--sp-3));
+  margin: var(--sp-2) auto 0;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
   font-weight: 600;
+  animation: toast-in var(--dur) var(--ease);
 }
 
 .banner-error { background: var(--error-soft); color: var(--error); }
 .banner-notice { background: var(--brass-soft); color: var(--brass); }
+.banner button { color: inherit; border-color: currentColor; min-height: 36px; }
+@media (max-width: 40rem) { .banner { position: static; top: auto; } }
+
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
 /* ---------- Buttons: primary (filled), secondary (outlined, the default) and text ---------- */
 button {
@@ -195,10 +239,11 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
 
-button:hover { border-color: var(--ink); }
+button:hover { border-color: var(--ink); background: var(--surface-2); }
+button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* The primary action of each screen, reached by the classes and positions the screens already have. */
@@ -221,25 +266,24 @@ button.text, .sentence-text, .tab {
 }
 
 button.text { color: var(--brass); }
-button.text:hover { border-color: transparent; text-decoration: underline; }
+button.text:hover { border-color: transparent; background: transparent; text-decoration: underline; }
 
-/* A link that looks like a secondary button, and the small pill-like chip */
-.button-link, .chip {
+/* A link that looks like a secondary button (the chip is in components.css) */
+.button-link {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
   padding: 0 var(--sp-3);
-  border: 1px solid var(--line);
+  border: 1px solid var(--brass);
   border-radius: var(--radius);
+  color: var(--brass);
   font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 
-.button-link { border-color: var(--brass); color: var(--brass); }
-.button-link:hover, .chip:hover { background: var(--brass-soft); border-color: var(--brass); }
-.chip { background: transparent; color: var(--brass); }
-.chip-unknown { min-height: 0; padding: 2px var(--sp-2); border-style: dashed; color: var(--muted); }
+.button-link:hover { background: var(--brass-soft); }
 
 /* ---------- Forms: 16px text so iOS Safari does not zoom on focus ---------- */
 input[type="number"], input[type="text"], textarea, select {
@@ -253,6 +297,7 @@ input[type="number"], input[type="text"], textarea, select {
 }
 
 textarea { padding: var(--sp-2) var(--sp-3); }
+input, textarea, select { transition: border-color var(--dur-fast) var(--ease); }
 input:focus, textarea:focus, select:focus { outline: var(--focus-ring); outline-offset: 2px; border-color: var(--brass); }
 label { font-size: var(--fs-sm); color: var(--muted); }
 input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--brass); }
@@ -285,6 +330,7 @@ input[type="file"]::file-selector-button {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
   padding: var(--sp-4);
 }
 
@@ -324,7 +370,7 @@ main.with-chat {
 main.with-chat > * + * { margin-top: 0; }
 @media (max-width: 56rem) { main.with-chat { grid-template-columns: 1fr; } }
 
-.chat-panel { position: sticky; top: 76px; max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px); overflow-y: auto; }
+.chat-panel { position: sticky; top: calc(var(--header-h) + var(--sp-3)); max-height: calc(100vh - var(--header-h) - var(--sp-5)); max-height: calc(100dvh - var(--header-h) - var(--sp-5)); overflow-y: auto; }
 @media (max-width: 56rem) { .chat-panel { position: static; max-height: none; } }
 
 /* ---------- Progress screen ---------- */
@@ -337,19 +383,6 @@ main.with-chat > * + * { margin-top: 0; }
 .exercise-item { padding: var(--sp-3); }
 .exercise-item a { font-weight: 600; }
 .exercise-item p { margin: var(--sp-1) 0 0; }
-.empty-state { border-style: dashed; color: var(--muted); }
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--sp-2);
-  border-radius: var(--radius);
-  background: var(--flat-soft);
-  color: var(--flat);
-  font: 600 var(--fs-xs)/1.5 var(--font-body);
-}
-
-.badge-done { background: var(--ok-soft); color: var(--ok); }
 
 /* ---------- Trace screen: one colour per agent, named in the heading too ---------- */
 .trace-group { --agent: var(--muted); border-left: 4px solid var(--agent); }
@@ -369,7 +402,8 @@ main.with-chat > * + * { margin-top: 0; }
 .trace-detail { flex-basis: 100%; margin: 0 0 0 5rem; font: var(--fs-sm)/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 40rem) { .trace-detail { margin-left: 0; } }
 
-/* Fades only, and not at all when the reader asks for less motion */
+/* Short fades and slides only; none at all when the reader asks for less motion */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; }
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
