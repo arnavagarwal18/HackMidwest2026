@@ -4,6 +4,7 @@ import { el } from '../score/ui.js';
 import { describeCameraCheck, UNAVAILABLE_CODE, UNAVAILABLE_TEXT } from './camera_status.js';
 import { createCameraChecker } from './camera_checker.js';
 import { createCameraGuide } from './camera_guide.js';
+import { isSideView, loadView, saveView, SIDE_NOTE, VIEWS } from './camera_view.js';
 import { captureFrame } from './frame_capture.js';
 
 // check(jpegBlob) is the camera-check call for this session (api.js checkCamera).
@@ -13,18 +14,43 @@ export function createCameraPanel({ instrument, check }) {
   const badge = el('p', { className: 'camera-badge', attrs: { role: 'status' } });
   const note = el('p', { className: 'muted camera-note' });
   badge.hidden = true;
-  const stage = el('div', { className: 'camera-stage', children: [video, createCameraGuide(instrument)] });
-  const element = el('div', { className: 'camera-panel', children: [stage, badge, note] });
+  let view = loadView();
+  let lastAnswer = null; // re-described when the learner changes the view, without waiting for the next check
+  const guideHost = el('div', { className: 'camera-guide-host', children: [createCameraGuide(instrument, view)] });
+  const stage = el('div', { className: 'camera-stage', children: [video, guideHost] });
+  const viewSelect = el('select', { attrs: { id: 'camera-view', 'aria-label': 'Camera view' },
+    children: VIEWS.map(({ id, label, hint }) => el('option', { text: label, attrs: { value: id, ...(hint ? { title: hint } : {}) } })) });
+  viewSelect.value = view;
+  const viewNote = el('p', { className: 'muted camera-note', text: SIDE_NOTE });
+  const element = el('div', { className: 'camera-panel', children: [stage, el('label', { text: 'Camera view ', children: [viewSelect] }), viewNote, badge, note] });
   element.hidden = true;
+
+  function showAnswer(answer) {
+    const { ok, text } = describeCameraCheck(answer, view);
+    badge.hidden = false;
+    badge.textContent = text;
+    badge.className = `camera-badge ${ok ? 'camera-ok' : 'camera-warn'}`;
+  }
+
+  function showView() {
+    guideHost.replaceChildren(createCameraGuide(instrument, view));
+    viewNote.hidden = !isSideView(view);
+    if (lastAnswer && !badge.hidden) showAnswer(lastAnswer);
+  }
+
+  viewSelect.addEventListener('change', () => {
+    view = viewSelect.value;
+    saveView(view);
+    showView();
+  });
+  viewNote.hidden = !isSideView(view);
 
   const checker = createCameraChecker({
     captureFrame: () => captureFrame(video),
     check,
     onResult(answer) {
-      const { ok, text } = describeCameraCheck(answer);
-      badge.hidden = false;
-      badge.textContent = text;
-      badge.className = `camera-badge ${ok ? 'camera-ok' : 'camera-warn'}`;
+      lastAnswer = answer;
+      showAnswer(answer);
     },
     onFailure(err) {
       badge.hidden = true;
@@ -40,6 +66,7 @@ export function createCameraPanel({ instrument, check }) {
   return {
     element,
     get checking() { return checker.running; },
+    get view() { return view; },
     attach(stream) {
       video.srcObject = stream;
       element.hidden = false;

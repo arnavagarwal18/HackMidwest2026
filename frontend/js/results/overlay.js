@@ -8,6 +8,7 @@ import { renderFlagList } from './overlay/flag_list.js';
 import { activeFlags } from './overlay/flag_points.js';
 import { nearestFrame } from './overlay/frames.js';
 import { contentRect } from './overlay/geometry.js';
+import { detectNearSide } from './overlay/side_view.js';
 
 export const UNAVAILABLE_TEXT = 'Body lines unavailable';
 export const TOGGLE_TEXT = 'Show body lines';
@@ -32,6 +33,7 @@ export function mountOverlay(rendered, { sessionId, take }, deps = {}) {
   } = deps;
   const flags = analysis.form ?? [];
   let tracks = null;
+  let nearSide = null; // 'left' or 'right' when the take was filmed from the side: only that side is drawn
   let canvas = null;
   let ctx = null;
   let frameId = null;
@@ -60,7 +62,7 @@ export function mountOverlay(rendered, { sessionId, take }, deps = {}) {
     const frame = nearestFrame(tracks.frames, video.currentTime);
     if (!frame || !box.width || !box.height) return;
     const intrinsic = video.videoWidth ? { width: video.videoWidth, height: video.videoHeight } : { width: tracks.width, height: tracks.height };
-    drawOverlay(ctx, { frame, rect: contentRect(box, intrinsic, fitOf(video)), flags: activeFlags(flags, video.currentTime) });
+    drawOverlay(ctx, { frame, rect: contentRect(box, intrinsic, fitOf(video)), flags: activeFlags(flags, video.currentTime), nearSide });
   }
 
   function tick() {
@@ -110,6 +112,7 @@ export function mountOverlay(rendered, { sessionId, take }, deps = {}) {
     if (destroyed) return;
     if (!video.isConnected) { destroy(); return; }
     tracks = loaded;
+    nearSide = detectNearSide(tracks.frames);
     canvas = element('canvas', '', 'overlay-canvas', { 'aria-hidden': 'true' });
     ctx = canvas.getContext('2d');
     player.stage.append(canvas);

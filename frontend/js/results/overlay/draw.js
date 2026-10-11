@@ -1,6 +1,7 @@
 // Draws one tracked frame (and the active form flags) onto the overlay canvas context.
 import { involvedLandmarks } from './flag_points.js';
 import { toCanvas } from './geometry.js';
+import { isNearLine, isNearPoint } from './side_view.js';
 
 export const VISIBILITY_MIN = 0.5; // pose points less visible than this are not drawn (same cut-off as the back end)
 const LINE_COLOR = '#12b76a';
@@ -45,17 +46,19 @@ function drawLabels(ctx, labels, rect) {
 
 // frame: { pose, left_hand, right_hand } (each may be null). rect: where the picture is on the canvas.
 // flags: the flags active now. Flag text goes in with fillText, never as HTML.
-export function drawOverlay(ctx, { frame, rect, flags = [] }) {
+// nearSide: 'left' or 'right' for a take filmed from the side (only that side is drawn); null draws both sides.
+export function drawOverlay(ctx, { frame, rect, flags = [], nearSide = null }) {
   const pose = frame.pose ?? [];
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
   ctx.strokeStyle = LINE_COLOR;
-  POSE_LINES.forEach(([from, to]) => {
+  POSE_LINES.filter((line) => isNearLine(line, nearSide)).forEach(([from, to]) => {
     if (isVisible(pose[from]) && isVisible(pose[to])) drawLine(ctx, pose[from], pose[to], rect);
   });
-  [frame.left_hand, frame.right_hand].forEach((hand) => (hand ?? []).forEach((point) => drawDot(ctx, point, rect, 3, HAND_COLOR)));
+  const hands = nearSide === null ? [frame.left_hand, frame.right_hand] : [frame[`${nearSide}_hand`]];
+  hands.forEach((hand) => (hand ?? []).forEach((point) => drawDot(ctx, point, rect, 3, HAND_COLOR)));
   new Set(flags.flatMap(involvedLandmarks)).forEach((index) => {
-    if (isVisible(pose[index])) drawDot(ctx, pose[index], rect, 7, FLAG_COLOR);
+    if (isNearPoint(index, nearSide) && isVisible(pose[index])) drawDot(ctx, pose[index], rect, 7, FLAG_COLOR);
   });
   drawLabels(ctx, flags.map((flag) => flag.label), rect);
 }
