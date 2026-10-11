@@ -240,6 +240,46 @@
       "linked": [
         "p:t1:2"
       ]
+    },
+    {
+      "id": "f:t1:2",
+      "rule": "trumpet_elbows_wide",
+      "label": "Left elbow held wide of the body",
+      "side": "left",
+      "start_s": 8.0,
+      "end_s": 9.0,
+      "peak_s": 8.5,
+      "bars": [
+        4,
+        4
+      ],
+      "value": 1.15,
+      "threshold": 1.0,
+      "unit": "ratio",
+      "direction": "above",
+      "severity": "minor",
+      "confidence": 0.7,
+      "linked": []
+    },
+    {
+      "id": "f:t1:3",
+      "rule": "trumpet_bell_angle",
+      "label": "Bell too high",
+      "side": null,
+      "start_s": 10.0,
+      "end_s": 11.0,
+      "peak_s": 10.5,
+      "bars": [
+        4,
+        4
+      ],
+      "value": -0.62,
+      "threshold": -0.55,
+      "unit": "ratio",
+      "direction": "below",
+      "severity": "minor",
+      "confidence": 0.7,
+      "linked": []
     }
   ],
   "media_url": "/sessions/sess_mock1/takes/take_1/media"

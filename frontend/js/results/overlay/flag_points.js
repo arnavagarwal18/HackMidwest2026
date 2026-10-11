@@ -4,11 +4,17 @@ const NOSE = 0;
 const EARS = [7, 8];
 const SHOULDERS = [11, 12];
 const ELBOWS = [13, 14];
+const MOUTH = [9, 10];
+const WRISTS = [15, 16];
 const HIPS = [23, 24];
+
+const ELBOW_POINTS = { center: [], sided: [ELBOWS, SHOULDERS] };
 
 export const RULE_LANDMARKS = {
   trumpet_head_down: { center: [NOSE], sided: [EARS] },
-  trumpet_elbows_pinned: { center: [], sided: [ELBOWS, SHOULDERS] },
+  trumpet_elbows_pinned: ELBOW_POINTS,
+  trumpet_elbows_wide: ELBOW_POINTS,
+  trumpet_bell_angle: { center: [...MOUTH, ...WRISTS], sided: [] }, // the bell is read from the mouth and both wrists
   shoulders_raised: { center: [], sided: [SHOULDERS, EARS] },
   slouching: { center: [], sided: [SHOULDERS, HIPS] },
 };

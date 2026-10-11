@@ -66,6 +66,10 @@ test('involvedLandmarks by rule and side', () => {
   assert.deepEqual(points('trumpet_head_down', 'left'), [0, 7], 'the nose is centred, the ear is sided');
   assert.deepEqual(points('trumpet_elbows_pinned', null), [11, 12, 13, 14]);
   assert.deepEqual(points('trumpet_elbows_pinned', 'right'), [12, 14]);
+  assert.deepEqual(points('trumpet_elbows_wide', null), [11, 12, 13, 14]);
+  assert.deepEqual(points('trumpet_elbows_wide', 'left'), [11, 13]);
+  assert.deepEqual(points('trumpet_bell_angle', null), [9, 10, 15, 16], 'the mouth and both wrists');
+  assert.deepEqual(points('trumpet_bell_angle', 'left'), [9, 10, 15, 16], 'the bell points are centred');
   assert.deepEqual(points('shoulders_raised', 'both'), [7, 8, 11, 12]);
   assert.deepEqual(points('shoulders_raised', 'left'), [7, 11]);
   assert.deepEqual(points('slouching', 'both'), [11, 12, 23, 24]);
@@ -88,6 +92,8 @@ test('the mock tracks cover the 12 s mock video and the mock flag is a trumpet r
   assert.equal(tracks.frames[0].left_hand.length, 21);
   assert.ok(tracks.frames.some((frame) => frame.pose === null), 'a lost-tracking frame to draw around');
   assert.ok(['trumpet_head_down', 'trumpet_elbows_pinned', 'shoulders_raised', 'slouching'].includes(flag.rule));
+  assert.deepEqual(analysis.form.map((f) => f.rule), ['trumpet_elbows_pinned', 'trumpet_elbows_wide', 'trumpet_bell_angle']);
+  analysis.form.forEach((f) => assert.ok(f.label && involvedLandmarks(f).length > 0, `${f.rule} has a label and points`));
 });
 
 // ---- mountOverlay with a fake canvas ----
@@ -287,11 +293,13 @@ test('an answer without a frames list counts as a failure', async () => {
 
 test('the flag list jumps to peak_s exactly, from the label and from the chip', () => {
   const env = setup();
-  assert.deepEqual(env.formFlagSlot.texts('sentence-text'), [flag.label]);
+  assert.deepEqual(env.formFlagSlot.texts('sentence-text'), analysis.form.map((f) => f.label), 'the new flags are listed too');
   env.formFlagSlot.withClass('sentence-text')[0].click();
   env.formFlagSlot.withClass('chip')[0].click();
   assert.deepEqual(env.seeks, [6.5, 6.5], 'no 1 s lead for a form flag');
   assert.equal(env.formFlagSlot.withClass('chip')[0].textContent, '6.5 s');
+  env.formFlagSlot.withClass('sentence-text').slice(1).forEach((item) => item.click());
+  assert.deepEqual(env.seeks.slice(2), [8.5, 10.5], 'the new flags jump to their own peak_s');
 });
 
 test('no flags: no list', () => {
