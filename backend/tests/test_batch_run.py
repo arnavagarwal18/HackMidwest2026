@@ -1,5 +1,7 @@
 import json
 import os
+import signal
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -178,6 +180,55 @@ def test_dry_run_lists_commands_and_runs_nothing(batch, capsys):
     assert list(batch.out_dir.iterdir()) == []
     assert batch.state.read_text() == state_before
     assert not (batch.tmp_path / "state.jsonl.logs").exists()
+
+
+def test_record_appended_after_a_torn_line_is_not_glued_onto_it(tmp_path):
+    state = tmp_path / "state.jsonl"
+    state.write_text('{"video": "a.mp4", "status": "ok"}\n{"video": "b.mp')
+
+    batch_run.append_state(state, {"video": "c.mp4", "status": "ok"})
+
+    assert set(batch_run.load_state(state)) == {"a.mp4", "c.mp4"}
+    assert state.read_text().endswith('{"video": "c.mp4", "status": "ok"}\n')
+
+
+def test_append_state_adds_no_blank_line_to_a_clean_file(tmp_path):
+    state = tmp_path / "state.jsonl"
+
+    batch_run.append_state(state, {"video": "a.mp4", "status": "ok"})
+    batch_run.append_state(state, {"video": "b.mp4", "status": "ok"})
+
+    assert len(state.read_text().splitlines()) == 2
+
+
+def wait_for_file(path, seconds=15):
+    deadline = time.monotonic() + seconds
+    while not path.exists() or not path.read_text().strip():
+        assert time.monotonic() < deadline, f"{path} never appeared"
+        time.sleep(0.05)
+
+
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM], ids=["ctrl-c", "sigterm"])
+def test_interrupting_the_runner_stops_the_running_child(batch, sig):
+    runner = subprocess.Popen(
+        [sys.executable, batch_run.__file__, "--inputs", str(batch.write_inputs("slow.mp4", "good.mp4")),
+         "--state", str(batch.state), "--", *batch.template],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    try:
+        wait_for_file(batch.out_dir / "slow.pid")
+        child_pid = int(batch.pids("slow")[0])
+
+        runner.send_signal(sig)
+        assert runner.wait(timeout=15) != 0
+
+        with pytest.raises(ProcessLookupError):
+            os.kill(child_pid, 0)
+        assert not (batch.out_dir / "good.pid").exists()
+        assert not batch.state.exists()
+    finally:
+        if runner.poll() is None:
+            runner.terminate()
 
 
 def test_directory_input_with_glob(batch):

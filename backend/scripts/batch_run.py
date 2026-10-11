@@ -90,9 +90,18 @@ def load_state(state_path):
     return latest
 
 
+def ends_without_newline(path):
+    if not path.exists() or path.stat().st_size == 0:
+        return False
+    with open(path, "rb") as handle:
+        handle.seek(-1, os.SEEK_END)
+        return handle.read(1) != b"\n"
+
+
 def append_state(state_path, record):
+    separator = "\n" if ends_without_newline(state_path) else ""
     with open(state_path, "a") as handle:
-        handle.write(json.dumps(record) + "\n")
+        handle.write(separator + json.dumps(record) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
 
@@ -146,6 +155,10 @@ def run_item(command, log_path, timeout):
             error = f"killed after {timeout:g}s timeout"
             log.write(error + "\n")
             return STATUS_TIMEOUT, process.returncode, error
+        except BaseException:
+            kill_process_tree(process)
+            log.write("runner interrupted; child killed\n")
+            raise
     return (STATUS_OK if returncode == 0 else STATUS_FAILED), returncode, error
 
 
@@ -187,6 +200,10 @@ def print_dry_run(videos, template, state, retry_failed):
             print(f"[{number}/{len(videos)}] would run: {' '.join(build_command(template, video))}")
 
 
+def raise_on_sigterm(signum, frame):
+    raise SystemExit(128 + signum)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     try:
@@ -204,11 +221,14 @@ def main(argv=None):
         print_dry_run(videos, template, load_state(Path(args.state)), not args.no_retry_failed)
         return 0
 
+    previous_handler = signal.signal(signal.SIGTERM, raise_on_sigterm)
     try:
         state = run_batch(videos, template, args)
     except OSError as exc:
         print(f"error: cannot write state or logs: {exc}", file=sys.stderr)
         return EXIT_USAGE
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
     bad = [v for v in videos if v not in state or state[v]["status"] != STATUS_OK]
     if bad:
         print(f"{len(bad)} of {len(videos)} items not ok; see {args.state}", file=sys.stderr)
