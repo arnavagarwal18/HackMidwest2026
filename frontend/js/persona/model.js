@@ -8,8 +8,6 @@ export const PICKER_LABEL = 'What are you practicing?';
 export const SWITCH_LABEL = 'Coach'; // the menu button reads 'Coach: Standard'
 export const STYLE_MENU_LABEL = 'Coach style';
 
-export const nowCoachingText = (label) => `Now coaching: ${label}`;
-
 // The default persona first (Standard), the rest in the order the back end sent them.
 export function orderPersonas(personas, defaultId) {
   return [...personas].sort((a, b) => Number(b.id === defaultId) - Number(a.id === defaultId));

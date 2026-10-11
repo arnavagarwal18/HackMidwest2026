@@ -7,7 +7,6 @@
 import { button, element } from '../dom.js';
 import { loadStylesheet } from '../ui/styles.js';
 import { REPLY_TIMEOUT_MS, TIMEOUT_MESSAGE, openingTurn, suggestedQuestions, validateMessage, withTimeout } from './model.js';
-import { nowCoachingText } from '../persona/model.js';
 import { createSheet } from './sheet.js';
 import { createSpeechInput } from './speech_input.js';
 import { createSuggestions } from './suggestions.js';
@@ -28,6 +27,7 @@ export function createChatPanel(root, deps) {
   let jumpContext = null;
   let questions = suggestedQuestions(null);
   let pending = false;
+  let threadVersion = 0; // goes up each time the thread is cleared, so a reply or history that was on its way is dropped
   let loading = true; // the history is still being fetched
   let coach = null; // the Coach menu controller, once mounted
   let coachMode = null; // the mode of the latest feedback or instructor turn
@@ -63,6 +63,14 @@ export function createChatPanel(root, deps) {
     sheet.body.scrollTop = sheet.body.scrollHeight;
   }
 
+  // A new coach starts with an empty thread: every earlier turn, from any coach, goes (the take's opening line comes back with the new feedback).
+  function clearThread() {
+    threadVersion += 1;
+    history = [];
+    opening = null;
+    redraw();
+  }
+
   function setCoachMode(mode) {
     coachMode = mode;
     coach?.showMode(coachMode);
@@ -88,8 +96,10 @@ export function createChatPanel(root, deps) {
     if (problem) return reportError(new Error(problem));
     const hadFocus = sheet.contains(document.activeElement);
     setPending(true);
+    const askedIn = threadVersion;
     try {
       const reply = await withTimeout(sendChat(sessionId, text.trim(), take), timeoutMs, TIMEOUT_MESSAGE, timers);
+      if (askedIn !== threadVersion) return; // the coach changed meanwhile: this reply belongs to the old thread
       history = [...history, reply.user_turn, reply.instructor_turn];
       setCoachMode(reply.instructor_turn.mode ?? null);
       if (fromInput) input.value = '';
@@ -105,9 +115,10 @@ export function createChatPanel(root, deps) {
   }
 
   const finishLoading = () => { loading = false; redraw(); updateControls(); };
+  const loadedIn = threadVersion;
   const ready = getChat(sessionId).then(
     (result) => {
-      history = [...(result.turns ?? []), ...history]; // history is empty here unless a 'Now coaching' line was added meanwhile
+      if (loadedIn === threadVersion) history = result.turns ?? []; // not if the coach changed first: that thread starts empty
       finishLoading();
       if (coachMode === null) setCoachMode(history.findLast((turn) => turn.role === 'instructor')?.mode ?? null);
     },
@@ -117,7 +128,7 @@ export function createChatPanel(root, deps) {
   redraw();
 
   const coachReady = mountCoachSwitch
-    ? mountCoachSwitch({ menu: menuSlot, status: statusSlot }, { onCoachChanged: (label) => { history = [...history, { role: 'note', text: nowCoachingText(label) }]; redraw(); } })
+    ? mountCoachSwitch({ menu: menuSlot, status: statusSlot }, { onCoachChanged: clearThread })
       .then((controller) => {
         coach = controller;
         title.hidden = coach !== null;

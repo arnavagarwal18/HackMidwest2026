@@ -333,7 +333,7 @@ test('a click outside closes the menu; a disabled menu cannot be opened', () => 
 });
 
 // The coach panel with the menu mounted by the real factory shape: mountCoachSwitch({ menu, status }, { onCoachChanged }).
-async function setupPanel({ history = [], rerun, patch } = {}) {
+async function setupPanel({ history = [], getChat, sendChat, rerun, patch, awaitReady = true } = {}) {
   const root = document.createElement('div');
   document.body.replaceChildren(root);
   const drawn = [];
@@ -341,8 +341,8 @@ async function setupPanel({ history = [], rerun, patch } = {}) {
   const panel = createChatPanel(root, {
     sessionId: 's1',
     take: 'take_1',
-    getChat: async () => ({ turns: history }),
-    sendChat: async () => ({ user_turn: turn(1, 'user'), instructor_turn: turn(2, 'instructor', { mode: 'fallback', sentences: [] }) }),
+    getChat: getChat ?? (async () => ({ turns: history })),
+    sendChat: sendChat ?? (async () => ({ user_turn: turn(1, 'user'), instructor_turn: turn(2, 'instructor', { mode: 'fallback', sentences: [] }) })),
     reportError: () => {},
     mountCoachSwitch: async ({ menu, status }, { onCoachChanged }) => {
       controller = createCoachSwitch({
@@ -359,11 +359,11 @@ async function setupPanel({ history = [], rerun, patch } = {}) {
       return controller;
     },
   });
-  await panel.whenReady;
-  return { root, panel, drawn, notice: () => root.withClass('coach-fallback')[0] };
+  if (awaitReady) await panel.whenReady;
+  return { root, panel, drawn, ready: panel.whenReady, notice: () => root.withClass('coach-fallback')[0] };
 }
 
-test('the menu sits in the sheet header, and a change adds a "Now coaching" line to the transcript', async () => {
+test('the menu sits in the sheet header, and a change leaves no "Now coaching" line in the transcript', async () => {
   const { root, drawn } = await setupPanel();
   const header = root.withClass('coach-head')[0];
   assert.ok(header.all().includes(trigger(root)), 'the menu is in the header');
@@ -371,9 +371,61 @@ test('the menu sits in the sheet header, and a change adds a "Now coaching" line
   assert.equal(root.withClass('coached-by').length, 0);
   pick(root, 'Concert');
   await settle();
-  assert.deepEqual(root.texts('chat-note'), ['Now coaching: Concert']);
+  assert.deepEqual(root.texts('chat-note'), []);
   assert.equal(drawn.length, 1);
   assert.equal(trigger(root).disabled, false, 'the new feedback record enabled the menu again');
+});
+
+const threadTexts = (root) => root.withClass('chat-text').map((node) => node.textContent);
+
+test('switching coach empties the whole thread, from any coach, and the new coach starts empty', async () => {
+  const history = [turn(1, 'user', { text: 'Why was bar 3 wrong?' }), turn(2, 'instructor', { text: 'Old coach answer', mode: 'ai' })];
+  const { root, panel } = await setupPanel({ history });
+  panel.setResults({ feedback: { mode: 'ai', sentences: [] } });
+  assert.deepEqual(threadTexts(root), ['Why was bar 3 wrong?', 'Old coach answer']);
+  pick(root, 'Concert');
+  await settle();
+  assert.deepEqual(threadTexts(root), [], 'no earlier message is left');
+  assert.deepEqual(root.texts('chat-note'), [], 'and no "Now coaching" history');
+  assert.equal(root.withClass('chat-turn').length, 0);
+  pick(root, 'Marching');
+  await settle();
+  assert.deepEqual(threadTexts(root), [], 'a second switch leaves it empty too');
+});
+
+test('after a switch the next question starts the new coach\'s thread alone', async () => {
+  const { root } = await setupPanel({ history: [turn(1, 'user', { text: 'Old question' })] });
+  pick(root, 'Concert');
+  await settle();
+  root.withClass('chat-input')[0].value = 'New question';
+  root.withClass('chat-send')[0].click();
+  await settle();
+  assert.equal(threadTexts(root).includes('Old question'), false);
+  assert.equal(root.withClass('chat-turn').length, 2, 'only the new question and its reply');
+});
+
+test('a reply that was on its way when the coach changed is dropped', async () => {
+  const reply = deferred();
+  const { root } = await setupPanel({ sendChat: () => reply.promise });
+  root.withClass('chat-input')[0].value = 'Question for the old coach';
+  root.withClass('chat-send')[0].click();
+  pick(root, 'Concert');
+  await settle();
+  reply.resolve({ user_turn: turn(3, 'user', { text: 'Question for the old coach' }), instructor_turn: turn(4, 'instructor', { text: 'Late old answer', mode: 'ai' }) });
+  await settle();
+  assert.deepEqual(threadTexts(root), []);
+  assert.equal(root.withClass('chat-send')[0].disabled, false, 'Send works again');
+});
+
+test('history that is still loading when the coach changes does not come back', async () => {
+  const chat = deferred();
+  const { root, ready } = await setupPanel({ getChat: () => chat.promise, awaitReady: false });
+  await settle();
+  pick(root, 'Concert');
+  await settle();
+  chat.resolve({ turns: [turn(1, 'user', { text: 'Old question' }), turn(2, 'instructor', { text: 'Old answer', mode: 'ai' })] });
+  await ready;
+  assert.deepEqual(threadTexts(root), []);
 });
 
 test('the fallback notice, inside the sheet, follows the latest feedback or instructor turn', async () => {
