@@ -43,12 +43,7 @@
 .verdict.done { color: var(--brass); }
 .trainer-status .reasons { padding-left: 1.2rem; max-width: 36rem; }
 
-/* ---------- Disclosures (Details, History, and Before and after on Progress): this sheet is linked on every screen ---------- */
-.disclosure > summary { display: flex; align-items: center; min-height: var(--tap); color: var(--muted); font-weight: 600; cursor: pointer; }
-.disclosure > summary::after { content: "\25BE"; margin-left: var(--sp-2); transition: transform var(--dur-fast) var(--ease); }
-.disclosure[open] > summary::after { transform: rotate(180deg); }
-.disclosure[open] > summary { color: var(--ink); }
-.disclosure > * + * { margin: var(--sp-2) 0 0; }
+/* ---------- Details and History: the disclosure itself (.disclosure) is in components.css ---------- */
 .rep-details .rep-fact, .rep-details .pass-mark { color: var(--muted); }
 .rep-history { list-style: none; padding: 0; }
 .rep-history-item { padding: var(--sp-1) 0; font-variant-numeric: tabular-nums; }

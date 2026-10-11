@@ -1,7 +1,7 @@
 /* Practice Coach - shared components. Loaded after app.css and before the screen stylesheets.
    Only the tokens from app.css are used here: no colour, shadow or timing is written out in this file.
    Quiet by default: a hairline instead of a shadow, one filled button style, status as a word plus a small dot.
-   Pieces: .card, .btn, .chip, .badge, .segmented, .stat, .skeleton, .empty-state, .toast, .page-header. */
+   Pieces: .card, .btn, .chip, .badge, .segmented, .stat, .skeleton, .empty-state, .toast, .page-header, .disclosure. */
 
 /* ---------- Card: header, body, footer ---------- */
 .card {
@@ -251,3 +251,10 @@
 .steps > li[aria-current="step"] { color: var(--ink); font-weight: 600; }
 .steps > li[aria-current="step"]::before { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
 .steps > li.is-done::before { content: "\2713"; border-color: var(--ok); color: var(--ok); }
+
+/* ---------- Disclosure: a <details class="disclosure"> whose summary is a quiet 44px row with a chevron ---------- */
+.disclosure > summary { display: flex; align-items: center; min-height: var(--tap); color: var(--muted); font-weight: 600; cursor: pointer; }
+.disclosure > summary::after { content: "\25BE"; margin-left: var(--sp-2); transition: transform var(--dur-fast) var(--ease); }
+.disclosure[open] > summary::after { transform: rotate(180deg); }
+.disclosure[open] > summary { color: var(--ink); }
+.disclosure > * + * { margin: var(--sp-2) 0 0; }
