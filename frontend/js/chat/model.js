@@ -25,12 +25,28 @@ export function withTimeout(promise, timeoutMs, message, { setTimer = setTimeout
   });
 }
 
-// The instructor's opening message: the take's feedback sentences, as a turn the transcript can draw.
+// The coach's opening line: the first sentence of the take's feedback (the page shows the rest), as a turn the transcript can draw.
 // Returns null when the take has no sentences to open with.
 export function openingTurn(feedback, take) {
-  const sentences = feedback?.sentences ?? [];
-  if (!sentences.length) return null;
-  return { turn: 0, role: 'instructor', text: sentences.map((s) => s.text).join(' '), take_id: take, sentences, mode: feedback.mode ?? null };
+  const first = feedback?.sentences?.[0];
+  if (!first) return null;
+  return { turn: 0, role: 'instructor', text: first.text, take_id: take, sentences: [first], mode: feedback.mode ?? null };
+}
+
+export const PITCH_QUESTION = 'Fix my pitch';
+export const PLAN_QUESTION = 'Practice plan';
+export const weakestBarQuestion = (bar) => `Why was bar ${bar} off?`;
+
+// The bar of the first problem the feedback names (the most important one), or null when none points at a bar.
+function weakestBar(feedback) {
+  const places = [...(feedback?.tier1 ?? []), ...(feedback?.sentences ?? [])];
+  return places.map((item) => item.jump?.bar).find(Number.isInteger) ?? null;
+}
+
+// The questions offered as chips: two that always apply and one about the weakest bar when the feedback names one.
+export function suggestedQuestions(feedback) {
+  const bar = weakestBar(feedback);
+  return [PITCH_QUESTION, PLAN_QUESTION, ...(bar === null ? [] : [weakestBarQuestion(bar)])];
 }
 
 export const isFallback = (turn) => turn.role === 'instructor' && turn.mode === 'fallback';

@@ -5,9 +5,9 @@ import test from 'node:test';
 import { installFakeDom, settle } from './fake_dom.mjs';
 
 installFakeDom();
-const { MAX_MESSAGE_LENGTH, EMPTY_MESSAGE_ERROR, TOO_LONG_ERROR, TIMEOUT_MESSAGE, FALLBACK_NOTE, validateMessage, withTimeout, openingTurn } =
+const { MAX_MESSAGE_LENGTH, EMPTY_MESSAGE_ERROR, TOO_LONG_ERROR, TIMEOUT_MESSAGE, FALLBACK_NOTE, validateMessage, withTimeout, openingTurn, suggestedQuestions } =
   await import('../js/chat/model.js');
-const { createChatPanel } = await import('../js/chat/panel.js');
+const { createChatPanel, OPEN_EVENT } = await import('../js/chat/panel.js');
 const { buildMeasurementIndex } = await import('../js/results/measurements.js');
 const { mockFileFor } = await import('../js/mock.js');
 
@@ -27,7 +27,8 @@ function deferred() {
 
 // Builds a panel with fakes; options.getChat / sendChat override the defaults.
 async function setup(options = {}) {
-  const root = document.createElement('aside');
+  const root = document.createElement('div');
+  document.body.replaceChildren(root); // a panel only answers 'coach:open' while it is on the page; earlier tests' panels leave it
   const errors = [];
   const sent = [];
   const jumps = [];
@@ -44,6 +45,10 @@ async function setup(options = {}) {
   const jumpContext = { index: buildMeasurementIndex(ANALYSIS), jumper: { jumpTo: (place) => jumps.push(place) } };
   return { root, panel, errors, sent, jumps, jumpContext, input: root.withClass('chat-input')[0], send: root.button('Send') };
 }
+
+const chips = (root) => root.withClass('coach-chip');
+const sheetOf = (root) => root.withClass('coach-sheet')[0];
+const press = (node, key) => node.listeners.keydown.forEach((fn) => fn({ key, preventDefault() {}, stopPropagation() {} }));
 
 test('validateMessage accepts 1-1000 characters and explains the rest', () => {
   assert.equal(validateMessage('a'), null);
@@ -67,10 +72,11 @@ test('withTimeout rejects at the limit and clears its timer when the promise set
   assert.equal(cleared.length, 2, 'the timer is cleared when the promise settles first');
 });
 
-test('openingTurn is the feedback sentences as an instructor turn, or null without any', () => {
+test('openingTurn is the first feedback sentence as an instructor turn, or null without any', () => {
   const opening = openingTurn({ mode: 'ai', sentences: [sentence('One.'), sentence('Two.')] }, 'take_1');
   assert.equal(opening.role, 'instructor');
-  assert.equal(opening.text, 'One. Two.');
+  assert.equal(opening.text, 'One.', 'the page shows the rest');
+  assert.equal(opening.sentences.length, 1);
   assert.equal(openingTurn({ sentences: [] }, 'take_1'), null);
   assert.equal(openingTurn(null, 'take_1'), null);
 });
@@ -79,6 +85,7 @@ test('shows the history and the opening message, with jumps once results are set
   const history = { turns: [turn(1, 'user', 'Why was bar 3 wrong?'), turn(2, 'instructor', 'x', { sentences: [sentence('Bar 3 sounded wrong.')], mode: 'ai' })] };
   const { root, panel, jumpContext, jumps } = await setup({ getChat: async () => history });
   assert.equal(root.withClass('chat-turn').length, 2);
+  assert.equal(chips(root).length, 0, 'a take that already has questions asked shows no suggestions');
   panel.setResults({ jumpContext, feedback: { mode: 'ai', sentences: [sentence('Welcome, here is what I heard.')] } });
   const turns = root.withClass('chat-turn');
   assert.equal(turns.length, 3);
@@ -86,20 +93,21 @@ test('shows the history and the opening message, with jumps once results are set
   assert.match(turns[1].textContent, /Why was bar 3 wrong\?/);
   const textButton = root.withClass('sentence-text').find((n) => n.tagName === 'BUTTON' && n.textContent === 'Bar 3 sounded wrong.');
   textButton.click();
-  root.withClass('chip').find((chip) => chip.textContent === 'bar 3').click();
-  assert.deepEqual(jumps.map((j) => [j.bar, j.time_s]), [[3, 4.5], [3, 4.5]]);
+  assert.deepEqual(jumps.map((j) => [j.bar, j.time_s]), [[3, 4.5]]);
+  assert.equal(root.withClass('chip').length, 0, 'no per-sentence bar chips: each reference shows once');
+  assert.equal(root.withClass('badge').length, 0, 'no badges');
 });
 
 test('without results to jump in, or for another take, sentences are plain text', async () => {
   const history = { turns: [turn(2, 'instructor', 'x', { take_id: 'take_9', sentences: [sentence('About another take.')], mode: 'ai' })] };
   const { root, panel, jumpContext } = await setup({ getChat: async () => history });
-  assert.equal(root.withClass('chip').length + root.withClass('sentence-text').length, 0);
+  assert.equal(root.withClass('coach-link').length, 0);
   panel.setResults({ jumpContext, feedback: null });
-  assert.equal(root.withClass('chip').length, 0, 'the turn about take_9 stays plain');
+  assert.equal(root.withClass('coach-link').length, 0, 'the turn about take_9 stays plain');
   assert.equal(root.withClass('chat-turn').length, 1);
 });
 
-test('a question posts the trimmed text with the take, disables Send while pending, then shows the checked reply', async () => {
+test('a question posts the trimmed text with the take, disables Send while pending, then shows the reply', async () => {
   const reply = deferred();
   const sent = [];
   const { root, panel, input, send, jumpContext } = await setup({ sendChat: (...args) => { sent.push(args); return reply.promise; } });
@@ -121,7 +129,7 @@ test('a question posts the trimmed text with the take, disables Send while pendi
   assert.equal(input.value, '');
   const instructor = root.withClass('chat-instructor');
   assert.equal(instructor.length, 1);
-  assert.equal(root.withClass('badge-checked').length, 1);
+  assert.equal(root.withClass('badge-checked').length, 0, 'no checked badge');
   assert.equal(root.withClass('fallback-notice').length, 0);
 });
 
@@ -203,4 +211,116 @@ test('mock mode answers the chat POST with the AI reply, or the fallback reply f
   const read = (name) => JSON.parse(readFileSync(new URL(`../mock/${name}.json`, import.meta.url)));
   assert.equal(read('post_chat').instructor_turn.mode, 'ai');
   assert.equal(read('post_chat_fallback').instructor_turn.mode, 'fallback');
+});
+
+test('the panel is a closed dialog sheet until coach:open; Close and Escape shut it and focus goes in and back', async () => {
+  const { root } = await setup();
+  const sheet = sheetOf(root);
+  const [backdrop] = root.withClass('coach-backdrop');
+  assert.equal(sheet.hidden, true, 'closed by default');
+  assert.equal(backdrop.hidden, true);
+  assert.equal(sheet.attributes.role, 'dialog');
+  assert.equal(sheet.attributes['aria-modal'], 'true');
+  const opener = document.createElement('button');
+  opener.focus();
+  document.dispatch(OPEN_EVENT);
+  assert.equal(sheet.hidden, false);
+  assert.equal(backdrop.hidden, false);
+  assert.ok(document.activeElement === sheet, 'focus moves into the sheet');
+  root.button('Close').click();
+  assert.equal(sheet.hidden, true);
+  assert.ok(document.activeElement === opener, 'focus goes back to where it was');
+  document.dispatch(OPEN_EVENT);
+  press(sheet, 'Escape');
+  assert.equal(sheet.hidden, true, 'Escape closes');
+  document.dispatch(OPEN_EVENT);
+  backdrop.click();
+  assert.equal(sheet.hidden, true, 'a tap on the backdrop closes');
+});
+
+test('the grabber toggles half and full height on a tap, and a drag up expands, down shrinks and then closes', async () => {
+  const { root } = await setup();
+  const sheet = sheetOf(root);
+  const [grabber] = root.withClass('coach-grabber');
+  document.dispatch(OPEN_EVENT);
+  assert.equal(sheet.attributes['data-size'], 'half', 'opens at half height');
+  grabber.click();
+  assert.equal(sheet.attributes['data-size'], 'full');
+  assert.equal(grabber.attributes['aria-expanded'], 'true');
+  grabber.click();
+  assert.equal(sheet.attributes['data-size'], 'half');
+  const drag = (from, to) => { grabber.listeners.pointerdown[0]({ clientY: from }); grabber.listeners.pointerup[0]({ clientY: to }); grabber.click(); };
+  drag(300, 200);
+  assert.equal(sheet.attributes['data-size'], 'full', 'a drag up expands (and its click does not toggle back)');
+  drag(200, 300);
+  assert.equal(sheet.attributes['data-size'], 'half', 'a drag down shrinks');
+  drag(200, 300);
+  assert.equal(sheet.hidden, true, 'a drag down from half closes');
+});
+
+test('Tab stays inside the open sheet', async () => {
+  const { root } = await setup();
+  const sheet = sheetOf(root);
+  const focusables = [root.withClass('coach-grabber')[0], root.button('Close'), root.withClass('chat-input')[0], root.button('Send')];
+  sheet.querySelectorAll = () => focusables;
+  document.dispatch(OPEN_EVENT);
+  let prevented = false;
+  focusables.at(-1).focus();
+  sheet.listeners.keydown.forEach((fn) => fn({ key: 'Tab', preventDefault: () => { prevented = true; } }));
+  assert.ok(document.activeElement === focusables[0], 'Tab from the last control wraps to the first');
+  assert.equal(prevented, true);
+  sheet.listeners.keydown.forEach((fn) => fn({ key: 'Tab', shiftKey: true, preventDefault() {} }));
+  assert.ok(document.activeElement === focusables.at(-1), 'shift+Tab from the first control goes to the last');
+});
+
+test('a panel that left the page stops answering coach:open', async () => {
+  const { root } = await setup();
+  root.remove();
+  document.dispatch(OPEN_EVENT);
+  assert.equal(sheetOf(root).hidden, true);
+  assert.equal(document.count(OPEN_EVENT), 0, 'its listener is gone (as are those of earlier tests panels)');
+});
+
+test('suggestedQuestions: pitch, plan and one about the weakest bar when the feedback names one', () => {
+  const feedback = { tier1: [{ jump: { bar: 4 } }], sentences: [sentence('x', { jump: { bar: 3, time_s: 1 } })] };
+  assert.deepEqual(suggestedQuestions(feedback), ['Fix my pitch', 'Practice plan', 'Why was bar 4 off?'], 'the first problem names the weakest bar');
+  assert.deepEqual(suggestedQuestions({ sentences: [sentence('x', { jump: { bar: 3, time_s: 1 } })] }).at(-1), 'Why was bar 3 off?');
+  assert.deepEqual(suggestedQuestions({ sentences: [sentence('x', { jump: null })] }), ['Fix my pitch', 'Practice plan']);
+  assert.deepEqual(suggestedQuestions(null), ['Fix my pitch', 'Practice plan']);
+});
+
+test('on open the sheet shows the first feedback sentence once and chips; a chip sends its question and then the chips go', async () => {
+  const { root, panel, sent, input, jumpContext } = await setup();
+  const feedback = { mode: 'ai', tier1: [{ jump: { bar: 3 } }], sentences: [sentence('First line.'), sentence('Second line.')] };
+  panel.setResults({ jumpContext, feedback });
+  document.dispatch(OPEN_EVENT);
+  assert.deepEqual(root.texts('sentence-text'), ['First line.'], 'the page has the rest; nothing is repeated');
+  assert.deepEqual(chips(root).map((chip) => chip.textContent), ['Fix my pitch', 'Practice plan', 'Why was bar 3 off?']);
+  input.value = 'half typed';
+  chips(root)[2].click();
+  assert.deepEqual(sent, [['s1', 'Why was bar 3 off?', 'take_1']]);
+  await settle();
+  assert.equal(input.value, 'half typed', 'a chip leaves what was typed alone');
+  assert.equal(chips(root).length, 0, 'the chips make way once a question was asked');
+  assert.equal(root.withClass('chat-user').length, 1);
+});
+
+test('chips are disabled while a reply is pending', async () => {
+  const reply = deferred();
+  const { root, panel, jumpContext } = await setup({ sendChat: () => reply.promise });
+  panel.setResults({ jumpContext, feedback: null });
+  chips(root)[0].click();
+  assert.ok(chips(root).every((chip) => chip.disabled));
+  chips(root)[1].click(); // does nothing
+  reply.resolve(aiReply());
+  await settle();
+});
+
+test('a bar reference closes the sheet and then jumps', async () => {
+  const { root, panel, jumpContext, jumps } = await setup();
+  panel.setResults({ jumpContext, feedback: { mode: 'ai', sentences: [sentence('Bar 3 sounded wrong.')] } });
+  document.dispatch(OPEN_EVENT);
+  root.withClass('coach-link')[0].click();
+  assert.equal(sheetOf(root).hidden, true, 'the bar is in view, not behind the sheet');
+  assert.deepEqual(jumps.map((j) => j.bar), [3]);
 });

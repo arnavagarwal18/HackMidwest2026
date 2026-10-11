@@ -5,7 +5,8 @@ export const DEFAULT_PERSONA = 'standard'; // the persona of a session that has 
 export const FALLBACK_COACH_TEXT = 'No AI coach connected: showing the built-in feedback';
 export const FEEDBACK_PENDING_TEXT = 'Feedback is still being made';
 export const PICKER_LABEL = 'What are you practicing?';
-export const SWITCH_LABEL = 'Coach style';
+export const SWITCH_LABEL = 'Coach'; // the menu button reads 'Coach: Standard'
+export const STYLE_MENU_LABEL = 'Coach style';
 
 export const coachedByText = (label) => `Coached by ${label}`;
 export const nowCoachingText = (label) => `Now coaching: ${label}`;

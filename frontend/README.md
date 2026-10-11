@@ -142,15 +142,21 @@ Mock takes for trying each state (use them as the take id): `take_1` (video), `t
 Tests: `node frontend/tests/results.test.mjs` (Node 22+, Chrome). It runs one small headless Chrome (low-memory flags) and
 stops it when done.
 
-### Instructor chat panel (`js/screens/chat.js`, `js/chat/*.js`)
+### Coach sheet (`js/screens/chat.js`, `js/chat/*.js`)
 
-`results.js` renders the panel at once (it loads `GET /sessions/{id}/chat`) and calls `chat.setResults({ jumpContext, feedback })`
-when the take's results are on screen: the feedback sentences become the opening message and the sentences' bar/time jumps
-start to work (turns about another take, or a take with no results to jump in, show plain text). Send is disabled while a reply
-is pending ("thinking" shows; the UI gives up after 35 s). Errors (including 409 "Instructor is already replying.") go to the
-banner and keep the typed text. A `mode: 'fallback'` turn shows "AI instructor unavailable". Mock mode: `take_fallback` gets
-the fallback reply (`mock/post_chat_fallback.json`), other takes the AI reply (`mock/post_chat.json`).
-Tests: `node --test frontend/tests/chat.test.mjs` (no browser).
+The coach is a bottom sheet (centred, at most 40rem, at every width): closed until `document.dispatchEvent(new CustomEvent('coach:open'))`,
+opens at half height and expands to full with the grabber (tap or drag) or closes with Close, Escape or the backdrop. It is an
+`aria-modal` dialog: focus moves in on open and back on close, and Tab stays inside. `results.js` mounts it into its root (which loads
+`GET /sessions/{id}/chat`) and calls `chat.setResults({ jumpContext, feedback })` when the take's results are on screen: the first feedback
+sentence is the coach's opening line (the page already shows the rest), and three chips ('Fix my pitch', 'Practice plan', 'Why was bar N off?'
+for the first problem's bar) send a question when tapped; they go once a question has been asked. A sentence's text is its bar reference:
+tapping it closes the sheet and jumps (turns about another take, or a take with no results, show plain text). The header holds the
+'Coach: Standard ▾' menu (`persona/menu.js`, `persona/coach_switch.js`): choosing a style saves it, builds the feedback again and waits for the
+record as before; 'No AI coach connected' shows inside the sheet. Send is disabled while a reply is pending (the UI gives up after 35 s). Errors
+(including 409 "Instructor is already replying.") go to the banner and keep the typed text. A `mode: 'fallback'` turn shows "AI instructor
+unavailable". Mock mode: `take_fallback` gets the fallback reply (`mock/post_chat_fallback.json`), other takes the AI reply (`mock/post_chat.json`).
+Files: `sheet.js` (window behaviour), `panel.js` (content), `suggestions.js` (chips), `transcript.js`, `model.js`; styles in `css/coach.css`
+and `css/persona.css`. Tests: `node --test frontend/tests/chat.test.mjs` and `personas.test.mjs` (no browser).
 
 ### Video overlay (`js/results/overlay.js`)
 

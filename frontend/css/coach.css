@@ -1,0 +1,84 @@
+/* The coach sheet: a bottom sheet at every width (centred, at most 40rem, on wide screens). It opens at half height and can grow to full height.
+   Loaded from js/chat/panel.js. Only app.css tokens and components.css classes (.btn, .chip) are used.
+   Calm on purpose: one accent colour, on the Send button; everything else is ink on surface. */
+
+.coach-backdrop { position: fixed; inset: 0; z-index: 40; background: color-mix(in srgb, var(--ink) 35%, transparent); }
+
+.coach-sheet {
+  position: fixed;
+  z-index: 41;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 40rem);
+  height: 50vh;
+  height: 50dvh;
+  margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: var(--shadow-3);
+  transition: height var(--dur) var(--ease);
+  animation: coach-rise var(--dur) var(--ease);
+}
+
+.coach-sheet[data-size="full"] { height: calc(100vh - var(--sp-5)); height: calc(100dvh - var(--sp-5)); }
+.coach-sheet:focus { outline: none; }
+@keyframes coach-rise { from { transform: translateY(var(--sp-4)); opacity: 0; } }
+
+/* The grabber: tap to toggle the height, drag up to expand and down to shrink or close. A full-width 44px target. */
+.coach-grabber {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.coach-grabber-bar { width: 2.5rem; height: 5px; border-radius: var(--radius-pill); background: var(--line); }
+
+.coach-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 0 var(--sp-4) var(--sp-2); }
+.coach-head-slot { min-width: 0; }
+.coach-title { font-weight: 600; }
+.coach-close { color: var(--ink); } /* components.css makes a ghost button the accent colour; the sheet keeps its one accent for Send */
+
+.coach-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--sp-4); min-height: 0; padding: var(--sp-3) var(--sp-4); overflow-y: auto; }
+.coach-body > * { flex: none; }
+.coach-status:empty { display: none; }
+.coach-status .notice, .coach-status p { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
+
+.chat-transcript { display: flex; flex-direction: column; gap: var(--sp-4); margin: 0; padding: 0; list-style: none; }
+.chat-turn { max-width: 100%; }
+.chat-user { align-self: flex-end; max-width: 85%; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-card); background: var(--surface-2); }
+.chat-speaker { display: block; margin-bottom: var(--sp-1); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; }
+.chat-text { margin: 0; }
+.chat-turn .sentences { margin: 0; padding: 0; list-style: none; }
+.chat-turn .sentence { padding: var(--sp-1) 0; border: 0; }
+.chat-turn .notice { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
+.chat-thinking { margin: 0; }
+
+/* A bar reference is the sentence text itself: plain, underlined, and a 44px target. */
+.coach-link { display: inline; min-height: var(--tap); padding: 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 1px; text-underline-offset: 0.2em; cursor: pointer; }
+.coach-link:hover { text-decoration-thickness: 2px; }
+
+.coach-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.coach-chip { color: var(--ink); background: transparent; cursor: pointer; }
+.coach-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.coach-foot { flex: none; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); }
+.chat-form { display: flex; align-items: flex-end; gap: var(--sp-2); }
+.chat-input { flex: 1 1 auto; min-height: var(--tap); padding: var(--sp-2) var(--sp-3); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); font: inherit; resize: none; }
+.chat-send { flex: none; }
+
+@media (prefers-reduced-motion: reduce) { .coach-sheet { animation: none; transition: none; } }
