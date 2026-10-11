@@ -81,12 +81,12 @@ test('an Ode-to-Joy take (all notes right, four posture bars, one extra note) sa
   assert.equal(box.texts('num')[0], '5');
   assert.equal(box.texts('detail')[0], '1 note, 4 form');
   assert.ok(!box.className.includes('bad'), 'strong pitch with only form and extra-note flags is not red');
-  assert.equal(summary.texts('headline')[0], 'Solid take: the notes and the timing both held up - check the flagged bars below.');
+  assert.equal(summary.texts('headline')[0], 'Solid take: the notes and the timing both held up - check the flagged bars above.');
 });
 
 test('a take flagged only by form says to check the form flags; a clean take is still plain Solid take with 0 bars', () => {
   const formOnly = { ...odeAnalysis, bars: analysis.bars.map((b) => ({ ...b, extra: 0, expected: 4, ok: 4 })), problems: odeAnalysis.problems.slice(1) };
-  assert.equal(renderStatStrip(formOnly).texts('headline')[0], 'Solid take: the notes and the timing both held up - check the form flags below.');
+  assert.equal(renderStatStrip(formOnly).texts('headline')[0], 'Solid take: the notes and the timing both held up - check the form flags above.');
   const clean = renderStatStrip({ bars: [bar(1), bar(2)], notes: [{ timing_ms: 5 }], problems: [] });
   assert.equal(clean.texts('headline')[0], 'Solid take: the notes and the timing both held up.');
   assert.equal(statBox(clean, 'Bars to work on').texts('num')[0], '0');

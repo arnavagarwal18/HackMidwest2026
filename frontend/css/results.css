@@ -68,23 +68,10 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .key-summary, .heard-summary, .next-action { margin: 0 0 var(--sp-2); }
 .next-action { font-weight: 600; }
 
-/* Bar by bar: one box per bar with its number and a word. Each level has a fill and an edge token; the text stays ink.
-   Until the global palette defines them, the status tokens are set here. In the dark scheme the fills are the edge over the surface. */
-.results {
-  --status-good-fill: #CDEFD8; --status-good-border: #30A46C;
-  --status-okay-fill: #FBE7B5; --status-okay-border: #B7791F;
-  --status-needs-work-fill: #F9D0CE; --status-needs-work-border: #E5484D;
-}
-@media (prefers-color-scheme: dark) {
-  .results {
-    --status-good-fill: color-mix(in srgb, var(--status-good-border) 28%, var(--surface));
-    --status-okay-fill: color-mix(in srgb, var(--status-okay-border) 28%, var(--surface));
-    --status-needs-work-fill: color-mix(in srgb, var(--status-needs-work-border) 28%, var(--surface));
-  }
-}
-.level-good { --fill: var(--status-good-fill); --fill-edge: var(--status-good-border); }
-.level-okay { --fill: var(--status-okay-fill); --fill-edge: var(--status-okay-border); }
-.level-needs-work { --fill: var(--status-needs-work-fill); --fill-edge: var(--status-needs-work-border); }
+/* Bar by bar: one box per bar with its number and a word. Each level takes the palette's status fill and edge (app.css); the text stays ink. */
+.level-good { --fill: var(--good-fill); --fill-edge: var(--good-border); }
+.level-okay { --fill: var(--okay-fill); --fill-edge: var(--okay-border); }
+.level-needs-work { --fill: var(--work-fill); --fill-edge: var(--work-border); }
 .bar-strip-section { margin-top: var(--sp-5); }
 .bar-strip-section h2, .practice-next h2 { margin: 0 0 var(--sp-1); }
 .bars-lead { margin: 0; }
@@ -149,9 +136,11 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .exercise a.btn, .results .trace-link, .detect-change { min-height: var(--tap); }
 
 /* The results and the coach column. Neither the layout nor the coach sheet's mount point may pick up the card look main > div gets.
-   From 901px: the results, and #coach-root as a column about 360px wide that stays at the top while the results scroll. */
+   From 901px, while the coach is docked and open (.coach-sheet.is-docked, css/coach.css): the results, and #coach-root as a column
+   about 360px wide that stays at the top while the results scroll. With no docked panel showing (collapsed, a bottom sheet, or none yet)
+   there is no column: the results take the full width. */
 .results-layout, #coach-root { padding: 0; background: none; border: 0; box-shadow: none; }
 @media (min-width: 901px) {
-  .results-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--sp-5); }
-  .results-layout > #coach-root { position: sticky; top: calc(var(--header-h) + var(--sp-3)); margin-top: 0; }
+  .results-layout:has(> #coach-root .coach-sheet.is-docked:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: var(--sp-5); }
+  .results-layout:has(> #coach-root .coach-sheet.is-docked:not([hidden])) > #coach-root { position: sticky; top: calc(var(--header-h) + var(--sp-3)); margin-top: 0; }
 }

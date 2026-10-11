@@ -38,7 +38,7 @@ export const percent = (share) => `${Math.round(share * 100)}%`;
 function checkNote(counts) {
   if (!counts?.total) return '';
   const formOnly = counts.form === counts.total;
-  return formOnly ? ' - check the form flags below.' : ' - check the flagged bars below.';
+  return formOnly ? ' - check the form flags above.' : ' - check the flagged bars above.';
 }
 
 // "Solid take: ..." with its closing full stop moved after the check note when form, extra-note or timing flags still list bars.
@@ -51,10 +51,10 @@ function solid(text, counts) {
 export function headline(pitch, rhythm, counts = null) {
   if (!pitch) return null;
   const notesStrong = pitch.share >= STRONG_PITCH;
-  if (!rhythm) return notesStrong ? solid('Solid take: the notes held up', counts) : 'Some notes were off - slow down and check the bars below.';
+  if (!rhythm) return notesStrong ? solid('Solid take: the notes held up', counts) : 'Some notes were off - slow down and check the bars above.';
   const timingStrong = rhythm.share >= STRONG_RHYTHM;
   if (notesStrong && timingStrong) return solid('Solid take: the notes and the timing both held up', counts);
   if (notesStrong) return 'Right notes, but the timing drifted - lean on the beat.';
-  if (timingStrong) return 'Steady timing, but some notes were off - slow down and check the bars below.';
-  return 'A rough one - slow it down and take the bars below one at a time.';
+  if (timingStrong) return 'Steady timing, but some notes were off - slow down and check the bars above.';
+  return 'A rough one - slow it down and take the bars above one at a time.';
 }

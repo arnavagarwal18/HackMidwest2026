@@ -104,6 +104,20 @@ await test('the recording comes first, then a verdict naming the weak spot, thre
   assert.ok(await page.eval(`[...document.querySelectorAll('.hero button, .results summary, .bar-box, .practice-step .btn, .play-bar')].every((e) => e.getBoundingClientRect().height >= 44 && e.getBoundingClientRect().width >= 44)`), 'tap targets are at least 44px');
 });
 
+await test('from 901px the coach gets a 360px column only while a docked panel shows; otherwise the results take the full width', async (open) => {
+  const page = await open('take_1');
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 800, deviceScaleFactor: 1, mobile: false });
+  await page.waitFor(`document.querySelector('.hero')`);
+  const widths = () => page.eval(`[document.querySelector('.results-layout'), document.querySelector('.results')].map((e) => Math.round(e.getBoundingClientRect().width))`);
+  const [layoutWidth, resultsWidth] = await widths();
+  assert.equal(resultsWidth, layoutWidth, 'no docked panel: no blank column');
+  await page.eval(`(() => { const docked = document.createElement('div'); docked.className = 'coach-sheet is-docked'; docked.id = 'fake-docked'; document.getElementById('coach-root').append(docked); })()`);
+  assert.equal(await page.eval(`Math.round(document.getElementById('coach-root').getBoundingClientRect().width)`), 360);
+  assert.equal(await page.eval(`getComputedStyle(document.getElementById('coach-root')).position`), 'sticky');
+  await page.eval(`document.getElementById('fake-docked').hidden = true`);
+  assert.deepEqual(await widths(), [layoutWidth, layoutWidth], 'a collapsed panel gives the width back');
+});
+
 await test('Ask coach opens the coach sheet through the coach:open event, and Try again goes to the take screen', async (open) => {
   const page = await open('take_1');
   await page.waitFor(`document.getElementById('ask-coach')`);
