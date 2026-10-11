@@ -1,0 +1,78 @@
+id,status,video_s,analysed_s,frames_tracked,frames_sampled,view,view_ratio,rules_skipped,rule,start_s,end_s,severity,side
+RYGVoq8850U,ok,301,289.9,2857,2900,front,1.9499,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,shoulders_raised,33.2,34.5,1.0,both
+RYGVoq8850U,ok,301,289.9,2857,2900,front,1.9499,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,shoulders_raised,35.1,36.6,0.46,both
+RYGVoq8850U,ok,301,289.9,2857,2900,front,1.9499,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,35.6,36.7,0.93,
+RYGVoq8850U,ok,301,289.9,2857,2900,front,1.9499,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,42.9,44.8,0.26,
+Mq-e5iKvIGQ,ok,211,211.2,2094,2113,front,1.7029,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,33.1,34.2,0.02,
+Mq-e5iKvIGQ,ok,211,211.2,2094,2113,front,1.7029,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,78.8,86.5,0.32,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,70.0,72.3,0.29,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,133.0,135.1,0.41,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,137.4,139.5,0.12,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,140.0,141.6,0.1,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,shoulders_raised,147.7,158.5,0.46,both
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,147.8,152.5,1.0,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,147.8,149.5,0.1,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,155.7,158.2,0.51,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,163.1,164.8,0.03,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,166.5,181.2,0.62,
+1CH0EqpWM6U,ok,310,289.9,2817,2900,front,2.1055,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,240.9,252.5,0.65,
+GVlVUcvi4is,ok,675,290.0,2624,2901,front,2.074,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_head_down,37.8,39.4,1.0,
+GVlVUcvi4is,ok,675,290.0,2624,2901,front,2.074,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,shoulders_raised,269.8,271.0,0.92,both
+ZTcrE6iruBc,ok,37,37.0,360,371,front,2.3053,,shoulders_raised,25.7,27.0,0.08,both
+ZTcrE6iruBc,ok,37,37.0,360,371,front,2.3053,,trumpet_head_down,25.8,26.8,0.05,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,112.5,117.1,0.1,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,117.8,118.8,0.04,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,215.5,219.4,0.28,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,221.4,224.4,0.35,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,shoulders_raised,222.8,224.1,0.13,both
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,237.1,238.5,0.06,
+fnvwOqXv8fs,ok,430,289.9,2900,2900,side,1.4207,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,249.2,253.0,0.09,
+92M9zflsh-M,ok,468,289.9,2839,2900,front,2.1249,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,,,,,
+4N_3KYu_hgQ,ok,709,289.9,2894,2900,side,1.5675,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,shoulders_raised,279.7,281.4,0.4,both
+4N_3KYu_hgQ,ok,709,289.9,2894,2900,side,1.5675,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,shoulders_raised,286.9,290.0,0.04,both
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,shoulders_raised,16.1,17.4,0.02,both
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,25.8,30.1,0.38,
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,27.2,28.3,0.92,
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,47.4,49.2,0.18,
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,62.9,64.8,0.14,
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,65.4,68.7,0.14,
+KSizitxb9ik,ok,85,84.9,847,850,side,1.6863,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,69.3,72.2,0.24,
+EaTvWPsHDQ8,ok,78,77.8,640,779,side,0.9142,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,53.3,56.5,0.37,
+EaTvWPsHDQ8,ok,78,77.8,640,779,side,0.9142,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,slouching,53.6,54.9,0.53,
+EaTvWPsHDQ8,ok,78,77.8,640,779,side,0.9142,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,57.2,58.9,0.1,
+EaTvWPsHDQ8,ok,78,77.8,640,779,side,0.9142,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,59.8,61.2,0.43,
+EaTvWPsHDQ8,ok,78,77.8,640,779,side,0.9142,trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,slouching,61.5,64.4,0.22,
+AmpggAjW9bk,ok,83,82.4,807,825,front,2.0159,,shoulders_raised,21.0,22.7,1.0,both
+AmpggAjW9bk,ok,83,82.4,807,825,front,2.0159,,trumpet_head_down,21.4,22.6,0.09,
+AmpggAjW9bk,ok,83,82.4,807,825,front,2.0159,,trumpet_elbows_pinned,54.3,55.3,0.33,right
+AmpggAjW9bk,ok,83,82.4,807,825,front,2.0159,,trumpet_elbows_pinned,73.3,75.4,0.27,right
+YnPCwbVwDYM,ok,110,110.3,909,1104,front,1.8011,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,trumpet_bell_angle,73.5,75.0,0.45,
+YnPCwbVwDYM,ok,110,110.3,909,1104,front,1.8011,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,75.3,76.6,0.27,
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,shoulders_raised,1.1,2.1,1.0,both
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,slouching,1.1,2.1,1.0,
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,slouching,5.0,7.2,0.11,
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,trumpet_elbows_wide,118.6,120.0,0.07,left
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,trumpet_elbows_pinned,159.4,161.5,0.24,right
+tsyKFlBsqZY,ok,298,289.9,2843,2900,front,2.1484,,shoulders_raised,184.4,186.1,0.78,both
+z9YjzBBIF78,ok,50,49.6,458,497,front,1.7634,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,,,,,
+O58aoxi2t64,ok,447,290.0,2901,2901,front,2.0141,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,,,,,
+bs65wygep88,ok,341,290.0,2843,2901,side,1.6797,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,148.1,149.1,0.56,
+bs65wygep88,ok,341,290.0,2843,2901,side,1.6797,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,200.3,202.2,0.04,
+bs65wygep88,ok,341,290.0,2843,2901,side,1.6797,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,208.0,209.1,0.81,
+bs65wygep88,ok,341,290.0,2843,2901,side,1.6797,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,251.7,253.1,0.75,
+bs65wygep88,ok,341,290.0,2843,2901,side,1.6797,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_head_down,279.4,280.4,0.44,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,91.3,92.9,0.2,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,96.8,97.9,0.08,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,105.6,106.6,0.01,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,225.6,228.1,0.16,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,242.8,244.1,0.01,
+JEzh4lyPriM,ok,482,289.9,2845,2900,front,2.1471,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,283.5,285.2,0.04,
+FSsO_-LrqE4,download failed: [youtube] FSsO_-LrqE4: This video is not available,,0.0,0,0,,,,,,,,
+h1q7VzuWuLQ,ok,300,289.9,2829,2900,front,2.2702,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,181.5,185.6,0.12,
+h1q7VzuWuLQ,ok,300,289.9,2829,2900,front,2.2702,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,225.4,226.7,0.12,
+h1q7VzuWuLQ,ok,300,289.9,2829,2900,front,2.2702,slouching:not_visible; trumpet_bell_angle:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,slouching,231.1,232.1,0.14,
+k2tBufHUIEg,ok,41,40.7,408,408,front,2.5261,slouching:not_visible; trumpet_elbows_pinned:not_visible; trumpet_elbows_wide:not_visible,,,,,
+qFmhhHTn810,ok,789,519.9,5200,5200,side,1.699,slouching:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,150.3,151.4,0.05,
+qFmhhHTn810,ok,789,519.9,5200,5200,side,1.699,slouching:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,157.7,158.9,0.37,
+qFmhhHTn810,ok,789,519.9,5200,5200,side,1.699,slouching:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,168.6,169.9,0.48,
+qFmhhHTn810,ok,789,519.9,5200,5200,side,1.699,slouching:not_visible; trumpet_elbows_pinned:not_for_view; trumpet_elbows_wide:not_for_view,trumpet_bell_angle,304.1,305.3,0.09,
