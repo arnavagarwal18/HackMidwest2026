@@ -1,4 +1,4 @@
-/* Practice Coach - a quiet, Apple-style design system. The design tokens live here, in :root, and every stylesheet uses them.
+/* Allegro - a quiet, Apple-style design system. The design tokens live here, in :root, and every stylesheet uses them.
    One system font stack; four text sizes (caption, body, headline, title); one spacing scale (4-pt); one accent colour,
    used only for the primary action, the focus ring and status. Depth comes from a hairline, not from shadows.
    Component styles (cards, buttons, chips, toasts...) live in components.css and use only these tokens.

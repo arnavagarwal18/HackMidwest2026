@@ -1,4 +1,4 @@
-# Practice Coach front end
+# Allegro front end
 
 Plain JavaScript ES modules, no build step, no framework, no CDN at runtime. FastAPI serves this folder at `/`
 (`backend/app/main.py` mounts it as static files), so the page and the API share one origin.

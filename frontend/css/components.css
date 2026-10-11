@@ -1,4 +1,4 @@
-/* Practice Coach - shared components. Loaded after app.css and before the screen stylesheets.
+/* Allegro - shared components. Loaded after app.css and before the screen stylesheets.
    Only the tokens from app.css are used here: no colour, shadow or timing is written out in this file.
    Quiet by default: a hairline instead of a shadow, one filled button style, status as a word plus a small dot.
    Pieces: .card, .btn, .chip, .badge, .segmented, .stat, .skeleton, .empty-state, .toast, .page-header, .disclosure. */
