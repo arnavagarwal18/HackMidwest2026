@@ -40,6 +40,7 @@ const SCREENS = [
   { name: 'calibrate', hash: '#/calibrate', ready: `document.querySelector('.calibrate-steps') !== null && document.querySelector('.calibrate-qr svg') !== null`, session: true },
   { name: 'take', hash: '#/take', ready: `document.querySelector('main').children.length > 0`, session: true },
   { name: 'results', hash: '#/results/take_1', ready: `document.querySelector('.results .bar-strip-section') !== null`, session: true, full: true },
+  { name: 'results-details', hash: '#/results/take_1', ready: `document.querySelector('.results .bar-strip-section') !== null`, session: true, full: true, prepare: `document.querySelectorAll('.results details').forEach((d) => { d.open = true; })` },
   { name: 'coach-sheet', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: OPEN_COACH },
   { name: 'coach-history', hash: '#/results/take_1', ready: COACH_READY, session: true, act: OPEN_COACH },
   { name: 'coach-menu', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: async (page) => { await OPEN_COACH(page); await page.eval(`document.querySelector('.coach-menu-button').click()`); } },
