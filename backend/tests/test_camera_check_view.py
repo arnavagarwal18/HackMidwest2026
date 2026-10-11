@@ -77,7 +77,7 @@ def test_the_learner_saying_front_wins_over_a_side_looking_pose(client, monkeypa
 def test_the_far_side_is_never_listed_in_missing_in_a_side_view(client, monkeypatch):
     frame = side_pose("left")
     for index in range(len(frame["pose"])):
-        if index not in (7, 11, 13, 15, 23):  # leave only the near side's points
+        if index not in (0, 7, 11, 13, 15, 23):  # leave only the nose and the near side's points
             frame["pose"][index][2] = 0.0
     show(monkeypatch, frame)
     assert post_view(client, new_session(client), "left").json()["missing"] == []
@@ -90,6 +90,14 @@ def test_a_hidden_near_point_is_listed_by_its_side_name(client, monkeypatch):
     show(monkeypatch, frame)
     body = post_view(client, new_session(client), "left").json()
     assert (body["ok"], body["missing"]) == (False, ["left ear", "left hip"])
+
+
+def test_a_hidden_nose_is_listed_in_a_side_view(client, monkeypatch):
+    frame = side_pose("left")
+    frame["pose"][0][2] = 0.0
+    show(monkeypatch, frame)
+    body = post_view(client, new_session(client), "left").json()
+    assert (body["ok"], body["missing"]) == (False, ["nose"])
 
 
 def test_the_learner_picking_the_other_side_requires_that_sides_points(client, monkeypatch):

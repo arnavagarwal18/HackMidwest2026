@@ -1,6 +1,6 @@
 """Camera check: is the learner in frame well enough to track? Used by the camera guide before recording.
 
-In a side view only the body side nearer the camera is required: the far side is hidden behind it.
+In a side view only the nose and the body side nearer the camera are required: the far side is hidden behind it.
 """
 import threading
 
@@ -11,9 +11,10 @@ from . import config
 from .tracker import Tracker, downscale
 from .view import FRONT, LEFT, RIGHT, SIDE, near_side, view_for_ratio, view_ratio_of
 
+NOSE = 0
 # Pose landmark indices of the points the rules need, with the plain name shown to the learner.
 NEEDED_POINTS = [
-    ("nose", 0), ("left ear", 7), ("right ear", 8),
+    ("nose", NOSE), ("left ear", 7), ("right ear", 8),
     ("left shoulder", 11), ("right shoulder", 12),
     ("left elbow", 13), ("right elbow", 14),
     ("left wrist", 15), ("right wrist", 16),
@@ -55,7 +56,8 @@ def _missing_points(frame: dict, with_hands: bool, side: str | None) -> list[str
         if not all(_seen(pose, index) for index in HIP_POINTS):
             missing.append("hips")
     else:
-        missing = [name for name, index in _near_point_indices(side).items() if not _seen(pose, index)]
+        needed = {"nose": NOSE, **_near_point_indices(side)}  # head_pitch needs the nose, seen or not from the side
+        missing = [name for name, index in needed.items() if not _seen(pose, index)]
     if with_hands and frame["left_hand"] is None:
         missing.append("left hand")
     return missing
