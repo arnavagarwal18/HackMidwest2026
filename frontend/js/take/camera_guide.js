@@ -1,7 +1,10 @@
 // The outline drawn over the camera preview: head, shoulders, arms and the instrument area.
 // Everything about the shape lives here so the camera position can change in one place:
-// the open question is front-on versus about 45 degrees, and today the outline is front-on.
-export const CAMERA_POSITION = 'front';
+// the learner picks front-on or side-on (camera_view.js); the side outline is in camera_guide_side.js.
+import { DEFAULT_VIEW, nearSideOf } from './camera_view.js';
+import { sideGuideParts } from './camera_guide_side.js';
+
+export const CAMERA_POSITION = DEFAULT_VIEW;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const VIEW_BOX = '0 0 160 90'; // the preview is 16:9
@@ -29,13 +32,16 @@ function shape({ tag, attrs, area }) {
 }
 
 // Returns an <svg> to lay over the preview. An instrument without its own shape gets the body only.
-export function createCameraGuide(instrument) {
+// view is a camera_view.js id; the front outline is the default.
+export function createCameraGuide(instrument, view = CAMERA_POSITION) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', VIEW_BOX);
   svg.setAttribute('class', 'camera-guide');
   svg.setAttribute('aria-hidden', 'true');
-  svg.dataset.position = CAMERA_POSITION;
+  svg.dataset.position = view;
   svg.dataset.instrument = INSTRUMENT_SHAPES[instrument] ? instrument : 'none';
-  [...BODY, ...(INSTRUMENT_SHAPES[instrument] || [])].forEach((part) => svg.append(shape(part)));
+  const nearSide = nearSideOf(view);
+  const parts = nearSide ? sideGuideParts(instrument, nearSide) : [...BODY, ...(INSTRUMENT_SHAPES[instrument] || [])];
+  parts.forEach((part) => svg.append(shape(part)));
   return svg;
 }
