@@ -26,7 +26,7 @@ const RECORD_A_REP = async (page) => {
 const SCREENS = [
   { name: 'start', hash: '#/start', ready: `location.hash === '#/start' && document.querySelector('main').children.length > 0`, session: false },
   { name: 'score', hash: '#/take', ready: `document.querySelector('.take-form') !== null`, session: true, then: { run: `location.hash = '#/score'`, ready: `document.querySelectorAll('.piece-row').length > 0` } },
-  { name: 'score-scan', hash: '#/score', ready: `document.querySelectorAll('.doubtful-card').length > 0`, session: 'sess_unconfirmed' },
+  { name: 'score-scan', hash: '#/score', ready: `document.querySelectorAll('.doubtful-list li').length > 0`, session: 'sess_unconfirmed' },
   { name: 'calibrate', hash: '#/calibrate', ready: `document.querySelector('.calibrate-steps') !== null && document.querySelector('.calibrate-qr svg') !== null`, session: true },
   { name: 'take', hash: '#/take', ready: `document.querySelector('main').children.length > 0`, session: true },
   { name: 'results', hash: '#/results/take_1', ready: `document.querySelector('.results .bar-strip-section') !== null`, session: true, full: true },

@@ -54,7 +54,7 @@ async function withUserMedia(replacement, body) {
   }
 }
 
-test('Play has one primary Record button and keeps bars, count-in and metronome under More options', async () => {
+test('Play has one primary Record button and keeps bars, count-in and metronome under Options', async () => {
   freshVisit();
   const root = await openPlay();
   assert.deepEqual(root.find((node) => node.tagName === 'button' && node.className.includes('primary')).map((node) => node.textContent), ['Record', 'Stop']);
