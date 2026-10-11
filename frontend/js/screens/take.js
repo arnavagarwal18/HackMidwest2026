@@ -12,6 +12,7 @@ import { button, el, loadScoreStyles } from '../score/ui.js';
 import { createCameraPanel } from '../take/camera_panel.js';
 import { rememberSentTake, sendTakeFile } from '../take/send.js';
 import { initialSetup, kindOfFile, validateSetup } from '../take/setup.js';
+import { playHeader, recordArea, setupCard, uploadCard } from '../take/layout.js';
 import { createTakeForm } from '../take/take_form.js';
 import { UPLOAD_ACCEPT, uploadTypeProblem } from '../take/upload_types.js';
 
@@ -73,10 +74,10 @@ export async function render(root, _params, isCurrent = () => true) {
   const problem = el('div', { className: 'take-problem' });
   const status = el('p', { className: 'muted', attrs: { role: 'status' } });
   const meterBox = el('div', { className: 'take-meter' });
-  const recordButton = button('Record', startRecording, 'primary record-big');
-  const stopButton = button('Stop', stopRecording, 'primary record-big');
-  const sendAgainButton = button('Send this take again', sendUnsent);
-  const discardButton = button('Discard and record again', discardUnsent);
+  const recordButton = button('Record', startRecording, 'btn btn-primary btn-lg record-big');
+  const stopButton = button('Stop', stopRecording, 'btn btn-primary btn-lg record-big');
+  const sendAgainButton = button('Send this take again', sendUnsent, 'btn btn-secondary btn-lg');
+  const discardButton = button('Discard and record again', discardUnsent, 'btn btn-ghost btn-lg');
   const fileInput = el('input', { attrs: { type: 'file', accept: UPLOAD_ACCEPT } });
   fileInput.addEventListener('change', uploadChosenFile);
   const controls = [recordButton, stopButton, sendAgainButton, discardButton, fileInput];
@@ -313,21 +314,21 @@ export async function render(root, _params, isCurrent = () => true) {
   window.addEventListener('hashchange', dispose, { once: true });
 
   root.append(
-    el('div', { className: 'piece-line', children: [
-      el('h1', { text: score.title || 'Play' }),
-      el('a', { text: 'Change piece', className: 'chip', attrs: { href: '#/score' } }),
-    ] }),
-    pickerSlot,
-    form.element,
+    playHeader(score.title || 'Play'),
+    setupCard([pickerSlot, form.element]),
     camera.element,
-    problem,
-    el('p', { className: 'muted', text: MIC_REASON }),
-    el('p', { className: 'take-actions', children: [recordButton, stopButton, sendAgainButton, discardButton] }),
-    meterBox,
-    status,
-    el('p', { className: 'muted', text: 'Or upload an existing audio or video file. It is sent with the tempo above.' }),
-    fileInput,
-    el('p', { children: [el('a', { text: 'Fine-tune for your room and microphone (optional)', attrs: { href: '#/calibrate' } })] }),
+    recordArea({
+      problem,
+      micReason: el('p', { className: 'muted', text: MIC_REASON }),
+      actions: el('p', { className: 'take-actions', children: [recordButton, stopButton, sendAgainButton, discardButton] }),
+      meterBox,
+      status,
+    }),
+    uploadCard([
+      el('p', { className: 'muted', text: 'Or upload an existing audio or video file. It is sent with the tempo above.' }),
+      fileInput,
+      el('p', { children: [el('a', { text: 'Fine-tune for your room and microphone (optional)', attrs: { href: '#/calibrate' } })] }),
+    ]),
   );
   setMode('idle');
   mountPicker();

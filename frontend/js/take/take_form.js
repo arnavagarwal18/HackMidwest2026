@@ -39,9 +39,9 @@ export function createTakeForm({ setup, bars, onKindChange, onTempoChange = () =
     tempo.input.valueAsNumber = Math.min(TEMPO_RANGE.max, Math.max(TEMPO_RANGE.min, current + direction * TEMPO_STEP));
     announceTempo();
   }
-  const slower = button('\u2212', () => nudgeTempo(-1), 'stepper');
+  const slower = button('\u2212', () => nudgeTempo(-1), 'btn btn-secondary stepper');
   slower.setAttribute('aria-label', 'Slower');
-  const faster = button('+', () => nudgeTempo(1), 'stepper');
+  const faster = button('+', () => nudgeTempo(1), 'btn btn-secondary stepper');
   faster.setAttribute('aria-label', 'Faster');
   const tempoRow = el('div', { className: 'tempo-stepper', children: [tempo.row, slower, faster] });
 

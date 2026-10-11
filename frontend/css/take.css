@@ -1,33 +1,50 @@
-/* Take setup screen. Loaded by js/screens/take.js. */
-.take-form { display: grid; gap: var(--sp-3); }
-.field-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
-.field { display: grid; gap: var(--sp-1); }
-.field input[type="number"] { width: 9rem; }
-.choice { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap); }
-.take-form fieldset { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-card); }
-.take-form legend { padding: 0 var(--sp-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
-.take-form p { margin: 0; }
-.take-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-bottom: max(var(--sp-3), env(safe-area-inset-bottom)); }
-.record-big { min-height: 56px; padding: 0 var(--sp-5); font-size: var(--fs-lg); }
-@media (max-width: 40rem) {
-  .record-big { width: 100%; }
-  .take-actions { position: sticky; bottom: 0; z-index: 5; padding-top: var(--sp-2); background: var(--bg); border-top: 1px solid var(--line); } /* Record stays in the thumb zone */
-}
-.tempo-stepper { display: flex; align-items: flex-end; gap: var(--sp-2); }
-.stepper { min-width: var(--tap); min-height: var(--tap); font-size: var(--fs-lg); }
-.take-more summary { min-height: var(--tap); cursor: pointer; color: var(--muted); }
-.take-more[open] { display: grid; gap: var(--sp-3); }
-.take-meter meter { width: 12rem; }
+/* Play screen (#/take). Loaded by js/screens/take.js, after components.css (cards, .btn, .chip, .badge) and app.css tokens. */
 
-.camera-panel { max-width: 40rem; }
-.camera-stage { position: relative; aspect-ratio: 16 / 9; margin-bottom: var(--sp-3); background: var(--media-bg); border-radius: var(--radius-card); overflow: hidden; }
+/* ---------- Setup card ---------- */
+.take-card-body { display: grid; gap: var(--sp-4); }
+.take-form { display: grid; gap: var(--sp-3); }
+.take-form p { margin: 0; }
+.field-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.field { display: grid; gap: var(--sp-1); font-size: var(--fs-sm); font-weight: 600; }
+.field input[type="number"] { width: 9rem; font-weight: 400; }
+.choice { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap); font-weight: 600; }
+.tempo-stepper { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-2); }
+.tempo-stepper input[type="number"] { font-size: var(--fs-lg); }
+.stepper { min-width: var(--tap); font-size: var(--fs-lg); }
+.persona-slot:not(:empty) { padding-bottom: var(--sp-4); border-bottom: 1px solid var(--line); }
+.take-more { padding: var(--sp-1) var(--sp-3); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); }
+.take-more summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; color: var(--muted); font-weight: 600; }
+.take-more summary::after { content: "\25BE"; margin-left: var(--sp-2); transition: transform var(--dur-fast) var(--ease); }
+.take-more[open] summary::after { transform: rotate(180deg); }
+.take-more[open] { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-3); }
+.take-more .choice + p { padding-left: calc(20px + var(--sp-2) + 0.3em); font-size: var(--fs-sm); }
+
+/* ---------- Camera preview: a card of its own once the camera is on ---------- */
+.camera-panel { display: grid; gap: var(--sp-2); max-width: 40rem; padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-1); }
+.camera-panel > * { margin: 0; }
+.camera-stage { position: relative; aspect-ratio: 16 / 9; background: var(--media-bg); border-radius: var(--radius); overflow: hidden; }
 .camera-stage video { width: 100%; height: 100%; object-fit: cover; }
 .camera-guide-host { position: absolute; inset: 0; pointer-events: none; }
 .camera-guide { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--on-media); stroke-width: 0.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .camera-guide .guide-instrument { stroke: var(--on-media-accent); stroke-dasharray: 2 1.5; }
-.camera-badge { display: inline-block; margin: var(--sp-2) 0 0; padding: 2px var(--sp-3); border-radius: var(--radius); font-weight: 600; }
-.camera-badge[hidden] { display: none; }
+.camera-field { grid-auto-flow: column; justify-content: start; align-items: center; gap: var(--sp-2); }
+.camera-badge { justify-self: start; padding: 2px var(--sp-3); border-radius: var(--radius-pill); font-size: var(--fs-sm); font-weight: 600; }
 .camera-ok { background: var(--ok-soft); color: var(--ok); }
 .camera-warn { background: var(--sharp-soft); color: var(--sharp); }
-.camera-note { margin: var(--sp-1) 0 0; font-size: var(--fs-sm); }
-.media-error { padding: var(--sp-3) var(--sp-3); background: var(--error-soft); color: var(--error); border-radius: var(--radius); }
+.camera-note { font-size: var(--fs-sm); }
+
+/* ---------- Record area: the big button, what the take is doing ---------- */
+.take-record { display: grid; gap: var(--sp-3); }
+.take-record > * { margin: 0; }
+.take-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-bottom: max(var(--sp-3), env(safe-area-inset-bottom)); }
+.record-big { min-width: 12rem; min-height: 56px; font-size: var(--fs-lg); }
+.take-meter meter { width: 12rem; }
+.take-meter:empty, .take-problem:empty { display: none; }
+.media-error { padding: var(--sp-3); background: var(--error-soft); color: var(--error); border-left: 4px solid var(--error); border-radius: var(--radius); }
+@media (max-width: 40rem) {
+  .record-big, .take-actions .btn { width: 100%; }
+  .take-actions { position: sticky; bottom: 0; z-index: 5; padding-top: var(--sp-2); background: var(--bg); border-top: 1px solid var(--line); } /* Record stays in the thumb zone */
+}
+
+/* ---------- Upload card ---------- */
+.take-upload .card-body > p { margin: 0; }

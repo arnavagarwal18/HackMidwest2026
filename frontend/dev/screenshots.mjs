@@ -33,6 +33,8 @@ const SCREENS = [
   { name: 'progress', hash: '#/progress', ready: `document.querySelector('.exercise-item') !== null`, session: true, full: true },
   { name: 'trace', hash: '#/trace/fb_1', ready: `document.querySelector('.trace-event') !== null`, session: true, full: true },
   { name: 'demo', hash: '#/demo', ready: `document.querySelector('.demo .demo-picks') !== null`, session: true },
+  { name: 'play-more', hash: '#/take', ready: `document.querySelector('.take-more') !== null`, session: true, prepare: `document.querySelector('.take-more').open = true` },
+  { name: 'play-mobile', hash: '#/take', ready: `document.querySelector('.take-more') !== null`, session: true, viewport: { width: 390, height: 844, deviceScaleFactor: 1, mobile: true } },
   { name: 'trainer-ready', hash: '#/exercise/ex1', ready: TRAINER_READY, session: true, height: TRAINER_HEIGHT },
   { name: 'trainer-pass', hash: '#/exercise/ex1', ready: TRAINER_READY, session: true, act: RECORD_A_REP, height: TRAINER_HEIGHT },
   { name: 'trainer-fail', hash: '#/exercise/ex_fail', ready: TRAINER_READY, session: true, act: RECORD_A_REP, height: TRAINER_HEIGHT },
@@ -43,9 +45,9 @@ const { server, origin } = await startServer();
 const { stop: stopChrome, browserWsUrl } = await launchChrome();
 process.on('exit', () => { stopChrome(); server.close(); });
 
-async function shoot({ name, hash, ready, session, then, act, height = VIEWPORT.height, full = false }, scheme) {
+async function shoot({ name, hash, ready, session, then, act, prepare, viewport = {}, height = VIEWPORT.height, full = false }, scheme) {
   const page = await openPage(browserWsUrl);
-  await page.send('Emulation.setDeviceMetricsOverride', { ...VIEWPORT, height });
+  await page.send('Emulation.setDeviceMetricsOverride', { ...VIEWPORT, height, ...viewport });
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: FAKE_MICROPHONE });
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
   await page.goto(`${origin}/?mock=1#/start`);
@@ -55,6 +57,7 @@ async function shoot({ name, hash, ready, session, then, act, height = VIEWPORT.
   await page.waitFor(ready);
   if (then) { await page.eval(then.run); await page.waitFor(then.ready); }
   if (act) await act(page);
+  if (prepare) await page.eval(prepare);
   await new Promise((resolve) => setTimeout(resolve, 800)); // let fonts, fades and polling settle
   if (full) await page.send('Emulation.setDeviceMetricsOverride', { ...VIEWPORT, height: await page.eval('document.documentElement.scrollHeight') }); // a tall page is shot whole
   const { data } = await page.send('Page.captureScreenshot', { format: 'png' });

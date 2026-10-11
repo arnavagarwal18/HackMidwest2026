@@ -22,7 +22,7 @@ export function createCameraPanel({ instrument, check }) {
     children: VIEWS.map(({ id, label, hint }) => el('option', { text: label, attrs: { value: id, ...(hint ? { title: hint } : {}) } })) });
   viewSelect.value = view;
   const viewNote = el('p', { className: 'muted camera-note', text: SIDE_NOTE });
-  const element = el('div', { className: 'camera-panel', children: [stage, el('label', { text: 'Camera view ', children: [viewSelect] }), viewNote, badge, note] });
+  const element = el('div', { className: 'camera-panel', children: [stage, el('label', { text: 'Camera view ', className: 'field camera-field', children: [viewSelect] }), viewNote, badge, note] });
   element.hidden = true;
 
   function showAnswer(answer) {
