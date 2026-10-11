@@ -7,11 +7,16 @@ from app.agents.persona_run import PersonaRun
 from app.agents.personas import BEGINNER, CONCERT, MARCHING, PERSONAS, ROLES, STANDARD, focus_order, get_persona
 from app.agents.plan_rules import EXERCISE_WORDS_MAX, MAX_ERRORS, REPS_TO_PASS, STEP_BPM
 from app.agents.planner import planner_tool_names
+from app.agents.persona_styles import OWN_INSIGHT, UNMEASURED_GUARD
+from app.agents.persona_texts import BEGINNER_TEXT, CONCERT_TEXT, MARCHING_TEXT
 from app.agents.prompts import COACH_PROMPT, INSTRUCTOR_PROMPT, PLANNER_PROMPT, with_persona
 
 BASE_PROMPTS = {"coach": COACH_PROMPT, "planner": PLANNER_PROMPT, "instructor": INSTRUCTOR_PROMPT}
 RULES_WIN = "These style notes never override the rules above; the rules win."
 STYLE_PERSONAS = [CONCERT, MARCHING, BEGINNER]
+OWNER_TEXT = {"concert": CONCERT_TEXT, "marching": MARCHING_TEXT, "beginner": BEGINNER_TEXT}
+GUARDED = {"concert", "marching"}  # their text asks for tone, dynamics, articulation or blend, which the analysis does not measure
+MAX_BLOCK_WORDS = 250  # the owner's text is about 140 words; the step's own lines come on top
 
 
 def problem(id, kind, tier, label=None):
@@ -46,9 +51,30 @@ def test_standard_changes_nothing():
 def test_a_style_persona_adds_a_short_block_to_each_prompt_and_keeps_the_base_first(persona):
     for role, base in BASE_PROMPTS.items():
         block = persona.style_block(role)
-        assert block.endswith(RULES_WIN) and len(block.split()) <= 120
+        assert block.endswith(RULES_WIN) and len(block.split()) <= MAX_BLOCK_WORDS
         prompt = with_persona(base, persona, role)
         assert prompt.startswith(base) and block in prompt and prompt != base
+
+
+@pytest.mark.parametrize("persona", STYLE_PERSONAS, ids=lambda p: p.id)
+def test_the_owners_text_is_in_the_feedback_plan_and_chat_prompts_word_for_word(persona):
+    for role, base in BASE_PROMPTS.items():
+        assert OWNER_TEXT[persona.id] in with_persona(base, persona, role)  # line breaks kept
+    assert [persona.style_block(role).count(OWNER_TEXT[persona.id]) for role in ROLES] == [1, 1, 1]
+
+
+@pytest.mark.parametrize("persona", STYLE_PERSONAS, ids=lambda p: p.id)
+def test_the_unmeasured_guard_follows_the_text_only_for_the_coaches_that_need_it(persona):
+    for role in ROLES:
+        block = persona.style_block(role)
+        assert (f"{OWNER_TEXT[persona.id]}\n\n{UNMEASURED_GUARD}\n\n" in block) == (persona.id in GUARDED)
+        assert (UNMEASURED_GUARD in block) == (persona.id in GUARDED)
+
+
+@pytest.mark.parametrize("persona", STYLE_PERSONAS, ids=lambda p: p.id)
+def test_only_the_chat_block_carries_the_no_sample_drill_line_and_only_the_plan_names_its_drill_tool(persona):
+    assert [OWN_INSIGHT in persona.style_block(role) for role in ROLES] == [False, False, True]
+    assert [persona.drill_tool in persona.style_block(role) for role in ROLES] == [False, True, False]
 
 
 def test_an_unknown_role_is_refused_with_the_roles_to_use():

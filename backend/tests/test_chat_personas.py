@@ -10,10 +10,10 @@ from tests.fake_model import ScriptedModel, tool_turn
 from tests.feedback_helpers import add_diagnosed_take
 
 QUESTION = "what is the first thing i can do to practice"
-FOCUS = {  # what each style's block says about its own insight
-    "concert": "You are the Concert coach: your insight is tone, intonation, phrasing and blend.",
-    "marching": "You are the Marching coach: your insight is projection, time and steadiness on the move.",
-    "beginner": "You are the Beginner coach: your insight is one simple, encouraging first step.",
+FOCUS = {  # the opening line of each style's text
+    "concert": "You are a precise, patient concert-band trumpet coach.",
+    "marching": "You are a direct, encouraging marching-band trumpet coach.",
+    "beginner": "You are a warm, straightforward beginner trumpet coach.",
 }
 STYLE_BLOCKS = {"concert": CONCERT_INSTRUCTOR, "marching": MARCHING_INSTRUCTOR, "beginner": BEGINNER_INSTRUCTOR}
 
