@@ -16,6 +16,9 @@ export const isSideView = (view) => view === 'side-left' || view === 'side-right
 // 'left' or 'right': the side of the body nearest the camera; null when facing the camera.
 export const nearSideOf = (view) => (isSideView(view) ? view.slice('side-'.length) : null);
 
+// The camera-check `view` field the server accepts: 'front', 'left' or 'right'.
+export const apiViewOf = (view) => nearSideOf(view) ?? view;
+
 export function loadView() {
   try {
     const stored = window.localStorage.getItem(VIEW_KEY);

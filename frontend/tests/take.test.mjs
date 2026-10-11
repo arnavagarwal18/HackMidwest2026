@@ -12,7 +12,9 @@ document.createElementNS = (ns, tag) => Object.assign(makeSvgNode(ns, tag), { da
 const { initialSetup, validateSetup, takeFields, kindOfFile } = await import('../js/take/setup.js');
 const { describeCameraCheck, IN_FRAME_TEXT } = await import('../js/take/camera_status.js');
 const { createCameraChecker, CHECK_INTERVAL_MS } = await import('../js/take/camera_checker.js');
-const { uploadTake } = await import('../js/api.js');
+const { uploadTake, checkCamera } = await import('../js/api.js');
+const { apiViewOf } = await import('../js/take/camera_view.js');
+const { UPLOAD_ACCEPT, UNSUPPORTED_FILE_TEXT, uploadTypeProblem } = await import('../js/take/upload_types.js');
 const { state } = await import('../js/state.js');
 const { render } = await import('../js/screens/take.js');
 
@@ -318,4 +320,42 @@ screenTest('leaving while a stop is finishing does not fail on a closed stream o
   assert.equal(env.banner.hidden, true, 'no TypeError banner on the next screen');
   assert.equal(fetches.length, 0, 'a take recorded after leaving is not sent');
   assert.equal(window.location.hash, '#/progress');
+});
+
+// ---- Camera check view field and the upload picker ----
+
+test('the camera panel views map to the server values front, left and right', () => {
+  assert.deepEqual(['front', 'side-left', 'side-right'].map(apiViewOf), ['front', 'left', 'right']);
+});
+
+test('a camera check sends the picked view, and leaves the field out when there is none', async () => {
+  const sent = stubFetch(200, { ok: true, missing: [], too_small: false, too_dark: false });
+  const frame = new File([new Uint8Array([1])], 'frame.jpg', { type: 'image/jpeg' });
+  await checkCamera('sess_1', frame, 'left');
+  await checkCamera('sess_1', frame);
+  assert.equal(sent[0].url, '/sessions/sess_1/camera-check');
+  assert.equal(sent[0].options.body.get('view'), 'left');
+  assert.equal(sent[1].options.body.has('view'), false);
+});
+
+test('the file picker is limited to the types the server takes, and others are refused with a message', () => {
+  const types = UPLOAD_ACCEPT.split(',');
+  ['audio/webm', 'audio/wav', 'audio/ogg', 'video/webm', 'video/mp4', 'video/quicktime'].forEach((type) => assert.ok(types.includes(type), type));
+  assert.ok(!types.includes('audio/*') && !types.includes('video/*') && !types.includes('audio/mpeg') && !types.includes('audio/mp4'));
+  const fileOf = (name, type) => new File([new Uint8Array([1])], name, { type });
+  assert.equal(uploadTypeProblem(fileOf('a.wav', 'audio/x-wav')), null, 'the server accepts the x-wav alias');
+  assert.equal(uploadTypeProblem(fileOf('a.webm', 'audio/webm;codecs=opus')), null);
+  ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', ''].forEach((type) => assert.equal(uploadTypeProblem(fileOf('a.x', type)), UNSUPPORTED_FILE_TEXT, type));
+});
+
+screenTest('an unsupported file is refused before any upload, with a clear message', async () => {
+  const fetches = recordFetchCalls({ take_id: 'take_9', status: 'processing' });
+  const root = await openTakeScreen();
+  const fileInput = root.find((node) => node.tagName === 'input' && node.attrs.type === 'file')[0];
+  assert.equal(fileInput.attrs.accept, UPLOAD_ACCEPT);
+  fileInput.files = [new File([new Uint8Array([1])], 'take.mp3', { type: 'audio/mpeg' })];
+  await fileInput.listeners.change[0]();
+  assert.equal(fetches.length, 0, 'nothing is uploaded');
+  assert.equal(env.banner.hidden, false);
+  assert.match(env.banner.textContent, /isn't supported.*MP3 and M4A/);
 });

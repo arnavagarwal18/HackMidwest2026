@@ -7,8 +7,13 @@ import { API_BASE, MOCK_MODE } from './config.js';
 import { get, postForm, postJson } from './http.js';
 import { MOCK_MEDIA_URL } from './mock.js';
 
-export { ApiError } from './http.js';
+import { ApiError } from './http.js';
+
+export { ApiError };
 export { MOCK_MODE };
+
+// A 404 means there is nothing there yet (no trace, no progress): screens show an empty state instead of the error banner.
+export const isNotFound = (err) => err instanceof ApiError && err.status === 404;
 
 const sess = (id) => `/sessions/${encodeURIComponent(id)}`;
 const withInstrument = (path, instrument) => (instrument ? `${path}?instrument=${encodeURIComponent(instrument)}` : path);
@@ -42,7 +47,8 @@ export const setTransposition = (id, semitones) => postJson(`${sess(id)}/transpo
 
 // ---- Form (LLD-4) ----
 export const getTracks = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/tracks`);
-export const checkCamera = (id, jpeg) => postForm(`${sess(id)}/camera-check`, { file: jpeg });
+// view: 'front' | 'left' | 'right' (the learner's pick in the camera panel); left out when there is none, so the server detects it.
+export const checkCamera = (id, jpeg, view) => postForm(`${sess(id)}/camera-check`, { file: jpeg }, view ? { view } : {});
 
 // ---- Feedback, trace and chat (LLD-5) ----
 export const getFeedback = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);

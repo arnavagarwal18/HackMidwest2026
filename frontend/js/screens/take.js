@@ -9,6 +9,7 @@ import { button, el, loadScoreStyles } from '../score/ui.js';
 import { createCameraPanel } from '../take/camera_panel.js';
 import { initialSetup, kindOfFile, takeFields, validateSetup } from '../take/setup.js';
 import { createTakeForm } from '../take/take_form.js';
+import { UPLOAD_ACCEPT, uploadTypeProblem } from '../take/upload_types.js';
 
 const STYLE_HREF = 'css/take.css';
 const RECORD_LIMIT_S = 180;
@@ -61,7 +62,7 @@ export async function render(root, _params, isCurrent = () => true) {
   const form = createTakeForm({
     setup: initialSetup(score, setupWithPrefs(state.take_setup)), bars: score.bars, onKindChange: switchKind, onTempoChange: rememberTempo,
   });
-  const camera = createCameraPanel({ instrument: state.instrument, check: (jpeg) => checkCamera(state.session_id, jpeg) });
+  const camera = createCameraPanel({ instrument: state.instrument, check: (jpeg, view) => checkCamera(state.session_id, jpeg, view) });
   const problem = el('div', { className: 'take-problem' });
   const status = el('p', { className: 'muted', attrs: { role: 'status' } });
   const meterBox = el('div', { className: 'take-meter' });
@@ -69,7 +70,7 @@ export async function render(root, _params, isCurrent = () => true) {
   const stopButton = button('Stop', stopRecording, 'primary record-big');
   const sendAgainButton = button('Send this take again', sendUnsent);
   const discardButton = button('Discard and record again', discardUnsent);
-  const fileInput = el('input', { attrs: { type: 'file', accept: 'audio/*,video/*' } });
+  const fileInput = el('input', { attrs: { type: 'file', accept: UPLOAD_ACCEPT } });
   fileInput.addEventListener('change', uploadChosenFile);
   const controls = [recordButton, stopButton, sendAgainButton, discardButton, fileInput];
 
@@ -273,6 +274,11 @@ export async function render(root, _params, isCurrent = () => true) {
     const [file] = fileInput.files;
     fileInput.value = ''; // so choosing the same file again still counts as a change
     if (!file) return;
+    const unsupported = uploadTypeProblem(file);
+    if (unsupported) {
+      reportError(new Error(unsupported));
+      return;
+    }
     await send({ file, kind: kindOfFile(file), source: 'uploaded' });
     setMode('idle');
   }

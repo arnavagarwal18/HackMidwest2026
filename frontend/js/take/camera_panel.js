@@ -4,10 +4,10 @@ import { el } from '../score/ui.js';
 import { describeCameraCheck, UNAVAILABLE_CODE, UNAVAILABLE_TEXT } from './camera_status.js';
 import { createCameraChecker } from './camera_checker.js';
 import { createCameraGuide } from './camera_guide.js';
-import { isSideView, loadView, saveView, SIDE_NOTE, VIEWS } from './camera_view.js';
+import { apiViewOf, isSideView, loadView, saveView, SIDE_NOTE, VIEWS } from './camera_view.js';
 import { captureFrame } from './frame_capture.js';
 
-// check(jpegBlob) is the camera-check call for this session (api.js checkCamera).
+// check(jpegBlob, view) is the camera-check call for this session (api.js checkCamera); view is 'front', 'left' or 'right'.
 export function createCameraPanel({ instrument, check }) {
   const video = el('video', { attrs: { autoplay: '', playsinline: '', 'aria-label': 'Camera preview' } });
   video.muted = true; // the mic is in the stream; playing it back would feed the clicks and the sound into the mic
@@ -47,7 +47,7 @@ export function createCameraPanel({ instrument, check }) {
 
   const checker = createCameraChecker({
     captureFrame: () => captureFrame(video),
-    check,
+    check: (jpeg) => check(jpeg, apiViewOf(view)),
     onResult(answer) {
       lastAnswer = answer;
       showAnswer(answer);

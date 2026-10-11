@@ -25,9 +25,12 @@ export class MediaAccessError extends Error {
 
 const REASONS = { NotAllowedError: 'blocked', SecurityError: 'blocked', NotFoundError: 'missing', OverconstrainedError: 'missing', NotReadableError: 'busy', AbortError: 'busy' };
 
+// Blocked, missing and busy devices are shown to the learner as a friendly message, so they are logged as warnings;
+// only an unexpected failure is an error in the console.
 export function toMediaAccessError(device, err) {
-  console.error(`Opening the ${device} failed:`, err);
-  return new MediaAccessError(device, REASONS[err && err.name] || 'unknown', err);
+  const reason = REASONS[err && err.name] || 'unknown';
+  (reason === 'unknown' ? console.error : console.warn)(`Opening the ${device} failed (${reason}):`, err);
+  return new MediaAccessError(device, reason, err);
 }
 
 // Fills `container` with: the message, the help lines (when it is a permission problem), Try again and Upload.

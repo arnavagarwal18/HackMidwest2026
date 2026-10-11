@@ -1,4 +1,4 @@
-import { getProgress } from '../api.js';
+import { getProgress, isNotFound } from '../api.js';
 import { state } from '../state.js';
 import { element } from './placeholder.js';
 
@@ -6,7 +6,7 @@ import { element } from './placeholder.js';
 
 const SOURCE_LABELS = { take: 'Take', rep: 'Practice rep' };
 
-const percent = (rate) => `${Math.round(rate * 100)}%`;
+const percent = (rate) => (rate == null ? 'none yet' : `${Math.round(rate * 100)}%`); // the server sends null when no rate could be worked out
 const bpm = (value) => (value == null ? 'none yet' : `${value} bpm`);
 
 // One row of the comparison table: how to show that metric for a snapshot.
@@ -75,8 +75,19 @@ export function renderProgress(root, progress) {
   root.append(list);
 }
 
+export const NO_PROGRESS_TEXT = 'No progress yet: record a take first.';
+
 export async function render(root, _params, isCurrent = () => true) {
-  const progress = await getProgress(state.session_id ?? 'no-session');
+  let progress;
+  try {
+    progress = await getProgress(state.session_id ?? 'no-session');
+  } catch (err) {
+    if (!isNotFound(err)) throw err; // other errors reach the banner
+    if (!isCurrent()) return;
+    console.warn(`No progress for this session (${err.code}).`);
+    root.replaceChildren(element('h1', 'Progress'), element('p', NO_PROGRESS_TEXT, 'empty-state'));
+    return;
+  }
   if (!isCurrent()) return; // the learner already moved to another screen
   renderProgress(root, progress);
 }

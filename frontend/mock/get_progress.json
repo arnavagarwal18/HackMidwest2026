@@ -13,6 +13,7 @@
   },
   "after": {
     "source": "rep",
+    "label": "best practice rep at 66 BPM",
     "take_id": "take_2",
     "bar_from": 3,
     "bar_to": 4,
