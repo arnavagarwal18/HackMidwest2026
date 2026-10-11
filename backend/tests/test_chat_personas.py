@@ -136,3 +136,17 @@ def test_the_history_window_is_the_same_for_every_coach():
     turns = [t for i in range(HISTORY_TURNS) for t in (turn("user", f"q{i}"), turn("instructor", f"a{i}", "marching"))]
     assert len(history_messages(turns, "marching")) == HISTORY_TURNS
     assert len(history_messages(turns)) == 0  # as Standard, every reply in the window is another coach's
+
+
+def test_after_a_switch_each_coach_answers_the_plan_chip_in_its_own_voice_with_stand_alone_sentences(client, monkeypatch, fixture_data):
+    from app.agents.persona_styles import OWN_VOICE
+
+    order = ["standard", "concert", "beginner", "marching", "standard"]
+    monkeypatch.setitem(globals(), "QUESTION", "Practice plan")  # the suggestion chip
+    captured = ask_each(client, monkeypatch, fixture_data, order)
+    for persona_id in ("concert", "beginner", "marching"):
+        system = captured[persona_id]["system"]
+        assert FOCUS[persona_id] in system and OWN_VOICE in system
+        assert "never begin one with Then, Next, Finally" in system
+        assert "never retell the plan's steps in order" in system
+    assert captured["standard"]["system"] == INSTRUCTOR_PROMPT  # Standard is unchanged
