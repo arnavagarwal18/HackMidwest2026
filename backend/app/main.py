@@ -21,6 +21,7 @@ from .agents.chat_routes import router as chat_router
 from .agents.routes import router as feedback_router
 from .agents.trace_routes import router as trace_router
 from .takes.routes import router as takes_router
+from .tone_page import router as tone_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,6 +41,7 @@ app.include_router(analysis_router)
 app.include_router(form_router)
 app.include_router(practice_router)
 app.include_router(lan_router)
+app.include_router(tone_router)
 
 
 class CreateSession(BaseModel):
