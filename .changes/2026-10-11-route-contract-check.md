@@ -42,7 +42,7 @@ Errors: every route answers errors as `{ "error": { "code", "message" } }` (vali
 | POST /sessions/{id}/transposition | Not in the LLD-7 list; api.js `setTransposition` calls it and the shape matches the mock | comment |
 | GET and POST /sessions/{id}/chat | Not in the LLD-7 list; api.js `getChat`/`sendChat` call them and the shape matches the mock | comment |
 
-Counts (27 rows): fixed 1, comment 6, fine 20.
+Counts (28 rows): fixed 1, comment 6, fine 21.
 
 ## Proposed design comments (not fixed; each would change the contract or the front end)
 
