@@ -4,6 +4,7 @@ import { MOCK_MODE } from './config.js';
 
 // Mock mode keeps its own key so a walk-through never overwrites a real session.
 const SESSION_KEY = MOCK_MODE ? 'practice_coach_session_id_mock' : 'practice_coach_session_id';
+const SESSION_PIECE_KEY = MOCK_MODE ? 'practice_coach_session_piece_mock' : 'practice_coach_session_piece';
 const LAST_PIECE_KEY = MOCK_MODE ? 'practice_coach_last_piece_mock' : 'practice_coach_last_piece';
 
 function freshState() {
@@ -64,4 +65,15 @@ export function loadLastPieceId() {
 
 export function rememberPieceId(pieceId) {
   storage((s) => s.setItem(LAST_PIECE_KEY, pieceId));
+}
+
+// The built-in piece a session was confirmed on, so choosing that piece again keeps the session (and its remembered settings).
+export function loadSessionPieceId(sessionId) {
+  const stored = storage((s) => s.getItem(SESSION_PIECE_KEY), null);
+  const [storedSession, pieceId] = stored ? stored.split('|') : [];
+  return storedSession === sessionId ? pieceId : null;
+}
+
+export function rememberSessionPiece(sessionId, pieceId) {
+  storage((s) => s.setItem(SESSION_PIECE_KEY, `${sessionId}|${pieceId}`));
 }

@@ -6,7 +6,7 @@ import { createBuiltinTab } from '../score/builtin_tab.js';
 import { createFileTab } from '../score/file_tab.js';
 import { createPhotoTab } from '../score/photo_tab.js';
 import { createScanPanel } from '../score/scan_panel.js';
-import { chooseAndConfirmBuiltin, openSession } from '../score/session.js';
+import { openSession, useBuiltinPiece } from '../score/session.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
 
 const CONFIRMED_NOTICE = 'Choosing another piece starts a new practice session.';
@@ -30,7 +30,7 @@ export async function render(root) {
   }
 
   async function chooseBuiltin(pieceId) {
-    await chooseAndConfirmBuiltin(await openSession(), pieceId);
+    await useBuiltinPiece(pieceId);
     clearBanner();
     window.location.hash = PLAY_HASH;
   }

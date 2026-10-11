@@ -4,7 +4,7 @@ import test from 'node:test';
 import { FakeNode, installFakeBrowser } from './fake_env.mjs';
 
 installFakeBrowser();
-const { pickStartPiece, chooseAndConfirmBuiltin, startOnDefaultPiece } = await import('../js/score/session.js');
+const { pickStartPiece, chooseAndConfirmBuiltin, startOnDefaultPiece, useBuiltinPiece } = await import('../js/score/session.js');
 const { render } = await import('../js/screens/start.js');
 const { loadLastPieceId, loadStoredSessionId, resetState, state } = await import('../js/state.js');
 const { mockRequestLog } = await import('../js/mock.js');
@@ -46,7 +46,7 @@ test('chooseAndConfirmBuiltin chooses, confirms, marks the score confirmed and r
 test('startOnDefaultPiece with nothing remembered uses the first built-in piece', async () => {
   loadPage();
   await startOnDefaultPiece();
-  assert.deepEqual(paths(), ['POST /sessions', 'GET /builtins', 'POST /sessions/sess_mock1/score/file', 'POST /sessions/sess_mock1/score/confirm']);
+  assert.deepEqual(paths(), ['GET /builtins', 'POST /sessions', 'POST /sessions/sess_mock1/score/file', 'POST /sessions/sess_mock1/score/confirm']);
   assert.equal(mockRequestLog[2].body.builtin, 'twinkle');
   assert.equal(state.score.status, 'confirmed');
 });
@@ -56,6 +56,27 @@ test('startOnDefaultPiece reuses the remembered piece', async () => {
   store.set('practice_coach_last_piece_mock', 'ode_to_joy');
   await startOnDefaultPiece();
   assert.equal(mockRequestLog[2].body.builtin, 'ode_to_joy');
+});
+
+test('choosing the piece the confirmed session is already on keeps the session; another piece opens a new one', async () => {
+  loadPage();
+  await startOnDefaultPiece(); // twinkle on a new session
+  const session = state.session_id;
+  mockRequestLog.length = 0;
+  await useBuiltinPiece('twinkle');
+  assert.deepEqual(paths(), [], 'no request, same session');
+  assert.equal(state.session_id, session);
+  await useBuiltinPiece('ode_to_joy');
+  assert.deepEqual(paths().slice(0, 1), ['POST /sessions']);
+  assert.equal(loadStoredSessionId(), state.session_id);
+});
+
+test('startOnDefaultPiece keeps a confirmed session that is already on the piece', async () => {
+  loadPage();
+  await startOnDefaultPiece();
+  mockRequestLog.length = 0;
+  await startOnDefaultPiece();
+  assert.deepEqual(paths(), ['GET /builtins']);
 });
 
 test('the start screen shows one status line, then lands on #/take', async () => {

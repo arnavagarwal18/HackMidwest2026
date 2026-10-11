@@ -1,6 +1,6 @@
 // Session and piece steps shared by the Start screen (automatic) and the Score screen ("Change piece").
 import { chooseBuiltinScore, confirmScore, createSession, getBuiltins } from '../api.js';
-import { clearSession, loadLastPieceId, rememberPieceId, setSession, state } from '../state.js';
+import { clearSession, loadLastPieceId, loadSessionPieceId, rememberPieceId, rememberSessionPiece, setSession, state } from '../state.js';
 
 export const INSTRUMENT = 'trumpet'; // the app is trumpet only
 
@@ -34,12 +34,20 @@ export async function chooseAndConfirmBuiltin(sessionId, pieceId) {
     time_signature: confirmed.time_signature,
   };
   rememberPieceId(pieceId);
+  rememberSessionPiece(sessionId, pieceId);
   return confirmed;
 }
 
-// Creates the session and starts it on the last-used (else first) built-in piece. Throws on any failure.
+// Makes `pieceId` the piece of the current practice. The session already confirmed on that piece is kept, so its tempo and other
+// remembered settings stay; anything else gets a session of its own (a confirmed score is locked).
+export async function useBuiltinPiece(pieceId) {
+  const { session_id: sessionId } = state;
+  if (sessionId && state.score.status === 'confirmed' && loadSessionPieceId(sessionId) === pieceId) return;
+  await chooseAndConfirmBuiltin(await openSession(), pieceId);
+}
+
+// Starts on the last-used (else first) built-in piece. Throws on any failure.
 export async function startOnDefaultPiece() {
-  const sessionId = await startFreshSession(INSTRUMENT);
-  const piece = pickStartPiece(await getBuiltins(INSTRUMENT));
-  await chooseAndConfirmBuiltin(sessionId, piece.piece_id);
+  const piece = pickStartPiece(await getBuiltins(state.instrument ?? INSTRUMENT));
+  await useBuiltinPiece(piece.piece_id);
 }
