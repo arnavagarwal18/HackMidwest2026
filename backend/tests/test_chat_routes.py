@@ -8,7 +8,8 @@ from botocore.exceptions import ClientError
 from app import store
 from app.agents import ai_run, chat_routes, run
 from app.agents.chat_run import FALLBACK_INTRO, NO_TAKE_TEXT
-from app.agents.instructor import HISTORY_TURNS, history_messages, make_chat_tools
+from app.agents.chat_history import HISTORY_TURNS, history_messages
+from app.agents.instructor import make_chat_tools
 from app.agents.trace import AGENTS
 from app.takes.take_store import add_take
 from tests.feedback_helpers import add_diagnosed_take
