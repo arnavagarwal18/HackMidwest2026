@@ -6,12 +6,16 @@ SCORE_WITHIN_SEMITONE = -0.5
 SCORE_OTHER_SUBSTITUTION = -1.0
 SCORE_GAP = -1.0
 
-# Pass 2 only pairs notes whose played onset is within this many beats of the fitted time.
+# Pass 2 only pairs notes whose played onset is within this many beats of the time map's time for the note.
 PASS2_WINDOW_BEATS = 1.0
-# Pass 2 takes off this x min(1, distance in beats from the fitted time) from every pair's score, so the
+# Pass 2 takes off this x min(1, distance in beats from the time map's time) from every pair's score, so the
 # closer pairing wins a tie.
 PASS2_TIME_PENALTY = 0.5
-# Least-squares fit of onset_s = offset_s + beat * sec_per_beat needs this many same-midi pairs.
+# An anchor whose distance from the least-squares line differs by more than this many beats from the median of its
+# ANCHOR_NEIGHBOURS neighbours on each side is dropped (pass 1 paired a repeated note with the wrong copy).
+ANCHOR_MAX_OFF_BEATS = 0.5
+ANCHOR_NEIGHBOURS = 2
+# The time map (and the least-squares line onset_s = offset_s + beat * sec_per_beat) needs this many anchors.
 MIN_FIT_PAIRS = 3
 
 # Marking (step 4)
@@ -39,6 +43,11 @@ STATUS_OK = "ok"
 STATUS_WRONG = "wrong"
 STATUS_MISSED = "missed"
 STATUS_UNCERTAIN = "uncertain"
+# An expected note in a whole bar before the first or after the last bar the player played: never judged.
+STATUS_NOT_PLAYED = "not_played"
+
+# Statuses that count on neither side of the error rate
+UNJUDGED_STATUSES = (STATUS_UNCERTAIN, STATUS_NOT_PLAYED)
 
 GRID_METRONOME = "metronome"
 GRID_FITTED = "fitted"
@@ -47,9 +56,10 @@ GRID_FITTED = "fitted"
 LATE_EARLY_MS = 80
 MS_PER_S = 1000
 TIMED_STATUSES = (STATUS_OK, STATUS_WRONG)
-# A bar's local tempo needs this many ok notes; drift beyond +-this percent of the target is rushing / dragging
+# A bar's local tempo needs this many points (its ok notes plus the next bar's first ok note); drift beyond
+# +-this percent of the take's own reference tempo (median local tempo) is rushing / dragging
 MIN_BAR_NOTES_FOR_TEMPO = 2
-DRIFT_LIMIT_PCT = 5.0
+DRIFT_LIMIT_PCT = 7.0
 TIMING_LATE = "late"
 TIMING_EARLY = "early"
 DRIFT_RUSHING = "rushing"
@@ -77,6 +87,8 @@ SOURCE_USER = "user"
 # Problems, tiers and sentences (steps 7-8)
 PROBLEM_NOTES = "notes"
 PROBLEM_FORM = "form"
+PROBLEM_RANGE = "range"  # tier 3 only: the take covers just part of the asked bars
+RANGE_TIER = 3
 MIN_TIMED_NOTES_FOR_TIMING_PROBLEM = 2
 TIMING_SIZE_FULL_MS = 200
 DRIFT_SIZE_FULL_PCT = 20

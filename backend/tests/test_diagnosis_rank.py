@@ -6,7 +6,10 @@ from app.diagnosis.sentences import sentence_text
 from app.diagnosis.take_alignment import align_take
 from app.diagnosis.timing import add_timing
 from app.takes.take_store import get_take, update_take
-from diagnosis_samples import SCALE_BARS, make_scale_score, make_score, make_take, perfect_played, played_note
+from diagnosis_samples import (
+    SCALE_BARS, long_scale_midis, make_long_score, make_scale_score, make_score, make_take, perfect_played, played_note,
+    tempo_by_bar_played,
+)
 from diagnosis_session import add_transcribed_take, diagnosed_session, make_session
 
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
@@ -90,24 +93,36 @@ def test_only_one_late_note_is_not_a_problem():
     assert "late" not in kinds  # the bar's tempo wobble is a separate, drift problem
 
 
-def test_adjacent_rushing_bars_merge_and_score_gets_the_multi_bar_bonus():
-    played = perfect_played(SCALE_MIDIS, sec_per_beat=0.45)  # about 11% faster than 120 BPM
+def phrase_at(sec_per_beat: float) -> list[dict]:
+    """A 16-bar take at 120 BPM whose bars 5-8 are played at `sec_per_beat`."""
+    return tempo_by_bar_played(long_scale_midis(), lambda bar: sec_per_beat if 5 <= bar <= 8 else 0.5)
 
-    problems = rank("t1", timed(played), [])["problems"]
+
+def timed_long(played):
+    return timed(played, make_long_score(), make_take(bar_from=1, bar_to=16))
+
+
+def test_adjacent_rushing_bars_merge_and_score_gets_the_multi_bar_bonus():
+    problems = rank("t1", timed_long(phrase_at(0.45)), [])["problems"]  # about 11% faster than the rest
 
     rushing = next(p for p in problems if p["kind"] == "rushing")
-    assert rushing["bars"] == [1, 2, 3, 4]
+    assert rushing["bars"] == [5, 6, 7, 8]
     assert rushing["numbers"]["drift_pct"] == pytest.approx(11.11, abs=0.01)
-    assert sentence_text(rushing) == "Bars 1-4: rushing, about 11% faster than 120 BPM."
+    assert sentence_text(rushing) == "Bars 5-8: rushing, about 11% faster than your own tempo (120 BPM)."
     assert rushing["score"] == pytest.approx(rushing["size"] * rushing["certainty"] * 1.75, abs=1e-3)
 
 
 def test_dragging_sentence():
-    played = perfect_played(SCALE_MIDIS, sec_per_beat=0.55)
+    dragging = next(p for p in rank("t1", timed_long(phrase_at(0.55)), [])["problems"] if p["kind"] == "dragging")
 
-    dragging = next(p for p in rank("t1", timed(played), [])["problems"] if p["kind"] == "dragging")
+    assert sentence_text(dragging) == "Bars 5-8: dragging, about 9% slower than your own tempo (120 BPM)."
 
-    assert sentence_text(dragging) == "Bars 1-4: dragging, about 9% slower than 120 BPM."
+
+def test_a_whole_take_at_one_tempo_has_no_drift_problem_whatever_the_goal():
+    for sec_per_beat in (0.45, 0.55):
+        played = perfect_played(SCALE_MIDIS, sec_per_beat=sec_per_beat)
+        kinds = {p["kind"] for p in rank("t1", timed(played), [])["problems"]}
+        assert not kinds & {"rushing", "dragging"}
 
 
 def test_extra_notes_count_in_the_notes_problem():

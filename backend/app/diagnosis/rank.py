@@ -18,10 +18,37 @@ def _tiers(sorted_problems: list[dict]) -> list[int]:
     return tiers
 
 
+def _bars_text(first: int, last: int) -> str:
+    return f"bar {first}" if first == last else f"bars {first}-{last}"
+
+
+def range_note(diagnosis: dict, next_id: str) -> dict | None:
+    """The tier-3 'range' problem when at least one whole bar was not played: 'You played bars a-b of c-d.'"""
+    played = diagnosis.get("played_bars")
+    if not diagnosis.get("not_played_count") or not played:
+        return None
+    asked = [diagnosis["bars"][0]["bar"], diagnosis["bars"][-1]["bar"]]
+    played_notes = [n for n in diagnosis["notes"] if n["status"] != config.STATUS_NOT_PLAYED]
+    return {
+        "id": next_id,
+        "kind": config.PROBLEM_RANGE,
+        "bars": [],
+        "first_time_s": min(n["expected_onset_s"] for n in played_notes),
+        "measurement_ids": [],
+        "size": 0.0,
+        "certainty": 1.0,
+        "score": 0.0,
+        "numbers": {"played_from": played[0], "played_to": played[1], "bar_from": asked[0], "bar_to": asked[1]},
+        "text": f"You played {_bars_text(*played)} of {asked[0]}-{asked[1]}.",
+        "tier": config.RANGE_TIER,
+    }
+
+
 def rank(take_id: str, diagnosis: dict, form_flags: list[dict]) -> dict:
     """{problems, tier1} for a diagnosis (notes, extras, bars, ...) and the take's form flags.
 
     A can't-tell diagnosis ranks nothing. Problem ids follow the ranking, so they change when it does.
+    A take that skipped whole bars ends with the tier-3 range note (no sentence).
     """
     if diagnosis["cant_tell"]:
         return {"problems": [], "tier1": []}
@@ -30,4 +57,8 @@ def rank(take_id: str, diagnosis: dict, form_flags: list[dict]) -> dict:
     problems = [
         {"id": f"p:{take_id}:{k}", **problem, "tier": tier} for k, (problem, tier) in enumerate(zip(found, tiers))
     ]
-    return {"problems": problems, "tier1": [build_sentence(p) for p in problems if p["tier"] == 1]}
+    note = range_note(diagnosis, f"p:{take_id}:{len(problems)}")
+    return {
+        "problems": problems + ([note] if note else []),
+        "tier1": [build_sentence(p) for p in problems if p["tier"] == 1],
+    }

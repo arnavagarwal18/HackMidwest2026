@@ -118,8 +118,10 @@ def test_silence_cant_tell():
 
 
 def test_few_pairs_when_most_expected_notes_have_no_partner():
-    # Only 7 of 16 notes are played: 7 pairs is under half of the expected notes, and quality is 7/16.
-    result = align_take(make_scale_score(), perfect_played(SCALE_MIDIS[:7]), make_take(), 0)
+    # 7 of 16 notes are played, spread over all four bars: 7 pairs is under half of the expected notes, and
+    # quality is 7/16 (the played window is every bar, so nothing is "not played").
+    played = [p for p in perfect_played(SCALE_MIDIS) if p["i"] in (0, 1, 2, 5, 9, 13, 15)]
+    result = align_take(make_scale_score(), played, make_take(), 0)
 
     assert result["alignment_quality"] == pytest.approx(7 / 16)
     assert result["cant_tell"] is True

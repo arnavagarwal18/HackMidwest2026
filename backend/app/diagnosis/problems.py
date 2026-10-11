@@ -65,7 +65,7 @@ def _timing_problem(kind: str, bar: dict, notes: list[dict]) -> BarProblem | Non
     )
 
 
-def _drift_problem(bar: dict, notes: list[dict], target_bpm: float) -> BarProblem | None:
+def _drift_problem(bar: dict, notes: list[dict], reference_bpm: float) -> BarProblem | None:
     kind = drift_label(bar["drift_pct"])
     if kind not in (config.DRIFT_RUSHING, config.DRIFT_DRAGGING):
         return None
@@ -77,7 +77,7 @@ def _drift_problem(bar: dict, notes: list[dict], target_bpm: float) -> BarProble
         measurement_ids=[bar["id"]],
         size=min(1.0, abs(bar["drift_pct"]) / config.DRIFT_SIZE_FULL_PCT),
         confidences=[n["confidence"] for n in ok_notes],
-        numbers={"drift_pct": abs(bar["drift_pct"]), "target_bpm": target_bpm},
+        numbers={"drift_pct": abs(bar["drift_pct"]), "reference_bpm": reference_bpm},
     )
 
 
@@ -91,7 +91,7 @@ def bar_problems(diagnosis: dict) -> list[BarProblem]:
             _notes_problem(bar, notes, extras),
             _timing_problem(config.TIMING_LATE, bar, notes),
             _timing_problem(config.TIMING_EARLY, bar, notes),
-            _drift_problem(bar, notes, diagnosis["target_bpm"]),
+            _drift_problem(bar, notes, diagnosis.get("reference_bpm") or diagnosis["target_bpm"]),
         ]
         found.extend(problem for problem in candidates if problem is not None)
     return found
@@ -108,7 +108,7 @@ def _merged_numbers(kind: str, parts: list[BarProblem]) -> dict:
         return {"mean_ms": round(weighted, config.TIMING_DECIMALS), "count": count}
     return {
         "drift_pct": round(mean(p.numbers["drift_pct"] for p in parts), config.TIMING_DECIMALS),
-        "target_bpm": parts[0].numbers["target_bpm"],
+        "reference_bpm": parts[0].numbers["reference_bpm"],
     }
 
 
