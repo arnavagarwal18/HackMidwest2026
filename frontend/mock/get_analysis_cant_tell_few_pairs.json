@@ -1,0 +1,25 @@
+{
+  "status": "done",
+  "error": null,
+  "form_status": "none",
+  "calibrated": true,
+  "transposition": {
+    "semitones": 0,
+    "source": "auto"
+  },
+  "alignment_quality": 0.21,
+  "cant_tell": true,
+  "cant_tell_reason": "few_pairs",
+  "tempo": {
+    "played_bpm": 88,
+    "target_bpm": 96,
+    "clean_bpm": 80
+  },
+  "notes": [],
+  "extras": [],
+  "bars": [],
+  "problems": [],
+  "tier1": [],
+  "form": [],
+  "media_url": "/sessions/sess_mock1/takes/take_1/media"
+}

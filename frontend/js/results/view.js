@@ -26,9 +26,10 @@ function cantTellMessage(feedback) {
   return feedback.sentences?.[0]?.text ?? CANT_TELL_DEFAULT_TEXT;
 }
 
-function renderCantTell(view, { analysis, feedback, plan }, { sessionId, rerun }) {
+function renderCantTell(view, { analysis, feedback, plan }, { sessionId, rerun, note }) {
   const control = renderTranspositionControl({ sessionId, current: analysis.transposition?.semitones ?? 0, onChanged: rerun });
   const extra = element('div', '', 'cant-tell-extra');
+  if (note) extra.append(element('p', note, 'autokey-note'));
   extra.append(element('p', CANT_TELL_HINT, 'muted'), control);
   renderStopped(view, { heading: "I couldn't tell", message: cantTellMessage(feedback), extra });
   view.append(renderPlan(plan));
@@ -47,7 +48,7 @@ function sentenceSection(title, className, sentences, jumpContext, options) {
   return section;
 }
 
-// data: { analysis, feedback, plan }. context: { sessionId, take, rerun }.
+// data: { analysis, feedback, plan }. context: { sessionId, take, rerun, note }; note is the one line the automatic key search leaves.
 // Returns the jump context ({ index, jumper }) and the pieces later features attach to.
 export function renderDone(view, data, context) {
   const { analysis, feedback, plan } = data;
@@ -60,6 +61,7 @@ export function renderDone(view, data, context) {
   const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList }) };
 
   view.replaceChildren(element('h1', 'Results'));
+  if (context.note) view.append(element('p', context.note, 'notice autokey-note', { role: 'status' }));
   if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
   const tier1 = analysis.tier1 ?? [];
   if (tier1.length) view.append(sentenceSection('What I measured', 'tier1', tier1, jumpContext));

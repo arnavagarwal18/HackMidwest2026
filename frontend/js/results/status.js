@@ -15,6 +15,14 @@ export function renderWorking(view, stage, slow) {
   view.replaceChildren(element('h1', 'Results'), panel);
 }
 
+// The automatic key search: 'Checking other keys… 3/12' with a Cancel button that puts the original key back.
+export function renderKeySearch(view, { tried, total }, onCancel) {
+  const panel = element('div', '', 'results-status key-search', { role: 'status' });
+  const cancel = button('Cancel', () => { cancel.disabled = true; onCancel(); }, 'cancel-key-search');
+  panel.append(element('p', `Checking other keys… ${tried}/${total}`, 'stage'), cancel);
+  view.replaceChildren(element('h1', 'Results'), panel);
+}
+
 export function renderTooLong(view, stage, onCheckAgain) {
   const panel = element('div', '', 'results-status too-long', { role: 'status' });
   const actions = element('p', '', 'actions');

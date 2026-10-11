@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "wrong_state",
+    "message": "Confirm your sheet music before changing the transposition."
+  }
+}

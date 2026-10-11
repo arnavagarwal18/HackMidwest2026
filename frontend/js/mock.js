@@ -4,6 +4,8 @@
 // Polled routes (poll) answer with <processingFile> (one file, or a list: one per poll) for their first `polls` requests, then with
 // the final file, so screens can test their polling. A POST that starts the work (resets) restarts
 // the count for that group. The mock only reads static files; nothing reaches a real route.
+import { analysisVariant, AUTOKEY_TAKE, NOKEY_TAKE, rememberMockTransposition, withChosenTransposition } from './mock_transposition.js';
+
 const MOCK_DELAY_MS = 150;
 
 export const MOCK_MEDIA_URL = 'mock/take_media_long.wav'; // 12 s, so a jump to a few seconds in has somewhere to land
@@ -56,7 +58,9 @@ const SESSION_VARIANTS = {
 const TAKE_VARIANTS = {
   take_mic: { get_analysis: 'get_analysis_mic' }, // a mic take: no form check
   take_failed: { get_analysis: 'get_analysis_failed' },
-  take_cant_tell: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' },
+  take_cant_tell: { get_analysis: 'get_analysis_cant_tell_few_pairs', get_feedback: 'get_feedback_cant_tell' }, // not low_match, so no automatic key search
+  [AUTOKEY_TAKE]: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' }, // low_match; good only in one key: mock_transposition.js
+  [NOKEY_TAKE]: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' }, // low_match in every key
   take_fallback: { get_feedback: 'get_feedback_fallback', post_chat: 'post_chat_fallback' }, // the chat POST names its take in the body
   take_stuck: { get_analysis: 'get_analysis_transcribed' }, // never finishes
 };
@@ -67,7 +71,7 @@ const FAILED_CALIBRATION = { group: 'calibration', processingFile: 'error_calibr
 const calibrationVariant = () => new URLSearchParams(window.location.search).get('calibration');
 
 // error_*.json files stand for a failed response; most are a 404, these have their own status.
-const ERROR_STATUS = { error_calibration_failed: 422 };
+const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409 };
 
 // Exercise ids that change what the exercise routes answer, so the loop trainer can be tried in each state.
 // ex_fail / ex_not_counted: the rep is a FAIL / does not count. ex_complete: one pass from the target, and the rep completes it.
@@ -108,10 +112,11 @@ export function mockFileFor(method, path, requestBody) {
   const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1] ?? requestBody?.take_id;
   const exerciseId = /\/exercises\/([^/]+)/.exec(pathOnly)?.[1];
   const finalFile = (TAKE_VARIANTS[takeId] ?? EXERCISE_VARIANTS[exerciseId])?.[route.file] ?? route.file;
-  if (route.poll) return pollFile(route, pathOnly, finalFile);
+  if (route.poll) return pollFile(route, pathOnly, route.file === 'get_analysis' ? analysisVariant(takeId, finalFile) : finalFile);
   if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
     return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);
   }
+  if (route.file === 'post_transposition' && pathOnly.split('/')[2] === 'sess_unconfirmed') return 'error_transposition_wrong_state';
   if (route.file === 'get_session') return SESSION_VARIANTS[pathOnly.split('/')[2]] ?? route.file;
   return finalFile;
 }
@@ -119,6 +124,7 @@ export function mockFileFor(method, path, requestBody) {
 // Returns the same { ok, status, body } shape as a real response, or null when no mock exists.
 export async function mockResponse(method, path, requestBody) {
   mockRequestLog.push({ method, path, body: requestBody instanceof FormData ? undefined : requestBody });
+  if (method === 'POST' && path.endsWith('/transposition')) rememberMockTransposition(requestBody);
   const file = mockFileFor(method, path, requestBody);
   if (!file) return null;
   await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
@@ -127,7 +133,8 @@ export async function mockResponse(method, path, requestBody) {
     console.error(`Mock file mock/${file}.json is missing (HTTP ${res.status}).`);
     return null;
   }
-  const body = await res.json();
+  const json = await res.json();
+  const body = file.startsWith('get_analysis') ? withChosenTransposition(json) : json;
   const isError = file.startsWith('error_'); // error_*.json files stand for a failed (non-2xx) response
   return { ok: !isError, status: isError ? (ERROR_STATUS[file] ?? 404) : 200, body };
 }
