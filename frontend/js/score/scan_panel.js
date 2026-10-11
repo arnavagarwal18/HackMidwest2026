@@ -3,8 +3,10 @@
 import { confirmScore, getScoreStatus } from '../api.js';
 import { reportError } from '../banner.js';
 import { state } from '../state.js';
-import { formatDoubtfulBar, scanErrorMessage, SLOW_MESSAGE, TOO_LONG_MESSAGE } from './format.js';
+import { doubtfulBarReadings, scanErrorMessage, SLOW_MESSAGE, TOO_LONG_MESSAGE } from './format.js';
 import { pollScoreStatus } from './poll.js';
+import { card } from '../ui/card.js';
+import { badge } from '../ui/components.js';
 import { button, el, runGuarded } from './ui.js';
 
 // onConfirmed() runs after the score is confirmed; onRescan() sends the learner back to the photo tab.
@@ -31,16 +33,22 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
   }
 
   function showScanError(status) {
-    root.append(
-      el('p', { text: scanErrorMessage(status), className: 'scan-error' }),
-      el('p', { children: [button('Try another photo', onRescan), ' ', button('Choose a file', onChooseFile)] }),
-    );
+    root.append(card({
+      title: 'Scan problem',
+      status: badge('Scan failed', 'error'),
+      body: [el('p', { text: scanErrorMessage(status), className: 'scan-error' })],
+      footer: [button('Try another photo', onRescan, 'btn btn-primary primary'), button('Choose a file', onChooseFile, 'btn btn-secondary')],
+    }));
   }
 
   async function poll(source) {
     const mine = generation;
     const message = el('p', { text: 'Reading your photo...' });
-    root.append(el('div', { className: 'spinner', attrs: { role: 'status', 'aria-label': 'Reading your photo' } }), message);
+    root.append(card({
+      title: 'Reading your music',
+      status: badge('Working', 'neutral'),
+      body: [el('div', { className: 'scan-reading', children: [el('div', { className: 'spinner', attrs: { role: 'status', 'aria-label': 'Reading your photo' } }), message] })],
+    }));
     try {
       const result = await pollScoreStatus({
         fetchStatus: () => getScoreStatus(state.session_id),
@@ -59,8 +67,8 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
 
   function showTimeout(source, text) {
     clear();
-    const check = button('Check again', () => checkOnce(check, source));
-    root.append(el('p', { text }), check);
+    const check = button('Check again', () => checkOnce(check, source), 'btn btn-secondary');
+    root.append(card({ title: 'Scan check', status: badge('Not ready', 'warn'), body: [el('p', { text })], footer: [check] }));
   }
 
   // One more poll: show the answer, or the same message again if the scan is still running.
@@ -73,15 +81,20 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
 
   function showReview(status, source) {
     state.score.status = 'scanned';
-    const confirm = button('Confirm', () => confirmReviewed(confirm), 'primary');
-    const rescan = button('Rescan', () => { clear(); onRescan(); });
-    root.append(el('h2', { text: 'Check your score' }), el('p', { text: `${status.bars} bars found.`, className: 'bar-count' }));
+    const confirm = button('Confirm', () => confirmReviewed(confirm), 'btn btn-primary primary');
+    const rescan = button('Rescan', () => { clear(); onRescan(); }, 'btn btn-secondary');
+    const doubtful = status.doubtful_bars ?? [];
+    const warnings = status.warnings ?? [];
+    const needsCheck = doubtful.length > 0 || warnings.length > 0;
+    const body = [el('p', { text: `${status.bars} bars found.`, className: 'bar-count' })];
     if (source === 'photo' && !status.double_checked) {
-      root.append(el('p', { text: 'This scan was not double-checked, so look at every bar against your paper.', className: 'muted' }));
+      body.push(el('p', { text: 'This scan was not double-checked, so look at every bar against your paper.', className: 'muted' }));
     }
-    root.append(...listSection('Warnings', status.warnings, (warning) => warning));
-    root.append(...listSection('Check these bars against your paper', status.doubtful_bars, formatDoubtfulBar));
-    root.append(el('p', { children: [confirm, ' ', rescan] }));
+    root.append(
+      card({ title: 'Check your score', status: needsCheck ? badge('Needs a look', 'warn') : badge('Looks good', 'ok'), body, footer: [rescan, confirm] }),
+      ...warningsCard(warnings),
+      ...doubtfulBarsSection(doubtful),
+    );
   }
 
   async function confirmReviewed(confirm) {
@@ -99,7 +112,26 @@ export function createScanPanel({ onConfirmed, onRescan, onChooseFile, onScanFai
   return { element: root, show, clear };
 }
 
-function listSection(heading, items, format) {
-  if (!items || items.length === 0) return [];
-  return [el('h3', { text: heading }), el('ul', { children: items.map((item) => el('li', { text: format(item) })) })];
+function warningsCard(warnings) {
+  if (warnings.length === 0) return [];
+  return [card({ title: 'Warnings', status: badge(String(warnings.length), 'warn'), body: [el('ul', { children: warnings.map((warning) => el('li', { text: warning })) })] })];
+}
+
+// One small card per doubtful bar, so each can be checked against the paper on its own.
+function doubtfulBarsSection(doubtfulBars) {
+  if (doubtfulBars.length === 0) return [];
+  return [
+    el('h3', { text: 'Check these bars against your paper' }),
+    el('ul', { className: 'doubtful-list', children: doubtfulBars.map(doubtfulBarCard) }),
+  ];
+}
+
+function doubtfulBarCard(doubtful) {
+  const { bar, scan, second } = doubtfulBarReadings(doubtful);
+  return el('li', { children: [card({
+    className: 'doubtful-card',
+    title: `Bar ${bar}`,
+    status: badge('Doubtful', 'warn'),
+    body: [el('dl', { children: [el('dt', { text: 'Scan read' }), el('dd', { text: scan }), el('dt', { text: 'Second reading' }), el('dd', { text: second })] })],
+  })] });
 }

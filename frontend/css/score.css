@@ -1,40 +1,45 @@
 /* Start and Score screens. Loaded by js/score/ui.js loadScoreStyles(). */
 
-/* Start: one status line while the first piece is set up; on failure the message, Try again and a link. */
-.start { padding: var(--sp-5) 0; }
+/* Start: a card with one status line while the first piece is set up; on failure a badge, the message, Try again and a link. */
 .start-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); margin: 0; font-size: var(--fs-md); }
+.start-status.muted { flex-direction: row; align-items: center; }
 .start-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
-.start-actions a { display: inline-flex; align-items: center; min-height: var(--tap); }
 
-.tabs {
-  display: flex;
-  gap: var(--sp-2);
-  width: fit-content;
-  max-width: 100%;
-  padding: var(--sp-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow-x: auto;
-}
-
-.tab { flex: none; color: var(--muted); }
-.tab:hover { border-color: transparent; color: var(--ink); }
-.tab[aria-selected="true"] { background: var(--brass-soft); color: var(--ink); border-color: var(--brass); }
+/* Header and tabs: the page header comes from components.css; the tabs are a .segmented control. */
+.scan-panel { display: grid; gap: var(--sp-3); align-content: start; }
+.segmented { max-width: 100%; overflow-x: auto; margin-bottom: var(--sp-3); }
+.segmented > .tab { flex: none; }
 .tab-body[hidden], .crop-stage[hidden] { display: none; }
 
-.file-pick { display: inline-flex; align-items: center; gap: var(--sp-2); margin: 0 var(--sp-3) var(--sp-2) 0; }
+.file-picks, .file-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.file-pick { display: inline-flex; align-items: center; gap: var(--sp-2); margin: 0; }
+.crop-stage { display: grid; gap: var(--sp-3); }
+.crop-stage > * { margin: 0; }
 .crop-canvas { display: block; width: 100%; max-width: 900px; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: crosshair; }
 
-.builtin-list { margin: 0; padding: 0; list-style: none; }
-.builtin-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
-.builtin-list li:first-child { border-top: 0; padding-top: 0; }
-.builtin-list li:last-child { padding-bottom: 0; }
+/* Built-in pieces: one card each (title, instrument badge, bars and tempo, Play). */
+.builtin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.builtin-list > li { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.builtin-list > li > .card { flex: 1; }
+.builtin-list > li > .empty-state, .builtin-list > li > button { margin: 0; }
+.builtin-list > li:only-child { grid-column: 1 / -1; }
+.piece-card .card-header { align-items: flex-start; min-height: calc(2 * 1.2 * var(--fs-lg) + 2 * var(--sp-3)); } /* two title lines, so cards in a row line up */
+.piece-card .card-header h2 { font-size: var(--fs-lg); }
+.piece-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); }
 
-.scan-panel ul { margin: 0 0 var(--sp-3); padding-left: var(--sp-4); }
-.scan-panel li { margin: var(--sp-1) 0; }
-.scan-panel p:last-child { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.bar-count { font-family: var(--font-display); font-size: var(--fs-lg); }
+/* Scan status: reading, failed, not ready, and the check-your-score review. */
+.scan-reading { display: flex; align-items: center; gap: var(--sp-3); }
+.scan-reading > p { margin: 0; }
+.scan-panel .card-body ul { margin: 0; padding-left: var(--sp-4); }
+.scan-panel .card-body li { margin: var(--sp-1) 0; }
+.scan-panel > h3 { margin: var(--sp-2) 0 0; font-size: var(--fs-md); }
+.bar-count { margin: 0; font-family: var(--font-display); font-size: var(--fs-xl); }
 .scan-error { color: var(--error); font-weight: 600; }
+.doubtful-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.doubtful-card { border-left: 4px solid var(--sharp); }
+.doubtful-card dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-3); margin: 0; }
+.doubtful-card dt { color: var(--muted); font-size: var(--fs-sm); }
+.doubtful-card dd { margin: 0; font-family: var(--font-mono); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 
 /* A static ring: the reading state is announced by its role and label, and nothing loops. */
 .spinner { width: 28px; height: 28px; border: 3px solid var(--line); border-top-color: var(--brass); border-radius: 50%; }

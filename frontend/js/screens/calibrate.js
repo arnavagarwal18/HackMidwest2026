@@ -7,14 +7,16 @@ import { findBaseAddress, toneUrl } from '../calibrate/address.js';
 import { CLICK_AFTER_S, DELAY_SECONDS, NOTE_COUNT, REF_SECONDS, createClipStore } from '../calibrate/clips.js';
 import { renderIntro } from '../calibrate/intro.js';
 import { clipProblemFromError, failuresFromError, renderFailureList, renderSendRetry } from '../calibrate/problems.js';
-import { createStepRow } from '../calibrate/steps.js';
+import { ANOTHER_TRY, createStepRow } from '../calibrate/steps.js';
 import { openStream, recordClip, renderLevelMeter, renderMediaError, stopStream } from '../record.js';
 import { loadScoreStyles } from '../score/ui.js';
 import { state } from '../state.js';
+import { card } from '../ui/card.js';
+import { badge } from '../ui/components.js';
+import { flowHeader } from '../ui/flow_header.js';
 
 const STYLE_HREF = 'css/calibrate.css';
 const NEXT_HASH = '#/take';
-const ANOTHER_TRY = 'Needs another try';
 
 function loadStyles() {
   if (document.querySelector(`link[href="${STYLE_HREF}"]`)) return;
@@ -42,7 +44,7 @@ export async function render(root, _params, isCurrent = () => true) {
 
   const mediaProblem = element('div');
   const meterBox = element('div', '', 'calibrate-meter');
-  const failureBox = element('div');
+  const failureBox = element('div', '', 'calibrate-problems');
   const resultBox = element('div');
   const sendRetryBox = element('div');
   const refRows = notes.map((note, i) => createStepRow({
@@ -57,10 +59,14 @@ export async function render(root, _params, isCurrent = () => true) {
     prompt: `Play ${note.name} on your instrument`, buttonLabel: `Record ${note.name} (${REF_SECONDS} s)`,
     onRecord: () => recordInstrumentNote(i),
   }));
-  const sendButton = button('Send calibration', sendCalibration, 'primary');
-  const skipButton = button('Skip calibration', skip);
-  const actions = element('p', '', 'calibrate-actions');
-  actions.append(sendButton, skipButton);
+  const sendButton = button('Send calibration', sendCalibration, 'btn btn-primary primary');
+  const skipButton = button('Skip calibration', skip, 'btn btn-ghost');
+  const actions = card({
+    className: 'calibrate-finish',
+    title: 'Send it',
+    body: [element('p', 'Send your recordings to finish. Short on time? You can skip and calibrate later.', 'muted')],
+    footer: [skipButton, sendButton],
+  });
   const everyButton = () => [...refRows, delayRow, ...instrumentRows].map((row) => row.button)
     .concat(sendButton, skipButton, failureButtons, sendRetryButton ?? []);
 
@@ -183,10 +189,13 @@ export async function render(root, _params, isCurrent = () => true) {
   }
 
   function showResult(profile) {
-    resultBox.replaceChildren(
-      element('p', `Calibrated: pitch offset ${profile.pitch_offset_cents} cents, delay ${profile.latency_ms} ms.`, 'calibrate-done', { role: 'status' }),
-      button('Continue to the take screen', () => { window.location.hash = NEXT_HASH; }, 'primary'),
-    );
+    resultBox.replaceChildren(card({
+      className: 'calibrate-result',
+      title: 'Calibration complete',
+      status: badge('Done', 'ok'),
+      body: [element('p', `Calibrated: pitch offset ${profile.pitch_offset_cents} cents, delay ${profile.latency_ms} ms.`, 'calibrate-done', { role: 'status' })],
+      footer: [button('Continue to the take screen', () => { window.location.hash = NEXT_HASH; }, 'btn btn-primary primary')],
+    }));
   }
 
   async function skip() {
@@ -217,20 +226,18 @@ export async function render(root, _params, isCurrent = () => true) {
     list.append(...rows.map((row) => row.element));
     return list;
   };
+  // The stepper: three numbered stages, each a card with its own badge.
+  const stage = (title, status, body) => card({ className: 'calibrate-stage', title, status: badge(status, 'neutral'), body });
+  const stepper = element('ol', '', 'calibrate-stepper');
+  stepper.append(...[
+    stage(`Play each note (${NOTE_COUNT})`, 'Other device', [stepList(refRows), mediaProblem, meterBox, failureBox]),
+    stage('Delay test', 'This laptop', [stepList([delayRow])]),
+    stage('Your instrument', 'Optional', [element('p', 'Now play the same notes on your instrument.', 'muted'), stepList(instrumentRows)]),
+  ].map((item) => { const li = element('li'); li.append(item); return li; }));
   root.append(
-    element('h1', 'Calibrate'),
-    element('p', 'Calibration lets the app adjust to this room and your microphone. It takes about a minute.', 'muted'),
-    renderIntro({ notes, url: toneUrl(base, state.instrument), addressNote }),
-    element('h2', `1. Play each note (${NOTE_COUNT})`),
-    stepList(refRows),
-    mediaProblem,
-    meterBox,
-    failureBox,
-    element('h2', '2. Delay test'),
-    stepList([delayRow]),
-    element('h2', '3. Your instrument (optional)'),
-    element('p', 'Now play the same notes on your instrument.', 'muted'),
-    stepList(instrumentRows),
+    flowHeader({ title: 'Calibrate', subtitle: 'This lets the app adjust to this room and your microphone. It takes about a minute.', currentStep: 1 }),
+    card({ title: 'Open the tone page', body: [renderIntro({ notes, url: toneUrl(base, state.instrument), addressNote })] }),
+    stepper,
     actions,
     sendRetryBox,
     resultBox,

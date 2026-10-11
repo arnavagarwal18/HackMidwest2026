@@ -8,6 +8,7 @@ import { createPhotoTab } from '../score/photo_tab.js';
 import { createScanPanel } from '../score/scan_panel.js';
 import { openSession, useBuiltinPiece } from '../score/session.js';
 import { button, el, loadScoreStyles } from '../score/ui.js';
+import { flowHeader } from '../ui/flow_header.js';
 
 const CONFIRMED_NOTICE = 'Choosing another piece starts a new practice session.';
 const PLAY_HASH = '#/take';
@@ -46,17 +47,17 @@ export async function render(root) {
     node.dataset.tab = tab.id;
     return node;
   });
-  tabs.forEach((tab) => { tab.body.className = 'tab-body'; tab.body.dataset.tab = tab.id; });
+  tabs.forEach((tab) => { tab.body.className = `${tab.body.className} tab-body`.trim(); tab.body.dataset.tab = tab.id; });
 
   function selectTab(id) {
     tabButtons.forEach((node) => node.setAttribute('aria-selected', String(node.dataset.tab === id)));
     tabs.forEach((tab) => { tab.body.hidden = tab.id !== id; });
   }
 
-  root.append(el('h1', { text: 'Change piece' }));
+  root.append(flowHeader({ title: 'Change piece', subtitle: 'Pick a built-in piece, or bring your own music as a file or a photo.', currentStep: 0 }));
   if (state.score.status === 'confirmed') root.append(el('p', { text: CONFIRMED_NOTICE, className: 'muted' }));
   root.append(
-    el('div', { className: 'tabs', attrs: { role: 'tablist' }, children: tabButtons }),
+    el('div', { className: 'segmented', attrs: { role: 'tablist' }, children: tabButtons }),
     ...tabs.map((tab) => tab.body),
     panel.element,
   );
