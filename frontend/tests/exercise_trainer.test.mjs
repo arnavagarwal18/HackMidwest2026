@@ -415,3 +415,31 @@ test('a trainer opened before any take was sent counts in one bar, as the take s
   assert.equal(repSettings({ time_signature: [3, 4] }, { count_in_beats: 0 }).countInBeats, 0); // an explicit "no count-in" stays
   assert.equal(repSettings({ time_signature: [3, 4] }, { count_in_beats: 2 }).countInBeats, 2);
 });
+
+test('the result card shows the errors and timing, and the history lists each scored rep newest first', async () => {
+  const t = await setup({ outcomes: ['pass', 'fail', 'not_counted'] });
+  assert.equal(t.text('empty-state-title')[0], 'No reps yet');
+  await t.playRep(); // pass
+  assert.deepEqual(t.text('stat-label').slice(-2), ['Wrong or missed notes', 'Average timing']);
+  assert.deepEqual(t.text('stat-value').slice(-2), ['0', '40 ms']);
+  assert.equal(t.text('empty-state-title').length, 0);
+  await t.playRep(); // fail
+  assert.deepEqual(t.text('rep-history-tempo'), ['60 BPM', '60 BPM']);
+  assert.deepEqual(t.text('badge').slice(-2), ['Fail', 'Pass']);
+  await t.playRep(); // not counted: no result card, history unchanged
+  assert.equal(t.text('verdict').length, 0);
+  assert.equal(t.text('rep-history-tempo').length, 2);
+  t.trainer.destroy();
+});
+
+test('the result card says whether the form rule raised flags', async () => {
+  const withRule = { ...EXERCISE, pass_mark: { ...EXERCISE.pass_mark, form_rule: 'elbow_height' } };
+  const t = await setup({ outcomes: ['pass'], exercise: withRule });
+  await t.playRep();
+  assert.deepEqual(t.text('badge').slice(0, 1), ['No form flags']);
+  t.trainer.destroy();
+  const noRule = await setup({ outcomes: ['pass'] });
+  await noRule.playRep();
+  assert.equal(noRule.text('badge').includes('No form flags'), false);
+  noRule.trainer.destroy();
+});
