@@ -108,6 +108,8 @@ await test('from 901px the coach gets a 360px column only while a docked panel s
   const page = await open('take_1');
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 800, deviceScaleFactor: 1, mobile: false });
   await page.waitFor(`document.querySelector('.hero')`);
+  await page.waitFor(`[...document.querySelectorAll('.coach-close')].some((b) => b.textContent === 'Collapse')`);
+  await page.eval(`document.querySelector('.coach-close').click()`); // the real coach panel is docked and open from the start; collapse it so only the fake one below counts
   const widths = () => page.eval(`[document.querySelector('.results-layout'), document.querySelector('.results')].map((e) => Math.round(e.getBoundingClientRect().width))`);
   const [layoutWidth, resultsWidth] = await widths();
   assert.equal(resultsWidth, layoutWidth, 'no docked panel: no blank column');

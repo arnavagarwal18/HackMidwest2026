@@ -33,10 +33,8 @@ const OPEN_COACH = async (page) => {
 // A conversation that has not started: the mock chat history is empty, so the sheet shows its opening line and chips.
 const FRESH_CHAT = `const realFetch = window.fetch; window.fetch = (url, ...rest) => String(url).includes('get_chat')
   ? Promise.resolve(new Response('{"turns":[]}', { status: 200, headers: { 'content-type': 'application/json' } })) : realFetch(url, ...rest);`;
-// The coach is a modal sheet below 901px, so the sheet shots use a width just under it; the desktop 1200px shot shows the docked panel.
+// The coach is a modal sheet below 901px, so the sheet shots use a width just under it; the desktop 1200px shot shows the docked panel in the Results grid.
 const SHEET_VIEWPORT = { width: 800, height: 800, deviceScaleFactor: 1, mobile: false };
-// The docked panel fills the right column of the Results page's two-column grid; this stands in for that grid in a shot.
-const RESULTS_COLUMNS = `document.head.append(Object.assign(document.createElement('style'), { textContent: 'main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } #coach-root { position: sticky; top: var(--header-h); }' }))`;
 const COACH_READY = `document.querySelector('.results .bar-strip-section') !== null`;
 const SCREENS = [
   { name: 'start', hash: '#/start', ready: `location.hash === '#/start' && document.querySelector('main').children.length > 0`, session: false },
@@ -50,7 +48,7 @@ const SCREENS = [
   { name: 'results-details-mobile', hash: '#/results/take_1', ready: `document.querySelector('.results .bar-strip-section') !== null`, session: true, full: true, viewport: MOBILE, prepare: `document.querySelectorAll('.results details').forEach((d) => { d.open = true; })` },
   { name: 'coach-sheet', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: OPEN_COACH, viewport: SHEET_VIEWPORT },
   { name: 'coach-history', hash: '#/results/take_1', ready: COACH_READY, session: true, act: OPEN_COACH, viewport: SHEET_VIEWPORT },
-  { name: 'coach-docked', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: async (page) => { await page.eval(RESULTS_COLUMNS); await OPEN_COACH(page); await page.eval('window.scrollTo(0, 60)'); } },
+  { name: 'coach-docked', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: OPEN_COACH },
   { name: 'coach-menu', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, viewport: SHEET_VIEWPORT, act: async (page) => { await OPEN_COACH(page); await page.eval(`document.querySelector('.coach-menu-button').click()`); } },
   { name: 'coach-sheet-mobile', hash: '#/results/take_1', ready: COACH_READY, session: true, script: FRESH_CHAT, act: OPEN_COACH, viewport: { width: 390, height: 844, deviceScaleFactor: 1, mobile: true } },
   { name: 'progress', hash: '#/progress', ready: `document.querySelector('.exercise-item') !== null`, session: true, full: true },
