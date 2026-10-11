@@ -162,7 +162,7 @@ again; a mic take returns `null` (no canvas, no tracks fetch).
 | --- | --- |
 | `frames.js` | `nearestFrame(frames, t)`: binary search on `t`; `null` when there are no frames or the nearest is more than 0.2 s away. |
 | `geometry.js` | `contentRect(box, intrinsic, objectFit)` (where the picture sits in the element, so letterboxing lines up) and `toCanvas`. |
-| `flag_points.js` | `RULE_LANDMARKS` (rule -> pose points; `trumpet_head_down`, `trumpet_elbows_pinned`, `shoulders_raised`, `slouching`), `involvedLandmarks(flag)` (respects `side`), `activeFlags`. |
+| `flag_points.js` | `RULE_LANDMARKS` (rule -> pose points; `trumpet_head_down`, `trumpet_elbows_pinned`, `trumpet_elbows_wide`, `trumpet_bell_angle`, `shoulders_raised`, `slouching`), `involvedLandmarks(flag)` (respects `side`), `activeFlags`. |
 | `draw.js` | Pose lines (shoulders, elbows, wrists, ears to shoulders, shoulders to hips), hand points, red points and the label during a flag. |
 | `flag_list.js` | The list in `#form-flag-slot`; each row jumps with `jumpTo(resolveId(flag.id, index))` to `peak_s`. |
 
