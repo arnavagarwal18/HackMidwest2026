@@ -146,11 +146,13 @@ await test('Ask coach opens the coach sheet through the coach:open event, and Tr
   await page.waitFor(`location.hash === '#/take'`);
 });
 
-await test('Bar by bar: Good / Okay / Needs work boxes, the worst selected at first; a click shows that bar, arrows move, Play this bar seeks', async (open) => {
+await test('Bar by bar: colour-coded numbered boxes with no status word (it is in the aria-label and title), the worst selected at first; a click shows that bar, arrows move, Play this bar seeks', async (open) => {
   const page = await open('take_1');
   await page.waitFor(`document.querySelector('.bar-box')`);
-  assert.deepEqual(await text(page, '.bar-box-word'), ['Needs work', 'Needs work'], 'a word, not only a colour (bar 4 has 1 of 2 notes right)');
-  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-box')].map((b) => b.getAttribute('aria-label'))`), ['Bar 3, needs work', 'Bar 4, needs work']);
+  assert.deepEqual(await text(page, '.bar-box'), ['3', '4'], 'a box shows only its bar number');
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-box')].map((b) => b.getAttribute('aria-label'))`), ['Bar 3: Needs work', 'Bar 4: Needs work'], 'bar 4 has 1 of 2 notes right');
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-box')].map((b) => b.title)`), ['Bar 3: Needs work', 'Bar 4: Needs work']);
+  assert.equal(await count(page, '.bar-box.level-needs-work'), 2, 'the colour class is kept');
   assert.deepEqual(await selectedBars(page), ['3'], 'the worst bar is selected at first');
   assert.equal(await page.eval(`document.querySelector('video').currentTime`), 0, 'nothing plays on its own');
   assert.equal(await count(page, '.bar-legend li'), 3);

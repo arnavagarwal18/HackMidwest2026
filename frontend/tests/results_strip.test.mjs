@@ -105,12 +105,14 @@ function key(boxes, from, name) {
   return taken;
 }
 
-test('one box per bar in order, each with its number, a Good / Okay / Needs work word and a matching aria-label', () => {
+test('one box per bar in order, each with its number, no visible status word, and the word in its aria-label and title', () => {
   const { boxes } = grid();
   assert.deepEqual(boxes.map((b) => b.attributes['data-bar']), ['1', '2', '3', '4']);
   assert.deepEqual(boxes.map((b) => b.texts('bar-box-num')[0]), ['1', '2', '3', '4']);
-  assert.deepEqual(boxes.map((b) => b.texts('bar-box-word')[0]), ['Good', 'Okay', 'Needs work', 'Okay']);
-  assert.deepEqual(boxes.map((b) => b.attributes['aria-label']), ['Bar 1, good', 'Bar 2, okay', 'Bar 3, needs work', 'Bar 4, okay']);
+  assert.deepEqual(boxes.map((b) => b.textContent), ['1', '2', '3', '4'], 'a tile shows only its bar number');
+  assert.deepEqual(boxes.map((b) => b.attributes['aria-label']), ['Bar 1: Good', 'Bar 2: Okay', 'Bar 3: Needs work', 'Bar 4: Okay']);
+  assert.deepEqual(boxes.map((b) => b.attributes.title), ['Bar 1: Good', 'Bar 2: Okay', 'Bar 3: Needs work', 'Bar 4: Okay']);
+  assert.deepEqual(boxes.map((b) => b.className.split(' ')[1]), ['level-good', 'level-okay', 'level-needs-work', 'level-okay'], 'the colour class is kept');
   assert.deepEqual(boxes.map((b) => b.attributes.type), ['button', 'button', 'button', 'button']);
   assert.equal(createBarStrip({ bars: [] }, { jumpContext: { index: gridIndex, jumper: null }, sentences: [], renderActions: () => null }), null);
 });

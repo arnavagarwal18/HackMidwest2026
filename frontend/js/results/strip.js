@@ -1,4 +1,5 @@
-// Bar by bar: one box per bar, saying its number and a word (Good / Okay / Needs work; colour is never the only cue).
+// Bar by bar: one box per bar, showing its number on its level's colour. The level word (Good / Okay / Needs work) is the box's
+// accessible name and hover text, and the legend under the grid explains the colours.
 // The boxes are buttons in one tab stop: arrow keys, Home and End move between them, and the box in focus is selected.
 // The selected box (the worst bar at first) shows its detail below the grid (bar_detail.js). A jump to a bar selects its box.
 import { element } from '../dom.js';
@@ -12,16 +13,18 @@ const MOVES = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
 const boxClass = (level, selected) => `bar-box level-${level}${selected ? ' selected' : ''}`;
 
 function boxFor(bar, level) {
+  const boxName = `Bar ${bar.bar}: ${LEVEL_WORDS[level]}`;
   const box = element('button', '', boxClass(level, false), {
     type: 'button',
     'data-bar': String(bar.bar),
     'data-level': level,
     'aria-pressed': 'false',
     'aria-controls': 'bar-detail',
-    'aria-label': `Bar ${bar.bar}, ${LEVEL_WORDS[level].toLowerCase()}`,
+    'aria-label': boxName,
+    title: boxName,
     tabindex: '-1',
   });
-  box.append(element('span', String(bar.bar), 'bar-box-num'), element('span', LEVEL_WORDS[level], 'bar-box-word', { 'aria-hidden': 'true' }));
+  box.append(element('span', String(bar.bar), 'bar-box-num'));
   return box;
 }
 

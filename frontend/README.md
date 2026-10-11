@@ -128,8 +128,8 @@ rebuilt feedback (a new feedback id) and never posts feedback itself. In mock mo
 
 Layout, top to bottom (`results/view.js`): the recording (`results/media.js`; hidden if it cannot load), the verdict
 (`results/hero.js`: a headline naming the weakest of pitch, rhythm and tempo, each score with what it measures, "Focus here" on the
-weakest, one suggestion, Ask coach and Try again), Bar by bar (`results/strip.js`: one Good / Okay / Needs work button per bar from
-`results/bar_level.js`, arrow keys, Home and End move between them, the worst bar is selected first and its detail from
+weakest, one suggestion, Ask coach and Try again), Bar by bar (`results/strip.js`: one colour-coded numbered button per bar from
+`results/bar_level.js`, its Good / Okay / Needs work word only as aria-label and title, a legend under the grid, arrow keys, Home and End move between them, the worst bar is selected first and its detail from
 `results/bar_detail.js` shows below), Practice next (`renderPracticeNext` in `results/plan.js`), then closed rows: The numbers and
 Detailed feedback. From 901px `#coach-root` is a sticky right column (`.results-layout` in `css/results.css`).
 
