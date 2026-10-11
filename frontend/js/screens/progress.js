@@ -58,7 +58,7 @@ export function renderProgress(root, progress) {
   root.replaceChildren(element('h1', 'Progress'));
   const hasSnapshots = progress.before || progress.after;
   if (!hasSnapshots && !progress.exercises.length) {
-    root.append(element('p', 'Nothing to compare yet. Record a take, then practise an exercise, and your '
+    root.append(element('p', 'Nothing to compare yet. Record a take, then practice an exercise, and your '
       + 'before and after will show up here.', 'empty-state'));
     return;
   }

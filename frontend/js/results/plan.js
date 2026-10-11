@@ -1,4 +1,4 @@
-// The plan's exercises, each with a Practise link to #/exercise/{id}, and the 'How the AI worked' link.
+// The plan's exercises, each with a Practice link to #/exercise/{id}, and the 'How the AI worked' link.
 import { element, link } from '../dom.js';
 import { state } from '../state.js';
 
@@ -7,7 +7,7 @@ function exerciseCard(exercise) {
   card.append(element('h3', exercise.title), element('p', exercise.text));
   const bars = exercise.bar_from === exercise.bar_to ? `bar ${exercise.bar_from}` : `bars ${exercise.bar_from} to ${exercise.bar_to}`;
   card.append(element('p', `${bars}, from ${exercise.start_bpm} to ${exercise.target_bpm} bpm`, 'muted'));
-  const practise = link('Practise', `#/exercise/${encodeURIComponent(exercise.id)}`, 'button-link');
+  const practise = link('Practice', `#/exercise/${encodeURIComponent(exercise.id)}`, 'button-link');
   practise.addEventListener('click', () => { state.current_exercise_id = exercise.id; });
   card.append(practise);
   return card;
