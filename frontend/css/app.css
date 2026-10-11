@@ -13,7 +13,7 @@
   --surface-2: #c3cde3;     /* hover fills, the segmented track, meters, the media background */
   --ink: #1f2433;
   --muted: #4f576a;         /* secondary text, still 4.5:1 on --bg and --surface */
-  --line: #c3cde3;          /* a decorative hairline, not for text or control edges */
+  --line: #a9b5cf;          /* a decorative hairline, not for text or control edges */
   --line-strong: #4f576a;   /* the edge of a control (input, chip, segmented): 3:1 */
   --accent: #4646b8;        /* the one accent: the primary action, the focus ring */
   --primary: var(--accent);
