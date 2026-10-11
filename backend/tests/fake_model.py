@@ -39,6 +39,7 @@ class ScriptedModel(Model):
     def __init__(self, script: list) -> None:
         self.script, self.calls = list(script), 0
         self.call_times: list[float] = []  # time.monotonic() at each model call
+        self.tool_choices: list = []  # the tool_choice each model call was given
 
     def update_config(self, **model_config: Any) -> None:
         pass
@@ -53,6 +54,7 @@ class ScriptedModel(Model):
     async def stream(self, messages, tool_specs=None, system_prompt=None, **kwargs) -> AsyncGenerator[dict, None]:
         self.calls += 1
         self.call_times.append(time.monotonic())
+        self.tool_choices.append(kwargs.get("tool_choice"))
         assert self.script, f"model called a {self.calls}th time with nothing left in the script"
         turn = self.script.pop(0)
         if isinstance(turn, Exception):

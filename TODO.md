@@ -20,6 +20,7 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [x] Write testdata/youtube/fault_candidates_reviewed.csv (one-line fault per video)
 - [x] Merge or delete branch origin/task/TASK-45
 - [x] Push to main and post the results on LLD-4 comment 01a128f9 for Caleb
+- [x] Instructor chat: force/re-prompt submit_reply when Haiku answers in plain text (LLD-5 change 7, live bug H-179)
 
 ## Caleb (AMD Ryzen 9 270, 16 GB): review and clean-up
 - [x] Merge or delete branch origin/task/TASK-10

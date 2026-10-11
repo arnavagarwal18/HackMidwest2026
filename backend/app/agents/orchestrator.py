@@ -11,10 +11,11 @@ from app.agents.context import CheckContext
 from app.agents.credential_stop import StopOnCredentialErrorHook
 from app.agents.credentials import is_credential_error
 from app.agents.holder import RunHolder
-from app.agents.hooks import TraceHook
+from app.agents.hooks import FEEDBACK_SUBMIT, PLAN_SUBMIT, TraceHook
 from app.agents.model import with_max_tokens
 from app.agents.planner import build_planner_agent
 from app.agents.prompts import ORCHESTRATOR_PROMPT
+from app.agents.submit_retry import invoke_until_submitted
 from app.agents.trace import Trace
 
 log = logging.getLogger(__name__)
@@ -54,12 +55,16 @@ def build_orchestrator(model: Any, measurement_tools: dict[str, Callable[..., st
     coach = _sub_agent_tool(
         "coach",
         "Run the Coach on a brief naming the take, its tier 1 problem ids, the bars, that the learner plays trumpet, and any form flags. Returns the accepted feedback as JSON.",
-        lambda brief: build_coach_agent(model, list(measurement_tools.values()), ctx, holder, trace).invoke_async(brief),
+        lambda brief: invoke_until_submitted(
+            build_coach_agent(model, list(measurement_tools.values()), ctx, holder, trace), brief, agent_name="coach",
+            tool_name=FEEDBACK_SUBMIT.tool_name, accepted=lambda: holder.feedback is not None, trace=trace),
         lambda: holder.feedback, holder.errors, trace)
     planner = _sub_agent_tool(
         "planner",
         "Run the Planner on a brief naming the take, its tier 1 problem ids, the bars and that the learner plays trumpet. Returns the accepted practice exercises as JSON.",
-        lambda brief: build_planner_agent(model, measurement_tools, ctx, holder, trace).invoke_async(brief),
+        lambda brief: invoke_until_submitted(
+            build_planner_agent(model, measurement_tools, ctx, holder, trace), brief, agent_name="planner",
+            tool_name=PLAN_SUBMIT.tool_name, accepted=lambda: holder.plan is not None, trace=trace),
         lambda: holder.plan, holder.planner_errors, trace)
     return Agent(
         model=with_max_tokens(model, ORCHESTRATOR_MAX_TOKENS),

@@ -48,7 +48,7 @@ def test_an_uncited_sentence_with_a_direction_word_is_dropped(client, fixture_da
 
 def test_a_reply_with_no_submit_reply_is_never_shown(client, fixture_data, monkeypatch, caplog):
     ai(monkeypatch)
-    use_script(monkeypatch, text_turn("Unchecked: you were 40 ms late."))
+    use_script(monkeypatch, text_turn("Unchecked: you were 40 ms late."), text_turn("Still unchecked: 40 ms late."))
     session_id = done_session(fixture_data)
     with caplog.at_level(logging.WARNING):
         instructor = instructor_turn(client, session_id)
