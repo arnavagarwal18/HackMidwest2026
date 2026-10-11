@@ -1,0 +1,5 @@
+# Optional: CREPE pitch tracking for TRANSCRIBER=crepe (the default pyin needs none of this). TensorFlow is a large download.
+# crepe's setup.py imports pkg_resources, so build it with an older setuptools and without build isolation:
+#   uv pip install "setuptools<81" wheel && uv pip install --no-build-isolation -r requirements-crepe.txt
+crepe==0.0.16
+tensorflow==2.21.0

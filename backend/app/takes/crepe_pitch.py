@@ -17,7 +17,7 @@ from .transcribe import (
 logger = logging.getLogger(__name__)
 
 CREPE_CAPACITY_ENV = "CREPE_MODEL_CAPACITY"
-DEFAULT_CAPACITY = "full"
+DEFAULT_CAPACITY = "medium"  # 3.3 s per 30 s of audio and as accurate as full (9.8 s): see scripts/crepe_vs_pyin_results.md
 CAPACITIES = ("tiny", "small", "medium", "large", "full")
 VOICED_CONFIDENCE = 0.5  # CREPE's own default cut-off for "a pitch is present"
 STEP_MS = HOP_LENGTH * 1000 // SAMPLE_RATE
