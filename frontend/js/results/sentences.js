@@ -5,8 +5,6 @@
 import { button, element } from '../dom.js';
 import { chipLabel, resolveId, resolveJump } from './measurements.js';
 
-export const CHECKED_TEXT = 'checked';
-
 // A small chip for one cited measurement id; clicking it jumps to that bar or time.
 export function renderChip(id, jumpContext) {
   const place = resolveId(id, jumpContext.index);
@@ -19,18 +17,17 @@ export function renderChip(id, jumpContext) {
   return chip;
 }
 
-// One sentence as an <li>: the text (a jump button when it has a jump), an optional 'checked' badge, then chips.
-export function renderSentence(sentence, jumpContext, { checkedBadge = false } = {}) {
+// One sentence as an <li>: the text (a jump button when it has a jump), then chips.
+export function renderSentence(sentence, jumpContext) {
   const item = element('li', '', 'sentence');
   const place = resolveJump(sentence.jump, jumpContext.index);
   item.append(place ? button(sentence.text, () => jumpContext.jumper.jumpTo(place), 'sentence-text') : element('span', sentence.text, 'sentence-text'));
-  if (checkedBadge && sentence.checked) item.append(element('span', CHECKED_TEXT, 'badge badge-checked', { title: 'Every number in this sentence was checked against the measurements.' }));
   (sentence.cites ?? sentence.measurement_ids ?? []).forEach((id) => item.append(renderChip(id, jumpContext)));
   return item;
 }
 
-export function renderSentenceList(sentences, jumpContext, options) {
+export function renderSentenceList(sentences, jumpContext) {
   const list = element('ul', '', 'sentences');
-  sentences.forEach((sentence) => list.append(renderSentence(sentence, jumpContext, options)));
+  sentences.forEach((sentence) => list.append(renderSentence(sentence, jumpContext)));
   return list;
 }

@@ -61,7 +61,8 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.ok((await page.eval('window.__stages')).includes('Writing feedback...'), 'feedback-not-ready shows the Writing feedback stage');
   assert.equal(await count(page, '.slow-note'), 0);
   assert.equal(await count(page, '.tier1 .sentence'), 2);
-  assert.deepEqual(await text(page, '.coach .badge-checked'), ['checked', 'checked']);
+  assert.equal(await count(page, '.coach .sentence'), 2);
+  assert.equal(await count(page, '.results .badge, .results .card'), 0, 'no badges or cards on the results');
   assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row')].map((r) => r.dataset.bar)`), ['3', '4']);
   assert.match((await text(page, '#bar-row-3'))[0], /Bar 3.*1 wrong.*1 missed.*1 extra.*steady \(\+?0\.5%\)/);
   assert.match((await text(page, '#bar-row-4'))[0], /dragging \(-8%\)/);
@@ -79,7 +80,36 @@ await test('video take renders all six parts and the stages', async (open) => {
   await click(page, '.detect-change');
   assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), false);
   assert.equal(await count(page, '#detect-panel #transposition-select'), 1, 'Change opens the existing key override');
-  assert.deepEqual(await text(page, 'button.primary'), ['Play again'], 'one filled button on the results');
+  assert.deepEqual(await text(page, 'button.primary'), ['Ask coach'], 'one filled button on the results');
+});
+
+await test('the first glance is a word, a number, three scores with only the weakest marked in words, one sentence, Ask coach and Try again', async (open) => {
+  const page = await open('take_1');
+  await page.waitFor(`document.querySelector('.hero')`);
+  assert.match((await text(page, '.hero-word'))[0], /take|Getting there|Keep at it/);
+  assert.match((await text(page, '.hero-number'))[0], /^\d+%$/);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.mini-label')].map((e) => e.textContent)`), ['Pitch', 'Rhythm', 'Tempo']);
+  assert.equal(await count(page, '.mini-score.weakest'), 1, 'only one score is highlighted');
+  assert.deepEqual(await text(page, '.mini-score.weakest .mini-flag'), ['Weakest'], 'the highlight has a text label, not colour alone');
+  assert.equal(await count(page, '.mini-flag'), 1);
+  assert.equal(await count(page, '.suggestion'), 1);
+  assert.deepEqual(await text(page, '.hero .actions button'), ['Ask coach', 'Try again']);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.results details.disclosure')].map((d) => d.open)`), [false, false, false, false, false, false], 'every detail row starts closed');
+  assert.ok(await page.eval(`[...document.querySelectorAll('.hero button, .results summary')].every((e) => e.getBoundingClientRect().height >= 44)`), 'tap targets are at least 44px');
+});
+
+await test('Ask coach opens the coach sheet through the coach:open event, and Try again goes to the take screen', async (open) => {
+  const page = await open('take_1');
+  await page.waitFor(`document.getElementById('ask-coach')`);
+  assert.equal(await count(page, '#coach-root'), 1);
+  assert.equal(await count(page, 'aside.chat-panel, main.with-chat'), 0, 'the old side panel is gone');
+  await page.eval(`window.__opened = 0; document.addEventListener('coach:open', () => { window.__opened += 1; })`);
+  await click(page, '#ask-coach');
+  assert.equal(await page.eval('window.__opened'), 1, 'the click dispatches coach:open');
+  assert.equal(await page.eval(`document.querySelector('#coach-root .coach-sheet').hidden`), false, 'the sheet in #coach-root opens');
+  await page.eval(`document.querySelector('#coach-root .coach-close').click()`);
+  await click(page, '.hero .try-again');
+  await page.waitFor(`location.hash === '#/take'`);
 });
 
 await test('the bar strip tints and marks every bar, shows the detail on a tap and seeks without moving the list', async (open) => {
@@ -95,7 +125,7 @@ await test('the bar strip tints and marks every bar, shows the detail on a tap a
   assert.equal(await page.eval(`document.querySelectorAll('.bar-cell')[1].getAttribute('aria-pressed')`), 'true');
   assert.equal(await count(page, '.bar-row.highlighted'), 0, 'a strip tap does not scroll the list');
   assert.deepEqual(await text(page, '#bar-detail .loop-bar'), ['Loop this bar']);
-  assert.deepEqual(await text(page, 'button.primary'), ['Play again'], 'the bar buttons are not filled');
+  assert.deepEqual(await text(page, 'button.primary'), ['Ask coach'], 'the bar buttons are not filled');
 });
 
 await test('Loop this bar opens the plan exercise with the bars and about 75% of the take tempo as a hint; Play again goes to the take screen', async (open) => {

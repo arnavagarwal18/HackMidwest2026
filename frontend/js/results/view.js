@@ -1,8 +1,8 @@
-// Renders a finished analysis: the six parts of the results screen.
-//   1 can't-tell message + transposition  2 bar strip, tier 1 and coach sentences  3 problem bars
-//   4 media (and the form flag slot)      5 plan exercises             6 'How the AI worked'
+// Renders a finished analysis. First glance: the hero (results/hero.js). Everything else sits behind quiet tap-to-open rows:
+//   Bar by bar (strip)  Bars to work on (reasons)  The numbers (scores, key)  Detailed feedback  Your recording  Practice plan
+// The can't-tell state (results/cant_tell.js) has no rows.
 import { takeMediaUrl } from '../api.js';
-import { button, element } from '../dom.js';
+import { element } from '../dom.js';
 import { state } from '../state.js';
 import { emptyState, pageHeader } from '../ui/components.js';
 import { createBarList } from './bars.js';
@@ -12,8 +12,9 @@ import { buildMeasurementIndex } from './measurements.js';
 import { createMediaPlayer, isVideoTake } from './media.js';
 import { renderCantTell } from './cant_tell.js';
 import { renderDetectionChip } from './detection.js';
-import { renderCoachedBy } from '../persona/coached_by.js';
+import { renderHero } from './hero.js';
 import { renderPlan, renderTraceLink } from './plan.js';
+import { disclosureRow } from './rows.js';
 import { renderSentenceList } from './sentences.js';
 import { renderStatStrip } from './stats.js';
 import { createBarStrip } from './strip.js';
@@ -21,13 +22,6 @@ import { renderStopped } from './status.js';
 
 export const FALLBACK_TEXT = 'AI coach unavailable; showing measured results.';
 export const FAILED_DEFAULT_TEXT = 'The take could not be checked. Please record it again.';
-
-// The one filled button on the results: the take screen keeps the bars, tempo and kind of this take, so it is the same settings.
-function playAgainActions() {
-  const actions = element('p', '', 'actions');
-  actions.append(button('Play again', () => { window.location.hash = '#/take'; }, 'play-again primary btn btn-primary'));
-  return actions;
-}
 
 export function renderFailed(view, analysis) {
   renderStopped(view, { heading: 'This take could not be checked', message: analysis.error?.message ?? FAILED_DEFAULT_TEXT });
@@ -39,10 +33,33 @@ function coachSentences(feedback, tier1) {
   return (feedback.sentences ?? []).filter((sentence) => !(feedback.mode === 'fallback' && measured.has(sentence.text)));
 }
 
-function sentenceSection(title, className, sentences, jumpContext, options) {
+// The sentences of one kind (a list with its own small title), for the "Detailed feedback" row.
+function sentenceSection(title, className, sentences, jumpContext) {
   const section = element('section', '', className);
-  section.append(element('h2', title), renderSentenceList(sentences, jumpContext, options));
+  section.append(element('h3', title), renderSentenceList(sentences, jumpContext));
   return section;
+}
+
+// The measured sentences, the coach's notes, the fallback notice and the 'How the AI worked' link, in one row.
+function feedbackRow(feedback, analysis, jumpContext) {
+  const tier1 = analysis.tier1 ?? [];
+  const coach = coachSentences(feedback, tier1);
+  const parts = [];
+  if (feedback.mode === 'fallback') parts.push(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
+  if (tier1.length) parts.push(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
+  if (coach.length) parts.push(sentenceSection("Your coach's notes", 'coach', coach, jumpContext));
+  if (!tier1.length && !coach.length) parts.push(emptyState('Nothing to fix', 'No problems were found in this take.'));
+  if (feedback.id) parts.push(renderTraceLink(feedback.id));
+  return disclosureRow('Detailed feedback', 'feedback-row', parts);
+}
+
+// The scores in numbers, then the key and bars the back end used (with Change).
+function numbersRow(analysis, { sessionId, rerun }) {
+  const parts = [];
+  const stats = renderStatStrip(analysis);
+  if (stats) parts.push(stats);
+  parts.push(renderDetectionChip(analysis, { sessionId, onChanged: rerun }));
+  return disclosureRow('The numbers', 'numbers-row', parts);
 }
 
 // data: { analysis, feedback, plan }. context: { sessionId, take, rerun }.
@@ -56,24 +73,20 @@ export function renderDone(view, data, context) {
   const player = createMediaPlayer({ video, url: takeMediaUrl(context.sessionId, context.take) });
   const renderActions = (bar) => renderBarActions(bar, { plan, analysis });
   const barList = createBarList(analysis, renderActions);
-  const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList }) };
+  const barsRow = disclosureRow('Bars to work on', 'bars-row', [barList.section]);
+  // A jump to a bar opens the row that holds it, so the highlighted bar is on screen.
+  const revealingList = { highlight: (bar) => { barsRow.open = true; barList.highlight(bar); } };
+  const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList: revealingList }) };
   const barStrip = createBarStrip(analysis, { ...jumpContext, renderActions });
 
-  view.replaceChildren(pageHeader({ title: 'Results', subtitle: 'How this take went, bar by bar.' }));
-  if (feedback.mode === 'fallback') view.append(element('p', FALLBACK_TEXT, 'notice fallback-notice', { role: 'status' }));
-  const coachedBy = renderCoachedBy(feedback);
-  if (coachedBy) view.append(coachedBy);
-  view.append(renderDetectionChip(analysis, { sessionId: context.sessionId, onChanged: context.rerun }));
-  const stats = renderStatStrip(analysis);
-  if (stats) view.append(stats);
-  view.append(playAgainActions());
-  if (barStrip) view.append(barStrip.section);
-  const tier1 = analysis.tier1 ?? [];
-  if (tier1.length) view.append(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
-  const coach = coachSentences(feedback, tier1);
-  if (coach.length) view.append(sentenceSection("Your coach's notes", 'coach', coach, jumpContext, { checkedBadge: true }));
-  if (!tier1.length && !coach.length) view.append(emptyState('Nothing to fix', 'No problems were found in this take.'));
-  view.append(barList.section, player.section, renderPlan(plan));
-  if (feedback.id) view.append(renderTraceLink(feedback.id));
+  view.replaceChildren(pageHeader({ title: 'Results' }), renderHero(analysis));
+  if (barStrip) view.append(disclosureRow('Bar by bar', 'strip-row', [barStrip.section]));
+  view.append(
+    barsRow,
+    numbersRow(analysis, context),
+    feedbackRow(feedback, analysis, jumpContext),
+    disclosureRow('Your recording', 'media-row', [player.section]),
+    disclosureRow('Practice plan', 'plan-row', [renderPlan(plan, { heading: false })]),
+  );
   return { ...jumpContext, player, barList, barStrip, analysis, feedback };
 }

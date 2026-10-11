@@ -1,7 +1,6 @@
 import { reportError, showNotice } from '../banner.js';
 import { state } from '../state.js';
 import { element } from '../dom.js';
-import { loadPersonas } from '../persona/load.js';
 import { fetchResultsOnce, stageLabel, STAGES, unwrapFeedback } from '../results/load.js';
 import { pollUntilDone } from '../results/polling.js';
 import { refreshAfterKeyChange } from '../results/rerun.js';
@@ -10,18 +9,17 @@ import { renderRequestFailed, renderTooLong, renderWorking } from '../results/st
 import { renderDone, renderFailed } from '../results/view.js';
 import { render as renderChat } from './chat.js';
 
-// Results for one take: poll the analysis, then show the six parts (see results/view.js).
-// The Instructor chat panel sits beside the results; chat.js owns its own panel element.
+// Results for one take: poll the analysis, then show the hero and its rows (see results/view.js).
+// The coach sheet is mounted into #coach-root; it stays closed until the 'Ask coach' button (or anything else) fires 'coach:open'.
 export async function render(root, params) {
   const { take } = params;
   const sessionId = state.session_id ?? 'no-session';
   state.current_take_id = take;
   const view = element('section', '', 'results');
-  const chatPanel = element('aside', '', 'chat-panel');
-  root.className = 'with-chat';
-  root.append(view, chatPanel);
+  const coachRoot = element('div', '', '', { id: 'coach-root' });
+  root.append(view, coachRoot);
   let shown = null; // the analysis, feedback and plan on screen, so a new coach style can redraw them with its feedback
-  const chat = renderChat(chatPanel, { take, onFeedback: redrawWithFeedback });
+  const chat = renderChat(coachRoot, { take, onFeedback: redrawWithFeedback });
 
   // The coach style changed and the feedback was built again: draw the results again with it (nothing to redraw before they are shown).
   function redrawWithFeedback(body) {
@@ -83,7 +81,6 @@ export async function render(root, params) {
 
   async function start() {
     renderWorking(view, STAGES.processing, false);
-    const personasRead = loadPersonas(); // the names for 'Coached by'; never rejects
     try {
       const polled = await pollUntilDone({
         fetchOnce: () => fetchResultsOnce(sessionId, take),
@@ -91,7 +88,6 @@ export async function render(root, params) {
         onTick: ({ result, slow }) => renderWorking(view, stageLabel(result.analysis), slow),
       });
       if (polled.outcome === 'done') {
-        await personasRead;
         if (isActive()) show(polled.result);
       } else if (polled.outcome === 'timeout') renderTooLong(view, stageLabel(polled.result.analysis), checkAgain);
     } catch (err) {

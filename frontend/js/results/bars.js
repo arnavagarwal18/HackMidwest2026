@@ -68,7 +68,6 @@ function barRow(bar, analysis, renderActions) {
 // renderActions(bar) gives the buttons on each row (optional). Returns { section, highlight(bar) }.
 export function createBarList(analysis, renderActions = null) {
   const section = element('section', '', 'bar-list', { id: 'problem-bars' });
-  section.append(element('h2', 'Bars to work on'));
   const bars = problemBars(analysis);
   const list = element('ol', '', 'bar-rows');
   bars.forEach((bar) => list.append(barRow(bar, analysis, renderActions)));

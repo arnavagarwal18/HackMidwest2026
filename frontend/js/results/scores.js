@@ -24,6 +24,14 @@ export function rhythmScore(analysis) {
   return { onTime, timed: timings.length, share: onTime / timings.length };
 }
 
+// { steady, measured, share } for the bars the back end gave a drift to, or null when none has one. Steady bars kept the tempo.
+export function tempoScore(analysis) {
+  const drifts = (analysis.bars ?? []).map((bar) => bar.drift).filter(Boolean);
+  if (!drifts.length) return null;
+  const steady = drifts.filter((drift) => drift === 'steady').length;
+  return { steady, measured: drifts.length, share: steady / drifts.length };
+}
+
 export const percent = (share) => `${Math.round(share * 100)}%`;
 
 // What to check after an otherwise solid take: the form flags when only form flags are there, else the flagged bars.

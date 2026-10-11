@@ -21,7 +21,6 @@ const { savePersona } = await import('../js/persona/change.js');
 const { createMenu } = await import('../js/persona/menu.js');
 const { createCoachSwitch } = await import('../js/persona/coach_switch.js');
 const { createPersonaPicker } = await import('../js/persona/picker.js');
-const { renderCoachedBy } = await import('../js/persona/coached_by.js');
 const { createChatPanel } = await import('../js/chat/panel.js');
 const { mockResponse } = await import('../js/mock.js');
 const { resumeSession } = await import('../js/resume.js');
@@ -436,14 +435,6 @@ test('a failed save in the Play picker reverts it, shows the error and leaves th
   assert.deepEqual(tempos, []);
   assert.equal(state.persona, 'standard');
   assert.ok(segments(picker.element).every((s) => !s.disabled));
-});
-
-test('"Coached by" names the persona of the feedback, and is left out without one or without the list', () => {
-  state.personas = PERSONAS;
-  assert.equal(renderCoachedBy({ persona: 'marching' }).textContent, 'Coached by Marching');
-  assert.equal(renderCoachedBy({}), null);
-  state.personas = null;
-  assert.equal(renderCoachedBy({ persona: 'marching' }), null);
 });
 
 test('mock mode: GET /personas, PATCH echoes the persona, and the session, feedback and chat turns name it', async () => {

@@ -14,6 +14,9 @@ const { heardText, nextAction, NEXT_ACTIONS } = await import('../js/results/cant
 const { currentStep, renderStepList, WAIT_STEPS } = await import('../js/results/wait_steps.js');
 const { STAGES } = await import('../js/results/load.js');
 const { renderStatStrip } = await import('../js/results/stats.js');
+const { tempoScore } = await import('../js/results/scores.js');
+const { overallShare, scoresOf, STEADY_SUGGESTION, suggestionFor, verdictWord, weakestName, NO_SCORE_WORD, NO_SCORE_SUGGESTION } = await import('../js/results/verdict.js');
+const { renderHero } = await import('../js/results/hero.js');
 const { renderCantTell } = await import('../js/results/cant_tell.js');
 const { renderWorking } = await import('../js/results/status.js');
 
@@ -107,4 +110,38 @@ test('the wait screen has a Cancel button that goes back to recording', () => {
   assert.equal(view.texts('stage')[0], 'Hearing notes...');
   view.button('Cancel').click();
   assert.equal(dom.window.location.hash, '#/take');
+});
+
+test('tempo is the share of bars with a drift that stayed steady, null when no bar has a drift', () => {
+  assert.deepEqual(tempoScore({ bars: [{ drift: 'steady' }, { drift: 'dragging' }, {}] }), { steady: 1, measured: 2, share: 0.5 });
+  assert.equal(tempoScore({ bars: [{}] }), null);
+});
+
+test('the weakest score is the lowest one (first on a tie), and none is picked with fewer than two', () => {
+  assert.equal(weakestName({ Pitch: { share: 0.9 }, Rhythm: { share: 0.4 }, Tempo: { share: 0.7 } }), 'Rhythm');
+  assert.equal(weakestName({ Pitch: { share: 0.5 }, Rhythm: { share: 0.5 }, Tempo: null }), 'Pitch');
+  assert.equal(weakestName({ Pitch: { share: 0.5 }, Rhythm: null, Tempo: null }), null);
+  assert.equal(weakestName({ Pitch: null, Rhythm: null, Tempo: null }), null);
+});
+
+test('the word follows the mean of the scores there are, and the suggestion is about the weakest one', () => {
+  assert.equal(verdictWord(0.9), 'Great take');
+  assert.equal(verdictWord(0.7), 'Good take');
+  assert.equal(verdictWord(0.5), 'Getting there');
+  assert.equal(verdictWord(0.1), 'Keep at it');
+  assert.equal(verdictWord(null), NO_SCORE_WORD);
+  const scores = { Pitch: { share: 0.9 }, Rhythm: { share: 0.4 }, Tempo: null };
+  assert.equal(overallShare(scores), 0.65);
+  assert.match(suggestionFor(scores), /beat/);
+  assert.equal(suggestionFor({ Pitch: { share: 0.95 }, Rhythm: { share: 0.92 }, Tempo: null }), STEADY_SUGGESTION);
+  assert.equal(suggestionFor({ Pitch: null, Rhythm: null, Tempo: null }), NO_SCORE_SUGGESTION);
+});
+
+test('the hero marks only the weakest score, in words, and has Ask coach and Try again', () => {
+  const hero = renderHero({ ...analysis, bars: analysis.bars.map((bar) => ({ ...bar, drift: 'steady' })) });
+  assert.deepEqual(hero.texts('mini-flag'), ['Weakest']);
+  assert.equal(hero.withClass('weakest').length, 1);
+  assert.ok(hero.withClass('weakest')[0].texts('mini-label')[0] === 'Rhythm');
+  assert.equal(scoresOf(analysis).Tempo, null);
+  assert.equal(renderHero({ bars: [] }).texts('mini-flag').length, 0, 'nothing is highlighted when there is nothing to compare');
 });

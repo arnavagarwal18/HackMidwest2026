@@ -8,7 +8,6 @@ export const PICKER_LABEL = 'What are you practicing?';
 export const SWITCH_LABEL = 'Coach'; // the menu button reads 'Coach: Standard'
 export const STYLE_MENU_LABEL = 'Coach style';
 
-export const coachedByText = (label) => `Coached by ${label}`;
 export const nowCoachingText = (label) => `Now coaching: ${label}`;
 
 // The default persona first (Standard), the rest in the order the back end sent them.
