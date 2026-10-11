@@ -5,7 +5,7 @@ import re
 from app.agents.coach import Claim
 from app.agents.context import item_kind
 from app.agents.prompts import INSTRUCTOR_PROMPT
-from tests.fake_model import tool_turn
+from tests.fake_model import text_turn, tool_turn
 from tests.test_chat_routes import ai, done_session, say, submit, trace_events, use_script
 from tests.test_checker_feedback import claim
 
@@ -48,6 +48,34 @@ def test_a_rejected_first_try_is_repaired_by_citing_the_bar(client, fixture_data
     assert turn["mode"] == "ai" and turn["dropped"] == [] and model.calls == 2
     verdicts = [e["detail"] for e in trace_events(session_id, turn["id"]) if e["event"] == "tool_end" and e["name"] == "submit_reply"]
     assert "count mismatch: x:t1:0 has no stored extra count" in verdicts[0]
+
+
+PLAN_ADVICE = ["Start at a tempo where every note is clean.", "Step the tempo up a little after each clean pass."]
+
+
+def plain_sentences(*texts):
+    return [{"text": text, "cites": [], "claims": [], "jump": {"bar": None, "time_s": None}} for text in texts]
+
+
+def test_a_plan_answer_citing_the_plans_own_ids_and_tempos_is_rejected_and_falls_back(client, fixture_data, monkeypatch):
+    """The live failure for 'How fast should I practise?': pl1 is not a measurement id and 100 BPM can't be claimed."""
+    sentences = plain_sentences("Start at 100 BPM for all three exercises.", "Step up by 4 BPM after two passes.")
+    cited = [{**s, "cites": ["pl1"]} for s in sentences]
+    session_id, _, turn = ask_with_script(client, fixture_data, monkeypatch, submit(*cited), submit(*cited))
+    assert (turn["mode"], turn["fallback_reason"]) == ("fallback", "checker_rejected")
+    failures = [e["detail"] for e in trace_events(session_id, turn["id"]) if e["event"] == "check_fail"]
+    assert all("unknown id: pl1" in detail for detail in failures)
+
+
+def test_a_plan_answer_in_plain_advice_without_digits_is_accepted_as_ai(client, fixture_data, monkeypatch):
+    _, _, turn = ask_with_script(client, fixture_data, monkeypatch, tool_turn("get_plan", {}), submit(*plain_sentences(*PLAN_ADVICE)))
+    assert turn["mode"] == "ai" and turn["text"] == " ".join(PLAN_ADVICE)
+
+
+def test_answering_in_plain_text_without_submit_reply_falls_back_as_a_model_error(client, fixture_data, monkeypatch):
+    """The live failure for 'Why is bar 3 hard?': the model answered in plain text, which is never shown."""
+    _, _, turn = ask_with_script(client, fixture_data, monkeypatch, text_turn("Bar 3 is fine."))
+    assert (turn["mode"], turn["fallback_reason"]) == ("fallback", "model_error")
 
 
 def prompt_examples():
