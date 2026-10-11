@@ -63,3 +63,8 @@ def test_a_missing_input_file_is_an_actionable_error(tmp_path):
 def test_a_key_after_the_analysed_part_of_the_video_is_not_run():
     outcomes = report.compare([], [key("slouching", 400, 410)], {}, analysed_s=290)
     assert outcome_names(outcomes) == ["not run"]
+
+
+def test_a_key_at_a_single_time_reads_as_approximate():
+    assert report.span(key("slouching", 84, 84)) == "`slouching` ~84 s"
+    assert report.span(key("slouching", 53, 64)) == "`slouching` 53-64 s"

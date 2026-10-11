@@ -55,7 +55,9 @@ def compare(flags: list[dict], keys: list[dict], skipped: dict[str, str], analys
 
 
 def span(row: dict) -> str:
-    return f"`{row['rule']}` {row['start_s']}-{row['end_s']} s"
+    """`rule` start-end s; a key given as a single time (start = end) reads "~t s"."""
+    start, end = row["start_s"], row["end_s"]
+    return f"`{row['rule']}` " + (f"~{start} s" if float(start) == float(end) else f"{start}-{end} s")
 
 
 def video_row(video: dict, rows: list[dict], outcomes: list[tuple[str, dict]]) -> str:
