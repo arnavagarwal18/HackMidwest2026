@@ -8,3 +8,4 @@ __pycache__/
 venv/
 *.log
 testdata/youtube/videos/
+testdata/youtube/fault_videos/
