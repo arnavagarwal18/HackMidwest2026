@@ -9,7 +9,9 @@ const { render } = await import('../js/screens/start.js');
 const { loadLastPieceId, loadStoredSessionId, resetState, state } = await import('../js/state.js');
 const { mockRequestLog } = await import('../js/mock.js');
 
-const PIECES = [{ piece_id: 'twinkle' }, { piece_id: 'ode_to_joy' }];
+const TWINKLE = { piece_id: 'twinkle', title: 'Twinkle, Twinkle, Little Star' };
+const ODE = { piece_id: 'ode_to_joy', title: 'Ode to Joy' };
+const PIECES = [TWINKLE, ODE];
 const realFetch = globalThis.fetch;
 
 // A fresh page: empty localStorage (a Map), clean state and request log.
@@ -35,11 +37,12 @@ test('pickStartPiece: the last-used piece if it still exists, else the first, el
 test('chooseAndConfirmBuiltin chooses, confirms, marks the score confirmed and remembers the piece', async () => {
   loadPage();
   state.session_id = 'sess_mock1';
-  await chooseAndConfirmBuiltin('sess_mock1', 'ode_to_joy');
+  await chooseAndConfirmBuiltin('sess_mock1', ODE);
   assert.deepEqual(paths(), ['POST /sessions/sess_mock1/score/file', 'POST /sessions/sess_mock1/score/confirm']);
   assert.deepEqual(mockRequestLog[0].body, { builtin: 'ode_to_joy' });
   assert.equal(state.score.status, 'confirmed');
   assert.equal(state.score.bars, 16);
+  assert.equal(state.score.title, 'Ode to Joy');
   assert.equal(loadLastPieceId(), 'ode_to_joy');
 });
 
@@ -63,10 +66,10 @@ test('choosing the piece the confirmed session is already on keeps the session; 
   await startOnDefaultPiece(); // twinkle on a new session
   const session = state.session_id;
   mockRequestLog.length = 0;
-  await useBuiltinPiece('twinkle');
+  await useBuiltinPiece(TWINKLE);
   assert.deepEqual(paths(), [], 'no request, same session');
   assert.equal(state.session_id, session);
-  await useBuiltinPiece('ode_to_joy');
+  await useBuiltinPiece(ODE);
   assert.deepEqual(paths().slice(0, 1), ['POST /sessions']);
   assert.equal(loadStoredSessionId(), state.session_id);
 });

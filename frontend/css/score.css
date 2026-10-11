@@ -47,3 +47,8 @@
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Play's piece line: the title and a "Change piece" chip beside it. */
+.piece-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.piece-line h1 { margin: 0; }
+.chip { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s3); border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }

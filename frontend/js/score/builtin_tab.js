@@ -5,7 +5,7 @@ import { state } from '../state.js';
 import { INSTRUMENT } from './session.js';
 import { button, el, runGuarded } from './ui.js';
 
-// choose(pieceId) picks and confirms the piece; its errors reach the red banner through runGuarded.
+// choose(piece) picks and confirms the piece; its errors reach the red banner through runGuarded.
 export function createBuiltinTab({ choose }) {
   const list = el('ul', { className: 'builtin-list' });
   const root = el('div', { children: [list] });
@@ -22,7 +22,7 @@ export function createBuiltinTab({ choose }) {
   }
 
   function pieceRow(piece) {
-    const play = button('Play', () => runGuarded([play], () => choose(piece.piece_id)));
+    const play = button('Play', () => runGuarded([play], () => choose(piece)));
     return el('li', { children: [el('span', { text: `${piece.title} (${piece.bars} bars) ` }), play] });
   }
 

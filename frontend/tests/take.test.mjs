@@ -214,7 +214,7 @@ function recordFetchCalls(answer) {
 }
 
 async function openTakeScreen() {
-  Object.assign(state, { session_id: 'sess_1', instrument: 'trumpet', score: { status: 'confirmed', ...SCORE }, current_take_id: null });
+  Object.assign(state, { session_id: 'sess_1', instrument: 'trumpet', score: { status: 'confirmed', title: 'Mock piece', ...SCORE }, current_take_id: null });
   window.location.hash = '#/take';
   env.banner.hidden = true;
   const root = new FakeNode('main');

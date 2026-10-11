@@ -67,6 +67,16 @@ test('Play has one primary Record button and keeps bars, count-in and metronome 
   env.leave();
 });
 
+test('Play opens with the piece title and a Change piece chip to #/score, and still links to Calibrate', async () => {
+  freshVisit();
+  const root = await openPlay();
+  assert.equal(root.find((node) => node.tagName === 'h1')[0].textContent, 'Mock piece', 'the title comes from the score when it is not known yet');
+  const chip = root.find((node) => node.tagName === 'a' && node.textContent === 'Change piece')[0];
+  assert.equal(chip.attrs.href, '#/score');
+  assert.ok(root.find((node) => node.tagName === 'a' && node.attrs.href === '#/calibrate').length, 'Calibrate stays one link away');
+  env.leave();
+});
+
 test('the tempo stepper moves by 2, stays inside 30..240 and is remembered for this piece', async () => {
   freshVisit();
   const root = await openPlay();

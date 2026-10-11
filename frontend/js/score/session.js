@@ -24,30 +24,31 @@ export function pickStartPiece(pieces, lastPieceId = loadLastPieceId()) {
 }
 
 // A built-in piece needs no review: choose it and confirm it in one go.
-export async function chooseAndConfirmBuiltin(sessionId, pieceId) {
-  await chooseBuiltinScore(sessionId, pieceId);
+export async function chooseAndConfirmBuiltin(sessionId, piece) {
+  await chooseBuiltinScore(sessionId, piece.piece_id);
   const confirmed = await confirmScore(sessionId);
   state.score = {
     status: 'confirmed',
+    title: piece.title,
     bars: confirmed.bars,
     tempo_bpm: confirmed.tempo_bpm,
     time_signature: confirmed.time_signature,
   };
-  rememberPieceId(pieceId);
-  rememberSessionPiece(sessionId, pieceId);
+  rememberPieceId(piece.piece_id);
+  rememberSessionPiece(sessionId, piece.piece_id);
   return confirmed;
 }
 
-// Makes `pieceId` the piece of the current practice. The session already confirmed on that piece is kept, so its tempo and other
+// Makes `piece` ({ piece_id, title }) the piece of the current practice. The session already confirmed on that piece is kept, so its tempo and other
 // remembered settings stay; anything else gets a session of its own (a confirmed score is locked).
-export async function useBuiltinPiece(pieceId) {
+export async function useBuiltinPiece(piece) {
   const { session_id: sessionId } = state;
-  if (sessionId && state.score.status === 'confirmed' && loadSessionPieceId(sessionId) === pieceId) return;
-  await chooseAndConfirmBuiltin(await openSession(), pieceId);
+  if (sessionId && state.score.status === 'confirmed' && loadSessionPieceId(sessionId) === piece.piece_id) return;
+  await chooseAndConfirmBuiltin(await openSession(), piece);
 }
 
 // Starts on the last-used (else first) built-in piece. Throws on any failure.
 export async function startOnDefaultPiece() {
   const piece = pickStartPiece(await getBuiltins(state.instrument ?? INSTRUMENT));
-  await useBuiltinPiece(piece.piece_id);
+  await useBuiltinPiece(piece);
 }

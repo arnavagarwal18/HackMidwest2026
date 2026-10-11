@@ -29,8 +29,8 @@ export async function render(root) {
     await panel.show(answer, source);
   }
 
-  async function chooseBuiltin(pieceId) {
-    await useBuiltinPiece(pieceId);
+  async function chooseBuiltin(piece) {
+    await useBuiltinPiece(piece);
     clearBanner();
     window.location.hash = PLAY_HASH;
   }

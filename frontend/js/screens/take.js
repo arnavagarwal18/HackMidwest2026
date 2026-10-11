@@ -18,10 +18,18 @@ const WAITING_TEXT = "Waiting for permission\u2026 Choose Allow in your browser'
 const START_FAILED_TEXT = 'The recording could not be started, so it was stopped. Press Record to try again.';
 
 // After a reload only the score status is known, so the bar count and tempo come from the score itself.
+// A photo or file score has no title yet: it is read once; if that fails the screen still works, titled "Play".
 async function loadScoreSummary() {
-  if (state.score.bars) return state.score;
-  const score = await getScore(state.session_id);
-  state.score = { ...state.score, bars: score.bars.length, tempo_bpm: score.tempo_bpm, time_signature: score.time_signature };
+  if (state.score.bars && state.score.title !== undefined) return state.score;
+  try {
+    const score = await getScore(state.session_id);
+    const known = state.score.bars ? {} : { bars: score.bars.length, tempo_bpm: score.tempo_bpm, time_signature: score.time_signature };
+    state.score = { ...state.score, ...known, title: score.title ?? null };
+  } catch (err) {
+    if (!state.score.bars) throw err;
+    console.error('The piece title could not be read; Play is titled "Play".', err);
+    state.score = { ...state.score, title: null };
+  }
   return state.score;
 }
 
@@ -279,7 +287,10 @@ export async function render(root, _params, isCurrent = () => true) {
   window.addEventListener('hashchange', dispose, { once: true });
 
   root.append(
-    el('h1', { text: 'Record a take' }),
+    el('div', { className: 'piece-line', children: [
+      el('h1', { text: score.title || 'Play' }),
+      el('a', { text: 'Change piece', className: 'chip', attrs: { href: '#/score' } }),
+    ] }),
     form.element,
     camera.element,
     problem,
