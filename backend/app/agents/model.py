@@ -26,9 +26,9 @@ def build_bedrock_model(settings: Settings, model_id: str, timeout_seconds: int 
     return _bedrock(settings, model_id, timeout_seconds, timeout_seconds, 1, max_tokens=64)
 
 
-def build_agent_model(settings: Settings) -> BedrockModel:
-    """The text model every feedback agent uses."""
-    return _bedrock(settings, settings.text_model, DEFAULT_TIMEOUT_SECONDS, AGENT_READ_TIMEOUT_SECONDS, AGENT_RETRIES,
+def build_agent_model(settings: Settings, attempts: int = AGENT_RETRIES) -> BedrockModel:
+    """The text model every feedback agent uses; `attempts` is botocore's max_attempts: the retries after the first call."""
+    return _bedrock(settings, settings.text_model, DEFAULT_TIMEOUT_SECONDS, AGENT_READ_TIMEOUT_SECONDS, attempts,
                     temperature=AGENT_TEMPERATURE, max_tokens=AGENT_MAX_TOKENS)
 
 

@@ -1,8 +1,10 @@
 """The live check, run on the scripted model: no Bedrock call is made."""
 import json
+import time
 
 import pytest
 from botocore.exceptions import ClientError
+from strands.agent import agent as strands_agent
 from strands.types.exceptions import ModelThrottledException
 
 from app.agents import ai_run, live_check
@@ -117,6 +119,25 @@ def test_an_unwritable_trace_path_exits_non_zero(monkeypatch, tmp_path, capsys):
     blocker = tmp_path / "file"
     blocker.write_text("x")
     assert live_check.main(["--trace-out", str(blocker / "trace.json")]) == 1
+
+
+def test_a_strands_throttling_error_is_one_model_call_and_fails_at_once(monkeypatch, tmp_path, capsys):
+    model = use_agents(monkeypatch, [ModelThrottledException("Too many tokens per day")], [], [])
+    started = time.monotonic()
+    assert live_check.main(["--trace-out", str(tmp_path / "trace.json")]) == 1
+    assert time.monotonic() - started < 2  # Strands' own default waits 4 s before a second try
+    [failure] = capsys.readouterr().err.splitlines()
+    assert "throttled" in failure and "did not finish" not in failure
+    assert model.by_prompt[ORCHESTRATOR_PROMPT].calls == 1
+
+
+def test_the_one_shot_settings_apply_only_during_the_run():
+    before = (ai_run.build_agent_model, strands_agent.MAX_ATTEMPTS)
+    with live_check.single_shot():
+        assert strands_agent.MAX_ATTEMPTS == 1
+        assert ai_run.build_agent_model(SETTINGS).client.meta.config.retries["total_max_attempts"] == 1
+    assert (ai_run.build_agent_model, strands_agent.MAX_ATTEMPTS) == before
+    assert ai_run.build_agent_model(SETTINGS).client.meta.config.retries["total_max_attempts"] == 3
 
 
 def test_throttling_has_its_own_line_that_says_nothing_was_retried():

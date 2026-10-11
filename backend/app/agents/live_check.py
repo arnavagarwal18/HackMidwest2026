@@ -10,11 +10,16 @@ import json
 import logging
 import sys
 import time
+from contextlib import contextmanager
+from functools import partial
 from pathlib import Path
+
+from strands.agent import agent as strands_agent
 
 from app.agents import ai_run
 from app.agents.config import ConfigError, get_settings
 from app.agents.holder import RunHolder
+from app.agents.model import build_agent_model
 from app.agents.smoke_errors import describe_config_error, describe_failure
 from app.agents.trace import Trace
 
@@ -24,6 +29,21 @@ LOG_FILE = BACKEND_DIR / "live_check.log"
 TAKE_FIXTURE = BACKEND_DIR / "tests" / "fixtures" / "diagnosis_fixture.json"  # the diagnosed trumpet take the agent tests use
 DEFAULT_TRACE_PATH = Path(__file__).resolve().parent / "samples" / "live_trace.json"
 SUBMIT_TOOLS = ("submit_feedback", "submit_plan")
+
+
+@contextmanager
+def single_shot():
+    """For the agents built inside the block: no botocore retry (max_attempts 0) and one Strands model attempt, so a throttled call fails at once.
+
+    The shared defaults (botocore AGENT_RETRIES, Strands' 6 attempts with 4 s+ waits) stay as they are for the app;
+    only this one-shot command spends no extra Bedrock quota on retries.
+    """
+    original_model, original_attempts = ai_run.build_agent_model, strands_agent.MAX_ATTEMPTS
+    ai_run.build_agent_model, strands_agent.MAX_ATTEMPTS = partial(build_agent_model, attempts=0), 1
+    try:
+        yield
+    finally:
+        ai_run.build_agent_model, strands_agent.MAX_ATTEMPTS = original_model, original_attempts
 
 
 def load_take() -> tuple[str, dict, list[dict]]:
@@ -94,7 +114,8 @@ def run_live_check(trace_path: Path) -> int:
     session_id, take, history = load_take()
     holder, trace, failure, started = RunHolder(), Trace(), None, time.monotonic()
     try:
-        asyncio.run(ai_run.run_agents(session_id, take, history, holder, trace))
+        with single_shot():
+            asyncio.run(ai_run.run_agents(session_id, take, history, holder, trace))
     except Exception as exc:
         failure = exc
         logger.error("The live check failed", exc_info=exc)
