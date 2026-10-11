@@ -16,7 +16,7 @@ BREAKING = [
     ("shoulders_raised", "violin", {"neck_ratio": 0.45 * RELAXED["neck_ratio"]}, "both"),
     ("slouching", "violin", {"torso_lean": 30.0}, None),
     ("shoulders_raised", "trumpet", {"neck_ratio": 0.45 * RELAXED["neck_ratio"]}, "both"),
-    ("slouching", "trumpet", {"torso_lean": 30.0}, None),
+    ("slouching", "trumpet", {"torso_lean": 30.0, "elbow_gap_right": RELAXED["elbow_gap_right"]}, None),  # right elbow kept by the hip it follows
     ("trumpet_head_down", "trumpet", {"head_drop": 0.2}, None),
     ("trumpet_elbows_pinned", "trumpet", {"elbow_gap_left": 0.02}, "left"),
 ]
@@ -146,8 +146,10 @@ def test_shoulders_raised_is_judged_against_the_baseline():
 
 
 def test_a_mild_neck_dip_and_a_loose_elbow_gap_are_not_flagged():
-    mild_neck = 0.65 * RELAXED["neck_ratio"]  # flagged when the threshold was 0.70 of the baseline
-    assert run("trumpet", (2.0, {"neck_ratio": mild_neck, "elbow_gap_left": 0.08}))["flags"] == []
+    baseline_neck = 0.6  # a neck long enough that 0.65 of it is above the fixed limit
+    mild_neck = 0.65 * baseline_neck  # flagged when the threshold was 0.70 of the baseline
+    frames = timeline((RELAXED_S, {"neck_ratio": baseline_neck}), (2.0, {"neck_ratio": mild_neck, "elbow_gap_left": 0.08}))
+    assert analyse(frames, "trumpet", "t1")["flags"] == []
 
 
 def test_few_baseline_frames_use_the_defaults_and_say_so():
@@ -191,10 +193,11 @@ def test_hidden_hips_never_flag_the_torso_rule():
     assert result["flags"] == []
 
 
-def test_trumpet_with_hidden_hips_skips_slouching_and_pinned_elbows():
+def test_trumpet_with_hidden_hips_skips_slouching_and_the_elbow_rules():
     result = run_all("trumpet", (4.0, {"hip_visibility": 0.2, "elbow_gap_left": 0.0}))
     assert result["rules_skipped"] == [{"rule": "slouching", "reason": "not_visible"},
-                                       {"rule": "trumpet_elbows_pinned", "reason": "not_visible"}]
+                                       {"rule": "trumpet_elbows_pinned", "reason": "not_visible"},
+                                       {"rule": "trumpet_elbows_wide", "reason": "not_visible"}]
     assert result["flags"] == []
 
 

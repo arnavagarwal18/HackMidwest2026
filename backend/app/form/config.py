@@ -94,3 +94,23 @@ SEVERITY_SPANS.update({"trumpet_cheeks_puffed": FACE_SPAN, "trumpet_smile_embouc
 
 # Face crop that follows the head (LLD-4 change 9)
 FACE_BOX_MARGIN = 2.0  # the crop for the next frame is this x the larger side of the face box last found, centred on it
+
+# Fixed trumpet limits (LLD-4 change 11): they apply from the first frame, alongside the baseline rules, which still catch
+# drift during a take (a frame breaks a rule when it crosses the stricter of the two). Each is set just outside the good set
+# (testdata/youtube/posture_stats.csv, 51 front and 19 side videos; "Good-posture statistics (YouTube set)" and "Fixed limits
+# (change 11)" in testdata/RESULTS_form_runs.md), loose enough for camera angle and body build. The pooled p1/p99 tails of
+# torso_lean and neck_ratio are inflated (probably cropped hips), so those limits rest on per-video medians and pooled p5/p95.
+TRUMPET_HEAD_DROP_MAX = 0.30  # front head_drop above this: pooled p95 0.17, p99 0.27; median of per-video p99 0.17
+TRUMPET_NECK_RATIO_MIN = 0.30  # front neck_ratio below this: pooled p5 0.35 (p1 0.09 is inflated); median of per-video p1 0.46
+TRUMPET_HEAD_PITCH_MAX = 40  # side head_pitch above this: pooled p95 37.3 (p99 77.6 is noise); median of per-video p99 27.8
+TRUMPET_NECK_SIDE_MIN = 0.04  # side neck_side below this: pooled p5 0.06, p1 0.02; median of per-video p1 0.09
+# Torso (back) lean is already fixed: SLOUCHING_TORSO_LEAN_DEG = 15 sits above the median of per-video p99, 8.6 (front torso_lean)
+# and 13.2 (side_torso_lean); the pooled p95 (68.9 and 85.6) is inflated, so 15 stays.
+TRUMPET_ELBOWS_WIDE_GAP = 1.0  # front elbow_gap (either side) above this: pooled p95 0.78 left / 0.89 right; median of per-video p99 0.75 / 0.84
+# Bell angle proxy (see bell_measures.py): the front ratio reads opposite to the side degrees
+TRUMPET_BELL_HEIGHT_MIN = -0.55  # front: wrists this far ABOVE the mouth (in shoulder widths) is a bell too high; pooled p1 -0.48
+TRUMPET_BELL_HEIGHT_MAX = 2.0  # front: wrists below the mouth by more than this is a bell too low; pooled p99 1.89, p95 1.46
+TRUMPET_BELL_ANGLE_MAX = -5  # side: degrees above horizontal, above this is a bell too high; pooled p99 -8.7
+TRUMPET_BELL_ANGLE_MIN = -100  # side: below this is a bell too low; pooled p1 -100.1, p5 -93.0
+SIDE_BELL_ANGLE_SPAN_DEG = 30  # severity span for the side bell rule (degrees)
+SEVERITY_SPANS.update({"trumpet_elbows_wide": 0.5, "trumpet_bell_angle": 0.5})  # front: ratios (the side bell rule has its own span in degrees)

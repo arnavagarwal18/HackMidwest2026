@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from statistics import mean
 
 from . import config
+from .bell_measures import BELL_ANGLE, BELL_HEIGHT, FRONT_BELL_SPECS, side_bell_specs
 from .episodes import Sample, find_episodes
 from .face import FaceResult
 from .face_rules import CHEEK_PUFF, FACE_UNAVAILABLE, SMILE, face_samples
@@ -61,27 +62,45 @@ RULES = [
          "bow elbow too high", side="right"),
     Rule("violin_wrist_collapsed", (VIOLIN,), WRIST_BEND, HIGH, DEG, lambda b: config.VIOLIN_WRIST_COLLAPSED_DEG,
          "left wrist collapsed", side="left"),
-    Rule("shoulders_raised", BOTH_INSTRUMENTS, NECK_RATIO, LOW, RATIO,
+    Rule("shoulders_raised", (VIOLIN,), NECK_RATIO, LOW, RATIO,
          lambda b: config.SHOULDERS_RAISED_RATIO * b.neck_ratio, "shoulders raised", side="both"),
+    Rule("shoulders_raised", (TRUMPET,), NECK_RATIO, LOW, RATIO,
+         lambda b: max(config.SHOULDERS_RAISED_RATIO * b.neck_ratio, config.TRUMPET_NECK_RATIO_MIN), "shoulders raised", side="both"),
     Rule("slouching", BOTH_INSTRUMENTS, TORSO_LEAN, HIGH, DEG, lambda b: config.SLOUCHING_TORSO_LEAN_DEG,
          "slouching"),
     Rule("slouching", BOTH_INSTRUMENTS, NECK_RATIO, LOW, RATIO,
          lambda b: config.SLOUCHING_FALLBACK_NECK_RATIO * b.neck_ratio, "slouching",
          fallback_for="slouching", also=_head_drop_past_fallback),
     Rule("trumpet_head_down", (TRUMPET,), HEAD_DROP, HIGH, RATIO,
-         lambda b: b.head_drop + config.TRUMPET_HEAD_DOWN_DROP, "head dropped"),
+         lambda b: min(b.head_drop + config.TRUMPET_HEAD_DOWN_DROP, config.TRUMPET_HEAD_DROP_MAX), "head dropped"),
     Rule("trumpet_elbows_pinned", (TRUMPET,), ELBOW_GAP_LEFT, LOW, RATIO,
          lambda b: config.TRUMPET_ELBOWS_PINNED_GAP, "left elbow pinned to the body", side="left"),
     Rule("trumpet_elbows_pinned", (TRUMPET,), ELBOW_GAP_RIGHT, LOW, RATIO,
          lambda b: config.TRUMPET_ELBOWS_PINNED_GAP, "right elbow pinned to the body", side="right"),
+    Rule("trumpet_elbows_wide", (TRUMPET,), ELBOW_GAP_LEFT, HIGH, RATIO,
+         lambda b: config.TRUMPET_ELBOWS_WIDE_GAP, "left elbow held wide of the body", side="left"),
+    Rule("trumpet_elbows_wide", (TRUMPET,), ELBOW_GAP_RIGHT, HIGH, RATIO,
+         lambda b: config.TRUMPET_ELBOWS_WIDE_GAP, "right elbow held wide of the body", side="right"),
+    Rule("trumpet_bell_angle", (TRUMPET,), BELL_HEIGHT, LOW, RATIO,
+         lambda b: config.TRUMPET_BELL_HEIGHT_MIN, "bell too high"),
+    Rule("trumpet_bell_angle", (TRUMPET,), BELL_HEIGHT, HIGH, RATIO,
+         lambda b: config.TRUMPET_BELL_HEIGHT_MAX, "bell too low"),
     # Side view (LLD-4 change 7): the near-side measures; elbows pinned has no side rule
-    Rule("shoulders_raised", BOTH_INSTRUMENTS, NECK_SIDE, LOW, RATIO,
+    Rule("shoulders_raised", (VIOLIN,), NECK_SIDE, LOW, RATIO,
          lambda b: None if b.neck_side is None else config.SIDE_NECK_RATIO * b.neck_side, "shoulders raised",
          side="both", views=(SIDE,), span_of=lambda b: config.SIDE_NECK_SPAN_FRACTION * b.neck_side),
+    Rule("shoulders_raised", (TRUMPET,), NECK_SIDE, LOW, RATIO,
+         lambda b: None if b.neck_side is None else max(config.SIDE_NECK_RATIO * b.neck_side, config.TRUMPET_NECK_SIDE_MIN),
+         "shoulders raised", side="both", views=(SIDE,), span_of=lambda b: config.SIDE_NECK_SPAN_FRACTION * b.neck_side),
     Rule("slouching", BOTH_INSTRUMENTS, SIDE_TORSO_LEAN, HIGH, DEG, lambda b: config.SLOUCHING_TORSO_LEAN_DEG,
          "slouching", views=(SIDE,), span_of=lambda b: config.SEVERITY_SPANS["slouching"]),
-    Rule("trumpet_head_down", (TRUMPET,), HEAD_PITCH, HIGH, DEG, lambda b: b.head_pitch + config.SIDE_HEAD_PITCH_DELTA,
+    Rule("trumpet_head_down", (TRUMPET,), HEAD_PITCH, HIGH, DEG,
+         lambda b: min(b.head_pitch + config.SIDE_HEAD_PITCH_DELTA, config.TRUMPET_HEAD_PITCH_MAX),
          "head dropped", views=(SIDE,), span_of=lambda b: config.SIDE_HEAD_PITCH_SPAN_DEG),
+    Rule("trumpet_bell_angle", (TRUMPET,), BELL_ANGLE, HIGH, DEG, lambda b: config.TRUMPET_BELL_ANGLE_MAX, "bell too high",
+         views=(SIDE,), span_of=lambda b: config.SIDE_BELL_ANGLE_SPAN_DEG),
+    Rule("trumpet_bell_angle", (TRUMPET,), BELL_ANGLE, LOW, DEG, lambda b: config.TRUMPET_BELL_ANGLE_MIN, "bell too low",
+         views=(SIDE,), span_of=lambda b: config.SIDE_BELL_ANGLE_SPAN_DEG),
 ]
 
 FACE_RULES = [  # judged on the Face Landmarker's readings (measure names a FaceReading field), not on the pose
@@ -171,6 +190,14 @@ def _active_face_rules(face: FaceResult, times: list[float], baseline: Baseline,
     return [], [{"rule": rule.name, "reason": reason} for rule in FACE_RULES]
 
 
+def _view_specs(view: str, frames: list[dict]) -> dict:
+    """The measures to take in `view`: the front ones, plus the side ones (for the near body side) in a side view."""
+    if view == FRONT:
+        return {**MEASURE_SPECS, **FRONT_BELL_SPECS}
+    near = near_side(frames)
+    return {**MEASURE_SPECS, **side_specs(near), **side_bell_specs(near)}
+
+
 def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None = None,
             height: int | None = None, face: FaceResult | None = None) -> dict:
     """Judge a take's frames against the posture rules: { view, view_ratio, baseline, rules_skipped, flags }.
@@ -187,7 +214,7 @@ def analyse(frames: list[dict], instrument: str, take_id: str, width: int | None
     frames = sorted(frames, key=lambda f: f["t"])
     times = [f["t"] for f in frames]
     view, view_ratio = detect_view(frames, aspect)
-    specs = MEASURE_SPECS if view == FRONT else {**MEASURE_SPECS, **side_specs(near_side(frames))}
+    specs = _view_specs(view, frames)
     readings = [frame_measures(f, aspect, specs) for f in frames]
     baseline = compute_baseline(frames, readings)
     if view == SIDE:

@@ -9,13 +9,14 @@ TORSO_LENGTH = 0.3
 HIP_HALF_WIDTH = 0.05
 ARM_LENGTH = 0.2
 HAND_LENGTH = 0.1
+MOUTH_HALF_WIDTH = 0.02
 POSE_POINTS = 25
 HAND_POINTS = 21
 UNUSED = [0.5, 0.5, 1.0]
 
 # A relaxed player: nothing here breaks a rule
 RELAXED = {"elbow_angle": 45.0, "neck_ratio": 0.45, "head_drop": -0.05, "torso_lean": 0.0,
-           "elbow_gap_left": 0.5, "elbow_gap_right": 0.45, "wrist_bend": 0.0, "hip_visibility": 1.0}
+           "elbow_gap_left": 0.5, "elbow_gap_right": 0.45, "wrist_bend": 0.0, "hip_visibility": 1.0, "bell_height": 0.7}
 
 
 def make_frame(t: float, **overrides) -> dict:
@@ -28,6 +29,7 @@ def make_frame(t: float, **overrides) -> dict:
     ear_y = SHOULDER_Y - m["neck_ratio"] * SHOULDER_WIDTH
     pose[7], pose[8] = [CENTRE_X + 0.05, ear_y, 1.0], [CENTRE_X - 0.05, ear_y, 1.0]
     pose[0] = [CENTRE_X, ear_y + m["head_drop"] * SHOULDER_WIDTH, 1.0]
+    pose[9], pose[10] = [CENTRE_X + MOUTH_HALF_WIDTH, pose[0][1], 1.0], [CENTRE_X - MOUTH_HALF_WIDTH, pose[0][1], 1.0]
 
     lean = math.radians(m["torso_lean"])
     hip_x, hip_y = CENTRE_X - math.sin(lean) * TORSO_LENGTH, SHOULDER_Y + math.cos(lean) * TORSO_LENGTH
@@ -40,6 +42,8 @@ def make_frame(t: float, **overrides) -> dict:
         pose[14][0] = pose[24][0] + m["elbow_gap_right"] * SHOULDER_WIDTH
     pose[13] = [pose[23][0] + m["elbow_gap_left"] * SHOULDER_WIDTH, hip_y - 0.1, 1.0]
     pose[15] = [pose[13][0], pose[13][1] + ARM_LENGTH, 1.0]  # forearm points straight down
+    # the right wrist is placed so the wrist midpoint is bell_height shoulder widths below the mouth
+    pose[16] = [pose[15][0], 2 * (pose[9][1] + m["bell_height"] * SHOULDER_WIDTH) - pose[15][1], 1.0]
 
     bend = math.radians(m["wrist_bend"])
     wrist = (pose[15][0], pose[15][1])

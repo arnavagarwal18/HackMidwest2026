@@ -3,7 +3,8 @@ import math
 
 from form_frames import FRAME_S, HAND_POINTS, POSE_POINTS, UNUSED
 
-SIDE_POSE = {"head_pitch": 10.0, "neck_side": 0.12, "torso_lean": 0.0, "near_visibility": 1.0, "far_visibility": 0.3}
+SIDE_POSE = {"head_pitch": 10.0, "neck_side": 0.12, "torso_lean": 0.0, "bell_angle": -40.0, "near_visibility": 1.0, "far_visibility": 0.3}
+WRIST_REACH = 0.3  # mouth to the wrists
 NOSE_REACH = 0.08  # ear to nose, so the nose sits well in front of the ear
 SHOULDER_Y = 0.4
 FAR_SHOULDER_OFFSET = 0.03  # the far shoulder is almost behind the near one
@@ -26,7 +27,7 @@ def ratio_frame(t: float, ratio: float, nose_height: float = 0.1) -> dict:
 
 
 def side_frame(t: float, near: str = "left", **overrides) -> dict:
-    """A player seen from the left or right: head_pitch (degrees, nose below ear), neck_side (ear to shoulder), torso_lean."""
+    """A player seen from the left or right: head_pitch (degrees, nose below ear), neck_side (ear to shoulder), torso_lean, bell_angle."""
     m = {**SIDE_POSE, **overrides}
     near_shoulder, far_shoulder = (11, 12) if near == "left" else (12, 11)
     near_ear, near_hip = (7, 23) if near == "left" else (8, 24)
@@ -37,6 +38,11 @@ def side_frame(t: float, near: str = "left", **overrides) -> dict:
     pose[near_ear] = [*ear, m["near_visibility"]]
     pitch = math.radians(m["head_pitch"])
     pose[0] = [ear[0] + NOSE_REACH * math.cos(pitch), ear[1] + NOSE_REACH * math.sin(pitch), 1.0]
+    mouth = pose[0][:2]
+    pose[9], pose[10] = [*mouth, 1.0], [*mouth, 1.0]
+    bell = math.radians(m["bell_angle"])  # degrees above horizontal, the player facing right
+    wrists = [mouth[0] + WRIST_REACH * math.cos(bell), mouth[1] - WRIST_REACH * math.sin(bell), 1.0]
+    pose[15], pose[16] = list(wrists), list(wrists)
     lean = math.radians(m["torso_lean"])
     pose[near_hip] = [0.5 - math.sin(lean) * 0.3, SHOULDER_Y + math.cos(lean) * 0.3, m["near_visibility"]]
     return _frame(t, pose)
