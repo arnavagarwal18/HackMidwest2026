@@ -160,3 +160,56 @@ Other things noticed, not changed:
 - Camera check: it says "not ok" on every sampled frame of all three clips, though the owner calls the posture and playing very good. Clips 1 and 2: `too_small` (shoulders under 15% of the width of a 1920x1080 frame); clip 3: hips not in frame.
 - Time limit: `form.run` gives up tracking after 90 s of run time (`TIME_LIMIT_S`), so how much of a long clip it checks depends on machine load. In the expectations test, good_posture_1_general was checked for its first 97 s (`warning: partial: first 97 s checked`), and good_posture_3 for its first 52 s in one run and its first 146 s in another; good_posture_2 was checked in full. The face rules were skipped as `not_visible` in that test path (face_quality None), because the test's take has no transcribed notes to gate the face on.
 - `testdata/form_expectations.json`: the three clips are listed in `good_form` with `known_false_positive` set (`trumpet_head_down`), and `test_form_real_video.py` runs such an entry as a strict expected failure: the suite stays green, and goes red (XPASS) once the false flag is gone, which is the cue to remove the field.
+
+## Fixed limits (LLD-4 change 11, 2026-10-11)
+
+Fixed trumpet limits apply from the first frame; the baseline rules stay for drift. A frame breaks a rule when it crosses the stricter of the baseline threshold and the fixed limit, so one episode gives one flag (same rule names and output shape). The limits live in `backend/app/form/config.py` (each with its source stat in a comment). Trumpet only; violin is unchanged. Source stats: the "Good-posture statistics (YouTube set)" tables above. Pooled p1/p99 of torso_lean and neck_ratio are inflated (probably cropped hips), so those limits rest on per-video medians and pooled p5/p95.
+
+| Rule (flag) | Measure, view | Limit | Stat it came from |
+|---|---|---|---|
+| `trumpet_head_down` | head_drop, front | above 0.30 | pooled p95 0.17, p99 0.27; median of per-video p99 0.17 |
+| `shoulders_raised` | neck_ratio, front | below 0.30 | pooled p5 0.35 (p1 0.09 inflated); median of per-video p1 0.46 |
+| `trumpet_head_down` | head_pitch, side | above 40 deg | pooled p95 37.3 (p99 77.6 is noise); median of per-video p99 27.8 |
+| `shoulders_raised` | neck_side, side | below 0.04 | pooled p5 0.06, p1 0.02; median of per-video p1 0.09 |
+| `slouching` | torso_lean (front) / side_torso_lean (side) | above 15 deg (already fixed before this change; kept) | median of per-video p99 8.6 (front) and 13.2 (side); pooled p95 68.9 / 85.6 inflated |
+| `trumpet_elbows_wide` (new) | elbow gap, either side, front only | above 1.0 | pooled p95 0.78 left / 0.89 right; median of per-video p99 0.75 / 0.84 |
+| `trumpet_bell_angle` "bell too high" (new) | bell_height, front | below -0.55 (wrists above the mouth) | pooled p1 -0.48 |
+| `trumpet_bell_angle` "bell too low" (new) | bell_height, front | above 2.0 | pooled p99 1.89, p95 1.46 |
+| `trumpet_bell_angle` "bell too high" (new) | bell_angle, side | above -5 deg | pooled p99 -8.7 |
+| `trumpet_bell_angle` "bell too low" (new) | bell_angle, side | below -100 deg | pooled p1 -100.1, p5 -93.0 |
+
+The bell measures are the statistics script's `bell_proxy` (front: `bell_height`, side: `bell_angle`) moved into `app/form/bell_measures.py`; a test keeps the two equal. The bell limits use pooled p1/p99 (their tails are not noted as inflated), so they are loose: the median good side video plays 52 degrees below horizontal.
+
+### Flags on the real clips, before (main 838cb14) and after
+
+Run: each clip tracked with `track_video` (10 fps, no hands) and judged with `analyse(..., "trumpet")`, AI off, no face. "Same" means the same flags as before.
+
+| Clip | View | Before | After |
+|---|---|---|---|
+| `form/good_posture_side.mp4` | side | none | none |
+| `form/neck_bad_then_good_side.mp4` | side | none | none (see below: not met) |
+| `form/bad_posture_side.mp4` | front (3 frames) | none | none (`trumpet_bell_angle` not_visible) |
+| `form/take5_ode_form_front.mp4` | front | `trumpet_elbows_pinned` left 2.7-6.1 s and 30.2-31.4 s | same |
+| `form/take5_ode_form_side.mp4` | side | none | none |
+| `ode_to_joy/ode_to_joy_trumpet11.mp4` | side | `slouching` at 1.7-4.2, 6.7-8.5, 18.1-19.3 s (15.1-15.5 deg vs 15) | same |
+| `trumpet_video1.mp4`, `trumpet_video2.mp4` | front | none | none |
+| `form/puffed_then_not.mp4` | front | none | none |
+| `form/cheek_modulation.mp4` | front | `slouching` x2, `shoulders_raised` x4, `trumpet_head_down` x2 | same plus `trumpet_elbows_wide` x4 (10.1-11.7 s left, 12.9-15.1 s left, 19.2-21.0 s right, 24.6-26.1 s right) |
+| `form/posture_explainer.mp4` (reference) | side | `slouching` x2, `shoulders_raised` x2 | same |
+
+`cheek_modulation.mp4` is a screen recording with the player partly cropped, where the pose tracking is unreliable (elbow gaps 1.3 to 3.1); the new wide-elbow flags there are not meaningful. New entries in `rules_skipped`: `trumpet_elbows_wide` is `not_for_view` in every side clip and `not_visible` where `trumpet_elbows_pinned` already was; `trumpet_bell_angle` is `not_visible` on `neck_bad_then_good_side`, `take5_ode_form_side`, `posture_explainer`, `cheek_modulation` and `bad_posture_side` (wrists or mouth not visible in over 70% of frames).
+
+### Not met: `neck_bad_then_good_side.mp4` is not flagged
+
+The bad first half cannot be flagged by any fixed limit that sits outside the good set, because its numbers are inside the good set (and inside the other good clip). Head pitch (side), degrees, per-second median:
+
+| Clip, part | head_pitch | head_drop | neck_side |
+|---|---|---|---|
+| `neck_bad_then_good_side`, 0-1.2 s (trumpet still coming up) | 21 to 31 | 1.2 to 6 | 0.26 |
+| `neck_bad_then_good_side`, 1.4-4.8 s (the bad half) | 8.7 to 14.6 | 0.24 to 0.41 | 0.31-0.32 |
+| `neck_bad_then_good_side`, 5-10 s (the good half) | -9 to 1 | -0.08 to 0.04 (0.25 at 10 s) | 0.32-0.36 |
+| `good_posture_side`, 0-2.5 s (first take, good) | 9 to 13 | 0.34 to 0.50 | 0.07 |
+| `good_posture_side`, 3-6.5 s (good) | 5 to 26 | 0.01 to 0.09 | 0.09-0.10 |
+| Good set, side view | median 13.4; per-video p99 median 27.8; pooled p95 37.3 | per-video p99 median 0.22 | per-video p1 median 0.09 |
+
+The bad half's head pitch (about 12) equals the good set's median (13.4) and is below `good_posture_side`'s own good playing (up to 26); its head_drop (0.24 to 0.41) is below that good clip's 0.34 to 0.50; neck_side depends on how close the camera is (0.31 here, 0.07 on the full-body clip). A limit low enough to catch the bad half (head_pitch under about 10) would flag the good-set median, `good_posture_side.mp4`, and `take5_ode_form_side.mp4` (head_pitch p50 11.7), so none was set. Without a second source for the fault (for example neck-forward distance, which the pose landmarks 0-24 in a close-up do not give) this clip cannot be a fixed-limit test; it can still be caught only when the baseline comes from good posture (the drift rule: 17 degrees past the good half's baseline).
