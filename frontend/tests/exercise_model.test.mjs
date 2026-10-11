@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { mockFileFor } from '../js/mock.js';
 import {
-  barsText, ladderSteps, ladderView, nextRepText, notCountedMessages, passMarkText, recordKind, stateAfterRep,
+  HISTORY_LIMIT, barsText, formFlagsText, historyAfterRep, ladderSteps, ladderView, nextRepText, notCountedMessages, passMarkText, recordKind, repFactsText, stateAfterRep,
   streakDots, tempoChangeText, wantsVideo,
 } from '../js/exercise/model.js';
 
@@ -95,4 +95,28 @@ test('mock rep files carry every RepResult field and mean what their name says',
   assert.equal(mockJson('get_rep_complete').exercise_complete, true);
   assert.equal(mockJson('get_exercise_done').state.complete, true);
   assert.equal(mockJson('get_exercise_video').exercise.pass_mark.form_rule, 'elbow_height');
+});
+
+test('historyAfterRep keeps scored reps newest first, ignores reps that did not count and caps the list', () => {
+  let history = [];
+  history = historyAfterRep(history, { status: 'scored', passed: true, tempo_bpm: 60 });
+  history = historyAfterRep(history, { status: 'scored', passed: false, tempo_bpm: 66 });
+  assert.deepEqual(history, [{ tempo_bpm: 66, passed: false }, { tempo_bpm: 60, passed: true }]);
+  assert.equal(historyAfterRep(history, { status: 'not_counted', passed: null, tempo_bpm: 66 }), history);
+  for (let i = 0; i < HISTORY_LIMIT + 3; i += 1) history = historyAfterRep(history, { status: 'scored', passed: true, tempo_bpm: 70 + i });
+  assert.equal(history.length, HISTORY_LIMIT);
+  assert.equal(history[0].tempo_bpm, 70 + HISTORY_LIMIT + 2);
+});
+
+test('formFlagsText and repFactsText put a rep result into words', () => {
+  const plain = { pass_mark: { form_rule: null } };
+  const withRule = { pass_mark: { form_rule: 'elbow_height' } };
+  assert.equal(formFlagsText(plain, { form_flag_ids: [] }), null);
+  assert.deepEqual(formFlagsText(withRule, { form_flag_ids: [] }), { tone: 'ok', text: 'No form flags' });
+  assert.deepEqual(formFlagsText(plain, { form_flag_ids: ['a'] }), { tone: 'warn', text: '1 form flag raised' });
+  assert.deepEqual(formFlagsText(withRule, { form_flag_ids: ['a', 'b'] }), { tone: 'warn', text: '2 form flags raised' });
+  assert.deepEqual(repFactsText({ errors: 1, mean_abs_timing_ms: 71.6 }), {
+    errors: { value: '1', label: 'Wrong or missed note' }, timing: { value: '72 ms', label: 'Average timing' },
+  });
+  assert.deepEqual(repFactsText({}), { errors: null, timing: null });
 });
