@@ -14,6 +14,7 @@ logger = logging.getLogger("stress.client")
 class StressClient:
     def __init__(self, base_url: str, recorder: Recorder):
         self.recorder = recorder
+        self.created_session_ids: list[str] = []
         self._slots = asyncio.Semaphore(MAX_CONCURRENCY)
         # uvicorn closes idle keep-alive connections after 5 s; expiring ours sooner stops stale-connection ReadErrors being blamed on the server
         self._http = httpx.AsyncClient(base_url=check_base_url(base_url), timeout=REQUEST_TIMEOUT_S,
@@ -34,7 +35,17 @@ class StressClient:
                 self.recorder.add(Sample(route, None, time.monotonic() - started, error))
                 return None
             self.recorder.add(Sample(route, response.status_code, time.monotonic() - started))
+            self._remember_created_session(method, path, response)
             return response
+
+    def _remember_created_session(self, method: str, path: str, response: httpx.Response) -> None:
+        """Note the id of every session this run creates, so cleanup deletes only those."""
+        if method != "POST" or path != "/sessions" or response.status_code != 201:
+            return
+        try:
+            self.created_session_ids.append(response.json()["session_id"])
+        except (ValueError, KeyError, TypeError):
+            logger.warning("POST /sessions returned 201 without a usable session_id: %r", response.text[:100])
 
     async def json(self, route: str, method: str, path: str, **kwargs) -> dict | None:
         """Like call, but the parsed JSON body (None when there was no usable response)."""

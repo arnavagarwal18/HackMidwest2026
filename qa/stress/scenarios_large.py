@@ -25,8 +25,6 @@ async def _stream_upload(client: StressClient, route: str, path: str, filename: 
 async def _large_takes(client: StressClient) -> None:
     for size_mb in (*SIZES_MB, OVER_TAKE_LIMIT_MB):
         session_id = await flows.required_confirmed_session(client)
-        if not session_id:
-            continue
         header = fixtures.junk_wav_header(size_mb * MIB)
         response = await _stream_upload(client, "POST takes (wav)", f"/sessions/{session_id}/takes", "big.wav", "audio/wav",
                                         size_mb, header, flows.TAKE_FIELDS)

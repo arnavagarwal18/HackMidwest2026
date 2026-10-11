@@ -63,5 +63,5 @@ class MemorySampler:
         by_phase: dict[str, float] = {}
         for _, value, phase in self.points:
             by_phase[phase] = max(by_phase.get(phase, 0.0), value)
-        return {"start_mb": values[0], "peak_mb": max(values), "end_mb": values[-1], "samples": len(self.points),
+        return {"start_mb": values[0] if values else None, "peak_mb": max(values, default=None), "end_mb": values[-1] if values else None, "samples": len(self.points),
                 "peak_by_phase_mb": by_phase, "peak_children_mb": self.peak_children_mb, "process_gone": any(p == "PROCESS GONE" for _, _, p in self.points)}

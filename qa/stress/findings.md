@@ -2,7 +2,7 @@
 
 Run on 2026-10-10, macOS laptop, one uvicorn process (`app.main:app`, `--app-dir backend`) on **127.0.0.1:8110** only, never 8000/8001. AI off (`AI_ENABLED=false`, no AWS/Bedrock credentials). Session data in the worktree's own `data/sessions` (deleted at the end of the run). Full run: 18,944 requests in 197 s, at most 20 in flight, nothing over 30 s, server never crashed.
 
-Reproduce: start `AI_ENABLED=false backend/.venv/bin/python -m uvicorn --app-dir backend app.main:app --host 127.0.0.1 --port 8110`, then from `qa/stress/` run `../../backend/.venv/bin/python run_stress.py --pid <uvicorn pid>` and `python report.py`. This top part (`findings.md`) is hand-written; everything under "Tables" is generated from `out/results.json`.
+Reproduce: start `AI_ENABLED=false backend/.venv/bin/python -m uvicorn --app-dir backend app.main:app --host 127.0.0.1 --port 8110`, then from `qa/stress/` run `../../backend/.venv/bin/python run_stress.py --pid <uvicorn pid> [--clean-sessions]` (the flag deletes only the session folders that run created) and `python report.py`. This top part (`findings.md`) is hand-written; everything under "Tables" is generated from `out/results.json`.
 
 ## Headline numbers
 

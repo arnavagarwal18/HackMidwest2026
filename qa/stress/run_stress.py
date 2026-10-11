@@ -1,4 +1,4 @@
-"""Entry point: python run_stress.py --pid <uvicorn pid> [--base-url http://127.0.0.1:8110] [--skip-large]
+"""Entry point: python run_stress.py --pid <uvicorn pid> [--base-url http://127.0.0.1:8110] [--only parts] [--clean-sessions]
 
 Starts nothing and stops nothing: the server is started by hand on your own port. Writes out/results.json.
 """
@@ -6,10 +6,10 @@ import argparse
 import asyncio
 import json
 import logging
-import shutil
 import time
 from pathlib import Path
 
+from cleanup import delete_sessions
 from client import StressClient
 from config import BASE_URL, HANG_THRESHOLD_S, RESULTS_JSON, SESSIONS_DIR, check_base_url
 from memory import MemorySampler
@@ -24,13 +24,6 @@ from stats import Recorder
 logger = logging.getLogger("stress")
 
 
-def clear_sessions() -> None:
-    """Delete this run's session folders (the data dir is inside the worktree), keeping .gitkeep."""
-    for entry in SESSIONS_DIR.iterdir():
-        if entry.is_dir():
-            shutil.rmtree(entry, ignore_errors=True)
-
-
 def disk_mb() -> float:
     return round(sum(f.stat().st_size for f in SESSIONS_DIR.rglob("*") if f.is_file()) / (1024 * 1024), 1)
 
@@ -38,7 +31,7 @@ def disk_mb() -> float:
 ALL_PARTS = ("load", "large", "malformed", "sessions", "leak")
 
 
-async def main(pid: int, base_url: str, parts: tuple[str, ...], out_file: Path) -> None:
+async def main(pid: int, base_url: str, parts: tuple[str, ...], out_file: Path, clean_sessions: bool) -> None:
     recorder = Recorder()
     client = StressClient(check_base_url(base_url), recorder)
     sampler = MemorySampler(pid)
@@ -76,7 +69,9 @@ async def main(pid: int, base_url: str, parts: tuple[str, ...], out_file: Path) 
         out_file.parent.mkdir(exist_ok=True)
         out_file.write_text(json.dumps(results, indent=1), encoding="utf-8")
         logger.info("Wrote %s (total %.0f s)", out_file, results["total_s"])
-        clear_sessions()
+        if clean_sessions:
+            logger.info("Deleted %d of the %d session folders this run created", delete_sessions(SESSIONS_DIR, client.created_session_ids),
+                        len(client.created_session_ids))
 
 
 if __name__ == "__main__":
@@ -87,9 +82,10 @@ if __name__ == "__main__":
     parser.add_argument("--base-url", default=BASE_URL)
     parser.add_argument("--only", default=",".join(ALL_PARTS), help=f"comma list of: {', '.join(ALL_PARTS)}")
     parser.add_argument("--out", default=str(RESULTS_JSON), help="where to write the results JSON")
+    parser.add_argument("--clean-sessions", action="store_true", help="afterwards delete the session folders this run created (only those)")
     args = parser.parse_args()
     parts = tuple(args.only.split(","))
     unknown = set(parts) - set(ALL_PARTS)
     if unknown:
         raise SystemExit(f"Unknown part(s) {sorted(unknown)}; choose from {ALL_PARTS}")
-    asyncio.run(main(args.pid, args.base_url, parts, Path(args.out)))
+    asyncio.run(main(args.pid, args.base_url, parts, Path(args.out), args.clean_sessions))
