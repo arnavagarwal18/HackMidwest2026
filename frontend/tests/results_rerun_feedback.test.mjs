@@ -68,3 +68,15 @@ test('leaving the screen stops the wait without asking for feedback', async () =
   assert.deepEqual(refreshed, { outcome: 'stopped' });
   assert.equal(feedbackPosts(), 0);
 });
+
+test('leaving the screen during the feedback request gives no result to show', async () => {
+  mockRequestLog.length = 0;
+  await setTransposition(SESSION, 3);
+  let active = true;
+  const refreshing = refreshAfterKeyChange({ sessionId: SESSION, take: TAKE, semitones: 3, isActive: () => active });
+  const leaveWhenFeedbackAsked = setInterval(() => { if (feedbackPosts() > 0) active = false; }, 0);
+  const refreshed = await refreshing;
+  clearInterval(leaveWhenFeedbackAsked);
+  assert.equal(feedbackPosts(), 1);
+  assert.deepEqual(refreshed, { outcome: 'stopped' });
+});

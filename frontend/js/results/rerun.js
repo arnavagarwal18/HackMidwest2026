@@ -8,5 +8,5 @@ export async function refreshAfterKeyChange({ sessionId, take, semitones, isActi
   const polled = await waitForKey(sessionId, take, semitones, isActive);
   if (polled.outcome !== 'done') return { outcome: polled.outcome };
   const result = await writeFeedbackAgain(sessionId, take, polled.result.analysis, isActive);
-  return { outcome: 'done', result };
+  return isActive() ? { outcome: 'done', result } : { outcome: 'stopped' }; // the user may leave during the feedback request
 }

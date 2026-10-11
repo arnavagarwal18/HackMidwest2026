@@ -72,6 +72,7 @@ export async function render(root, { take }) {
     renderWorking(view, STAGES.processing, false);
     try {
       const refreshed = await refreshAfterKeyChange({ sessionId, take, semitones, isActive });
+      if (!isActive()) return;
       if (refreshed.outcome === 'done') {
         showNotice(`${setTo}; your take was checked again.`); // the 'checking' notice must not outlive the check
         show(refreshed.result);
