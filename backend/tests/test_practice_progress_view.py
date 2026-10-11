@@ -41,7 +41,7 @@ def rep(session_id, take_id, errors, tempo, exercise_id=WHOLE, bars=(1, 8), **fi
 
 
 def test_a_session_without_progress_has_an_empty_view(client, session_id):
-    assert get_progress(client, session_id) == {"before": None, "after": None, "exercises": []}
+    assert get_progress(client, session_id) == {"before": None, "after": None, "exercises": [], "events": []}
 
 
 def test_unknown_session_is_404(client):
@@ -159,6 +159,35 @@ def test_get_exercise_returns_the_plan_exercise_and_the_added_put_it_together(cl
     assert added["exercise"]["title"] == "Put it together"
     assert (added["exercise"]["bar_from"], added["exercise"]["bar_to"]) == (1, 8)
     assert (added["state"]["added_by"], added["state"]["complete"]) == ("practice", False)
+
+
+def test_events_list_takes_and_scored_reps_oldest_first(client, practice):
+    rep(practice, "t2", 3, 60)
+    add_take(practice, "t3", bar_from=1, bar_to=8, diagnosis=diag(2, 80.0))
+    events = get_progress(client, practice)["events"]
+    assert [(e["kind"], e["take_id"]) for e in events] == [("take", "t1"), ("rep", "t2"), ("take", "t3")]
+    assert (events[0]["errors"], events[0]["played_bpm"], events[0]["time"]) == (6, 70.0, None)
+    assert (events[1]["exercise_title"], events[1]["tempo_bpm"], events[1]["passed"]) == ("Put it together", 60.0, False)
+    assert {"bar_from", "bar_to", "error_rate", "form_flags", "form_checked"} <= set(events[1])
+
+
+def test_events_skip_not_counted_and_failed_reps_and_other_purposes(client, practice):
+    add_rep(practice, "t2", WHOLE, 68.0, diag(0, 68.0, cant_tell=True), bar_from=1, bar_to=8)
+    score_rep(practice, "t2")
+    add_rep(practice, "t3", WHOLE, 68.0, diag(0, 68.0), bar_from=1, bar_to=8, status="failed", error="no_notes_heard")
+    score_rep(practice, "t3")
+    add_take(practice, "t4", purpose="warmup", diagnosis=diag(0, 80.0))
+    assert [e["take_id"] for e in get_progress(client, practice)["events"]] == ["t1"]
+
+
+def test_a_completed_exercise_adds_an_event_right_after_its_last_rep(client, practice):
+    rep(practice, "t2", 0, 60, exercise_id=WHOLE)
+    progress = store.get(practice).progress
+    done = {**progress["reps"]["t2"], "exercise_complete": True, "passed": True}
+    store.update(practice, "progress", {**progress, "reps": {**progress["reps"], "t2": done}})
+    events = get_progress(client, practice)["events"]
+    assert [(e["kind"], e["take_id"]) for e in events] == [("take", "t1"), ("rep", "t2"), ("exercise_done", "t2")]
+    assert (events[1]["passed"], events[2]["exercise_title"]) == (True, "Put it together")
 
 
 def test_get_exercise_errors(client, practice):

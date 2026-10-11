@@ -1,4 +1,4 @@
-/* Progress (#/progress): one plain list of exercises, each a title and one quiet status line. Loaded by screens/progress.js. */
+/* Progress (#/progress): a summary, a timeline of takes and reps, and a plain list of exercises. Loaded by screens/progress.js. */
 .exercise-list { gap: 0; }
 .exercise-list .exercise-item { padding: 0; background: none; border: 0; border-top: 1px solid var(--line); box-shadow: none; }
 .exercise-list .exercise-item:first-child { border-top: 0; }
@@ -8,3 +8,27 @@
 .exercise-status { display: block; color: var(--muted); font-size: var(--fs-sm); }
 .progress-compare { margin-top: var(--sp-4); }
 .progress-compare > table { margin-top: var(--sp-2); }
+
+/* Timeline: a vertical rail with a dot per event, a card with a short label, and a popover that explains it. */
+.timeline-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.timeline-heading { font-size: var(--fs-headline); margin: var(--sp-4) 0 var(--sp-2); }
+.timeline { --rail: var(--line-strong); list-style: none; margin: 0; padding: 0 0 0 var(--sp-5); position: relative; }
+.timeline::before { content: ""; position: absolute; left: 9px; top: var(--sp-2); bottom: var(--sp-2); width: 2px; background: var(--line); }
+.timeline-item { position: relative; padding: var(--sp-1) 0; }
+.timeline-dot { position: absolute; left: calc(-1 * var(--sp-5) + 2px); top: 18px; width: 16px; height: 16px; border-radius: 50%; background: var(--dot, var(--accent)); border: 3px solid var(--bg); box-sizing: border-box; }
+.timeline-take { --dot: var(--accent); }
+.timeline-rep-pass { --dot: var(--ok); }
+.timeline-rep-fail { --dot: var(--error); }
+.timeline-done { --dot: var(--sharp); }
+.timeline-card { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); width: 100%; min-height: var(--tap); padding: var(--sp-2) var(--sp-3); text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--dot, var(--accent)); border-radius: var(--radius); cursor: pointer; }
+.timeline-card:hover, .timeline-item.is-open .timeline-card { background: var(--surface-2); }
+.timeline-card:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.timeline-label { font-weight: 600; }
+.timeline-change { font-size: var(--fs-caption); font-weight: 600; padding: 0 var(--sp-2); border-radius: var(--radius-pill); background: var(--surface-2); color: var(--muted); }
+.timeline-change-ok { color: var(--ok); background: var(--ok-soft); }
+.timeline-change-error { color: var(--error); background: var(--error-soft); }
+.timeline-time { margin-left: auto; font-size: var(--fs-caption); color: var(--muted); }
+.timeline-popover { position: absolute; z-index: 5; left: var(--sp-3); right: 0; top: 100%; max-width: 28rem; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow-3); visibility: hidden; opacity: 0; transition: opacity var(--dur-fast) var(--ease); pointer-events: none; }
+.timeline-popover p { margin: var(--sp-1) 0; font-size: var(--fs-caption); line-height: 1.45; }
+.timeline-item:hover .timeline-popover, .timeline-item:focus-within .timeline-popover, .timeline-item.is-open .timeline-popover { visibility: visible; opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .timeline-popover { transition: none; } }

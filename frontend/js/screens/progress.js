@@ -3,8 +3,10 @@ import { state } from '../state.js';
 import { emptyState, pageHeader, skeleton } from '../ui/components.js';
 import { loadStylesheet } from '../ui/styles.js';
 import { element } from '../dom.js';
+import { summaryStats, timeline } from './progress_timeline.js';
 
-// Progress screen (#/progress): each exercise's standing in one plain list; the first take against the latest one sits behind "Before and after".
+// Progress screen (#/progress): a summary and a timeline of takes and practice reps, oldest first, then each exercise's standing in one plain list.
+// A response without events (an older server) falls back to the exercise list with the "Before and after" table behind a disclosure.
 
 const SOURCE_LABELS = { take: 'Take', rep: 'Practice rep' };
 
@@ -59,18 +61,23 @@ function exerciseItem(exercise) {
 export function renderProgress(root, progress) {
   root.replaceChildren(pageHeader({ title: 'Progress' }));
   const hasSnapshots = progress.before || progress.after;
-  if (!hasSnapshots && !progress.exercises.length) {
+  const events = progress.events ?? [];
+  if (!hasSnapshots && !progress.exercises.length && !events.length) {
     root.append(emptyState('Nothing to compare yet', 'Record a take, then practice an exercise, and your before and after will show up here.'));
     return;
   }
+  if (events.length) {
+    root.append(summaryStats(events, progress.exercises), element('h2', 'Timeline', 'timeline-heading'), timeline(events));
+  }
   if (progress.exercises.length) {
+    if (events.length) root.append(element('h2', 'Exercises', 'timeline-heading'));
     const list = element('ul', '', 'exercise-list');
     list.append(...progress.exercises.map(exerciseItem));
     root.append(list);
   } else {
     root.append(element('p', 'No exercises yet. Ask for feedback on a take to get some.', 'muted'));
   }
-  if (!hasSnapshots) return;
+  if (!hasSnapshots || events.length) return;
   const comparison = element('details', '', 'disclosure progress-compare');
   comparison.append(element('summary', 'Before and after'), comparisonTable(progress));
   root.append(comparison);
