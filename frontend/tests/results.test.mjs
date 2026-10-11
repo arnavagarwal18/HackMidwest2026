@@ -73,7 +73,7 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.deepEqual(await text(page, 'a.trace-link'), ['How the AI worked']);
   assert.equal(await count(page, '.fallback-notice'), 0);
   assert.match((await text(page, '.headline'))[0], /\w/, 'a headline sentence leads the summary');
-  assert.deepEqual(await text(page, '.score-strip .lbl:not(.detail)'), ['Pitch', 'Rhythm', 'Bars to fix']);
+  assert.deepEqual(await text(page, '.score-strip .lbl:not(.detail)'), ['Pitch', 'Rhythm', 'Bars to work on']);
   assert.deepEqual(await text(page, '.detect-text'), ['Key: 0, instrument default · bars 3–4']);
   assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), true);
   await click(page, '.detect-change');

@@ -1,4 +1,4 @@
-// Why a bar is on the "Bars to work on" list, in words, so a row never reads as clean while still being counted under "Bars to fix".
+// Why a bar is on the "Bars to work on" list, in words, so a row never reads as clean while still being counted under "Bars to work on".
 // A reason comes from each analysis.problems entry that covers the bar (notes, late, early, rushing, dragging, form).
 
 const REASON_BY_KIND = {

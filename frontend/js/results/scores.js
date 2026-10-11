@@ -26,13 +26,26 @@ export function rhythmScore(analysis) {
 
 export const percent = (share) => `${Math.round(share * 100)}%`;
 
-// One sentence: what to take from the take, before any numbers.
-export function headline(pitch, rhythm) {
+// What to check after an otherwise solid take: the form flags when only form flags are there, else the flagged bars.
+function checkNote(counts) {
+  if (!counts?.total) return '';
+  const formOnly = counts.form === counts.total;
+  return formOnly ? ' - check the form flags below.' : ' - check the flagged bars below.';
+}
+
+// "Solid take: ..." with its closing full stop moved after the check note when form, extra-note or timing flags still list bars.
+function solid(text, counts) {
+  const note = checkNote(counts);
+  return note ? `${text}${note}` : `${text}.`;
+}
+
+// One sentence: what to take from the take, before any numbers. `counts` (problemBarCounts) qualifies a solid take that still has bars to work on.
+export function headline(pitch, rhythm, counts = null) {
   if (!pitch) return null;
   const notesStrong = pitch.share >= STRONG_PITCH;
-  if (!rhythm) return notesStrong ? 'Solid take: the notes held up.' : 'Some notes were off - slow down and check the bars below.';
+  if (!rhythm) return notesStrong ? solid('Solid take: the notes held up', counts) : 'Some notes were off - slow down and check the bars below.';
   const timingStrong = rhythm.share >= STRONG_RHYTHM;
-  if (notesStrong && timingStrong) return 'Solid take: the notes and the timing both held up.';
+  if (notesStrong && timingStrong) return solid('Solid take: the notes and the timing both held up', counts);
   if (notesStrong) return 'Right notes, but the timing drifted - lean on the beat.';
   if (timingStrong) return 'Steady timing, but some notes were off - slow down and check the bars below.';
   return 'A rough one - slow it down and take the bars below one at a time.';
