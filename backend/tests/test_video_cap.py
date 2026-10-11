@@ -48,7 +48,7 @@ def test_flag_rejects_a_bad_value_with_a_clear_message(bad, capsys):
 def test_help_says_zero_means_no_limit():
     parser = argparse.ArgumentParser()
     add_max_seconds_argument(parser)
-    assert "0 means no limit" in parser.format_help().replace("\n", " ")
+    assert "0 means no limit" in " ".join(parser.format_help().split())
 
 
 @pytest.mark.parametrize("cap_s,max_seconds,expected", [(120, 290, 120), (120, 60, 60), (400, 290, 290), (120, 120, 120)])
