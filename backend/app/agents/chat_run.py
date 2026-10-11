@@ -3,11 +3,14 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
+from strands import Agent
+
 from app import store
 from app.agents import ai_run, run
 from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, is_credential_error
 from app.agents.fallback import tier1_sentences
 from app.agents.holder import ReplyHolder
+from app.agents.hooks import MAX_TRIES
 from app.agents.instructor import build_instructor_agent, history_messages, make_chat_tools
 from app.agents.trace import Trace
 
@@ -15,6 +18,7 @@ log = logging.getLogger(__name__)
 
 FALLBACK_INTRO = "The AI instructor is unavailable right now. Here is what was measured:"
 NO_TAKE_TEXT = "Record a take first."
+SUBMIT_REMINDER = "Your text is not shown to the learner. Call submit_reply with your sentences."
 
 
 @dataclass
@@ -42,7 +46,19 @@ async def _ask(session_id: str, take: dict, turns: list[dict], message: str, hol
     ctx, tools = ai_run.context_and_tools(session_id, take, run.earlier_takes(session.takes, take))
     agent = build_instructor_agent(ai_run.new_model(), {**tools, **make_chat_tools(session_id, take)}, ctx, holder, trace,
                                    history_messages(turns))
-    await asyncio.wait_for(agent.invoke_async(message), ai_run.TIME_LIMIT_S)
+    await asyncio.wait_for(_converse(agent, message, holder, trace), ai_run.TIME_LIMIT_S)
+
+
+async def _converse(agent: Agent, message: str, holder: ReplyHolder, trace: Trace) -> None:
+    """Send the message; if the model ends its turn in plain text with no reply accepted and tries left, remind it once to submit.
+
+    The plain text is never shown. The reminder shares the time limit and the submit tries of the first turn.
+    """
+    await agent.invoke_async(message)
+    if holder.reply is None and holder.tries < MAX_TRIES:
+        log.warning("The instructor ended its turn without submitting a reply; reminding it to call submit_reply")
+        trace.add("instructor", "reminder", "submit_reply", "the model ended its turn without a submitted reply")
+        await agent.invoke_async(SUBMIT_REMINDER)
 
 
 def _failure_reason(holder: ReplyHolder, failure: BaseException | None) -> str:

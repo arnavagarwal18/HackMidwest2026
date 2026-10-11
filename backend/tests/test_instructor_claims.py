@@ -72,10 +72,26 @@ def test_a_plan_answer_in_plain_advice_without_digits_is_accepted_as_ai(client, 
     assert turn["mode"] == "ai" and turn["text"] == " ".join(PLAN_ADVICE)
 
 
-def test_answering_in_plain_text_without_submit_reply_falls_back_as_a_model_error(client, fixture_data, monkeypatch):
-    """The live failure for 'Why is bar 3 hard?': the model answered in plain text, which is never shown."""
-    _, _, turn = ask_with_script(client, fixture_data, monkeypatch, text_turn("Bar 3 is fine."))
+def test_a_plain_text_end_then_a_submit_on_the_reminder_is_accepted_as_ai(client, fixture_data, monkeypatch):
+    """The live failure for 'Where did I rush?': Haiku ended in plain text, so the Checker never ran."""
+    session_id, model, turn = ask_with_script(client, fixture_data, monkeypatch, text_turn("Bar 8 is the rushed one."),
+                                              submit(*plain_sentences(*PLAN_ADVICE)))
+    assert turn["mode"] == "ai" and turn["text"] == " ".join(PLAN_ADVICE) and "rushed" not in turn["text"]
+    events = trace_events(session_id, turn["id"])
+    assert [e["name"] for e in events if e["event"] == "reminder"] == ["submit_reply"] and model.calls == 2
+
+
+def test_a_plain_text_end_twice_falls_back_as_a_model_error_and_never_shows_the_text(client, fixture_data, monkeypatch):
+    _, model, turn = ask_with_script(client, fixture_data, monkeypatch, text_turn("Bar 8 is the rushed one."), text_turn("Really, bar 8."))
     assert (turn["mode"], turn["fallback_reason"]) == ("fallback", "model_error")
+    assert "rushed" not in turn["text"] and "Really" not in turn["text"] and model.calls == 2
+
+
+def test_the_reminder_shares_the_two_submit_tries_with_the_first_turn(client, fixture_data, monkeypatch):
+    """A rejected first submit, a plain-text end, then a bad second submit: three model calls, and no third submit."""
+    bad = submit(extra_sentence("x:t1:0"))
+    _, model, turn = ask_with_script(client, fixture_data, monkeypatch, bad, text_turn("Oops."), bad)
+    assert (turn["mode"], turn["fallback_reason"]) == ("fallback", "checker_rejected") and model.calls == 3
 
 
 def prompt_examples():
