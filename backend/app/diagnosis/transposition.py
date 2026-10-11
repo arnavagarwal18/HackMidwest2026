@@ -39,23 +39,25 @@ def detect_transposition(score: dict, played: list[dict], take: dict, base: dict
     offset nearest the base. Returns (transposition, alignment of the take with that transposition).
     """
     base_result = align_take(score, played, take, base["semitones"])
-    base_quality = base_result["alignment_quality"]
+    base_quality = base_result["score_quality"]
     if _cannot_be_beaten(base_quality):
         return base, base_result
     best, best_result = base["semitones"], base_result
     for semitones in _candidates(base["semitones"])[1:]:
         result = align_take(score, played, take, semitones)
-        if result["alignment_quality"] > best_result["alignment_quality"]:
+        if result["score_quality"] > best_result["score_quality"]:
             best, best_result = semitones, result
-    gain = best_result["alignment_quality"] - base_quality
+    gain = best_result["score_quality"] - base_quality
     if best == base["semitones"] or gain < config.DETECTION_MIN_GAIN - config.DETECTION_EPSILON:
         return base, base_result
-    logger.info("Transposition switched from %s to %s (line-up quality +%.2f)", base["semitones"], best, gain)
+    logger.info("Transposition switched from %s to %s (line-up quality over the score +%.2f)", base["semitones"], best, gain)
     return make_transposition(best, config.SOURCE_DETECTED), best_result
 
 
 def _is_low_match(alignment: dict) -> bool:
-    return alignment["cant_tell"] and alignment["cant_tell_reason"] == config.CANT_TELL_LOW_MATCH
+    """Low match over the played bars, or over the whole score (a wrong transposition can fit a few bars by chance)."""
+    low_in_played_bars = alignment["cant_tell"] and alignment["cant_tell_reason"] == config.CANT_TELL_LOW_MATCH
+    return low_in_played_bars or alignment["score_quality"] < config.MIN_ALIGNMENT_QUALITY
 
 
 def align_with_transposition(

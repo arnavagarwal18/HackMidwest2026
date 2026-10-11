@@ -126,7 +126,7 @@ def mark_alignment(
     beat_s: float,
 ) -> dict:
     """Returns notes, extras, outside_count, tuning_cents, played_bars, not_played_count, alignment_quality, cant_tell
-    and cant_tell_reason.
+    and cant_tell_reason, plus `score_quality` (ok count over every expected note, for the transposition search).
 
     Expected notes in whole bars before the first or after the last bar holding a pair are 'not_played': never
     missed, and left out of the quality and can't-tell checks (`played_bars` is [first, last], None with no pairs).
@@ -163,6 +163,7 @@ def mark_alignment(
             extras.append(_extra(take_id, note, _bar_at(bar_starts, beat)))
     ok_count = sum(1 for note in judged if note["status"] == config.STATUS_OK)
     quality = ok_count / len(judged) if judged else 0.0
+    score_quality = ok_count / len(notes) if notes else 0.0
     reason = cant_tell_reason(len(judged), len(pairs), quality)
     return {
         "notes": notes,
@@ -172,6 +173,7 @@ def mark_alignment(
         "played_bars": list(window_bars) if window_bars else None,
         "not_played_count": len(notes) - len(judged),
         "alignment_quality": quality,
+        "score_quality": score_quality,
         "cant_tell": reason is not None,
         "cant_tell_reason": reason,
     }
