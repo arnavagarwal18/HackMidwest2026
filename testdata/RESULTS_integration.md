@@ -45,7 +45,7 @@ Observed, front-end driven: with the mismatched built-in score, opening results 
 
 Main 0480972, `AI_ENABLED=false` (feedback mode `fallback`, no Bedrock). Real flow through the FastAPI TestClient (throwaway driver, not committed): Trumpet session, `testdata/ode_to_joy/score.musicxml` (file transpose -2), `testdata/ode_to_joy/ode_to_joy_trumpet11.mp4` as a take (bars 1-16, tempo 100, count-in 0), wait for `done`, read GET analysis and GET feedback, then `POST /sessions/{id}/transposition {"semitones": 0}` (detected/file value was -2), wait for the rerun, read both again. (The take is concert pitch; the detected value here was -2 from the file, not -4.)
 
-**Verdict: FAIL. Feedback is not rebuilt after the rerun (BE-18 still open).** LLD-5 needs raising.
+**Verdict on 0480972 (before the fix): FAIL. Feedback was not rebuilt after the rerun (BE-18).** Fixed in the same task, see "After the fix" at the end of this section.
 
 | | Before (transposition -2, source file) | After (transposition 0, source user) |
 |---|---|---|
@@ -57,4 +57,14 @@ After the rerun the feedback still cites `p:t1:0`, but that id now names a diffe
 
 Where the rebuild is missing: `backend/app/diagnosis/routes.py::set_transposition` queues `backend/app/diagnosis/rerun.py::rerun_takes`, which calls only `app.diagnosis.run(session_id, take_id)`. Nothing calls `app.agents.run.run_feedback` afterwards. Its only callers are `takes/pipeline.py::_give_feedback` (first processing of a take) and `POST /sessions/{id}/takes/{take_id}/feedback` (`agents/routes.py::rerun_feedback`). Today only the front end ("Results: write the feedback again after a hand-made transposition change") refreshes it, by calling that POST; a client that does not, or a rerun with the page closed, keeps stale feedback and plan.
 
-Test: `backend/tests/test_integration_rerun_feedback.py` (0.6 s, synthetic notes, no media) asserts the rebuilt feedback (new id, tier-1 problem ids all in the new diagnosis, tier-1 text changed). It is `xfail(strict=True)` and fails on `assert 'fb1' != 'fb1'`; it turns into an error, so the marker must be removed, once the rebuild exists. No app code was changed.
+Test: `backend/tests/test_integration_rerun_feedback.py` (0.6 s, synthetic notes, no media) asserts the rebuilt feedback (new id, tier-1 problem ids all in the new diagnosis, tier-1 text changed). Before the fix it failed on `assert 'fb1' != 'fb1'` (kept as strict xfail until the fix).
+
+### After the fix (same day)
+`rerun_takes` (`backend/app/diagnosis/rerun.py`) now rebuilds the feedback of each take that is `done` once `app.diagnosis.run` has re-diagnosed it, through `takes.pipeline.give_take_feedback` (the former `_give_feedback`, renamed public, same code the pipeline uses; it skips non-practice takes). A failing rebuild is logged and keeps the new diagnosis; a take that failed or is still in the take pipeline is skipped. Same real flow, same files, rerun with `semitones: 0`:
+
+| | Before (-2, file) | After (0, user) |
+|---|---|---|
+| Analysis `tier1` | `["Bar 4: 1 extra."]` | `[]` (21 problems, `p:t1:0` is notes bars 1-16, tier 2) |
+| Feedback | `fb1` (04:57:45.709), plan `pl1` "Work on bars 4 to 4" | **`fb2` (04:57:45.886), plan `pl2` "Clean run-through"; tier1 `[]`, the old "Bar 4: 1 extra." is gone** |
+
+**Verdict: PASS.** The feedback and plan are replaced by ones built from the new diagnosis. In this real run the new diagnosis has no tier-1 problem (the wrong key makes everything tier 2), so the rebuilt tier-1 list is empty rather than citing new bars. The case with tier-1 sentences before and after is covered by `backend/tests/test_integration_rerun_feedback.py` (synthetic take, played 4 semitones low with one wrong note, rerun with 0): the new feedback id differs, every tier-1 problem id is in the new diagnosis and the sentences changed. The test file also checks that a failing rebuild keeps the new diagnosis and the old feedback, and that a take that is not `done` gets no rebuild. Targeted tests: `test_integration_rerun_feedback.py`, `test_diagnosis_transposition.py`, `test_diagnosis_contracts.py`, `test_feedback_routes.py`, `test_pipeline.py`: 102 passed (before adding the two failure tests; the new file alone: 3 passed).
