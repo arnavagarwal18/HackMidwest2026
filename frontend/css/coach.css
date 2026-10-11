@@ -106,4 +106,16 @@
 
 .coach-sheet.is-docked .coach-head { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
 
+/* Collapsed (docked only): a tab fixed at the right edge, so the coach can always be brought back. */
+.coach-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  z-index: 30;
+  min-height: var(--tap);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+  box-shadow: var(--shadow-2);
+}
+
 @media (prefers-reduced-motion: reduce) { .coach-sheet { animation: none; transition: none; } .chat-mic.is-recording::before { animation: none; } }

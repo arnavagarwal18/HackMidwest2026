@@ -5,6 +5,7 @@
 //   (the browser then leaves focus on the page behind).
 // - docked (wide screens): a non-modal complementary region, visible until collapsed. No backdrop, no Escape, no focus trap and no
 //   document listeners. open() expands it and moves focus to initialFocus(); close() collapses it; the Close button reads Collapse.
+//   While collapsed, a "Coach" tab button stays on the page (fixed at the screen's edge) and expands the panel again; Collapse moves focus to it.
 // createSheet({ title, onClose, initialFocus }) -> { nodes, headerSlot, body, footer, open(), close(), isOpen(), isDocked(), setDocked(flag),
 // contains(node), setExpanded(flag) }.
 // The caller puts its content in headerSlot, body and footer, and appends `nodes` to its root.
@@ -25,6 +26,10 @@ export function createSheet({ title, onClose = () => {}, initialFocus = () => nu
   const header = element('header', '', 'coach-head');
   const body = element('div', '', 'coach-body');
   const footer = element('div', '', 'coach-foot');
+  const dockTab = button('Coach', () => openDocked(), 'btn btn-primary coach-tab');
+  dockTab.setAttribute('aria-expanded', 'false');
+  dockTab.setAttribute('aria-label', 'Show the coach');
+  dockTab.hidden = true;
   const sheet = element('section', '', 'coach-sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, tabindex: '-1' });
   sheet.append(grabber, header, body, footer);
   const closeButton = button('Close', () => dismiss(), 'btn btn-ghost coach-close');
@@ -73,13 +78,21 @@ export function createSheet({ title, onClose = () => {}, initialFocus = () => nu
   function openDocked() {
     opened = true;
     sheet.hidden = false;
+    syncDockTab();
     initialFocus()?.focus?.();
+  }
+
+  // The tab shows exactly while the docked panel is collapsed.
+  function syncDockTab() {
+    dockTab.hidden = !(docked && !opened);
   }
 
   function collapse() {
     if (!opened) return;
     opened = false;
     sheet.hidden = true;
+    syncDockTab();
+    dockTab.focus?.(); // the Collapse button that had focus is gone with the panel
     onClose();
   }
 
@@ -95,6 +108,7 @@ export function createSheet({ title, onClose = () => {}, initialFocus = () => nu
     backdrop.hidden = true;
     opened = docked;
     sheet.hidden = !docked;
+    syncDockTab();
     grabber.hidden = docked;
     sheet.className = docked ? 'coach-sheet is-docked' : 'coach-sheet';
     sheet.setAttribute('role', docked ? 'complementary' : 'dialog');
@@ -154,5 +168,5 @@ export function createSheet({ title, onClose = () => {}, initialFocus = () => nu
   });
 
   setExpanded(false);
-  return { nodes: [backdrop, sheet], headerSlot, body, footer, open, close: dismiss, isOpen: () => opened, isDocked: () => docked, setDocked, contains, setExpanded };
+  return { nodes: [backdrop, sheet, dockTab], headerSlot, body, footer, open, close: dismiss, isOpen: () => opened, isDocked: () => docked, setDocked, contains, setExpanded };
 }

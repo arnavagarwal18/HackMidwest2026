@@ -436,6 +436,37 @@ test('docked: Collapse hides the panel and coach:open expands it again and focus
   assert.equal(document.count('keydown'), 0, 'still no modal listeners');
 });
 
+test('docked: after Collapse a Coach tab shows, takes focus, and brings the panel back with its transcript and coach choice', async () => {
+  const { root, input, panel } = await setup({ wide: true });
+  const tab = () => root.withClass('coach-tab')[0];
+  assert.equal(tab().hidden, true, 'no tab while the panel is showing');
+  input.value = 'Why?';
+  root.button('Send').click();
+  await settle();
+  const turnsBefore = root.withClass('chat-turn').length;
+  assert.ok(turnsBefore >= 2, 'the question and the reply are in the transcript');
+  root.button('Collapse').click();
+  assert.equal(sheetOf(root).hidden, true);
+  assert.equal(tab().hidden, false, 'the tab is visible where the panel was');
+  assert.equal(tab().textContent, 'Coach');
+  assert.equal(tab().attributes['aria-expanded'], 'false');
+  assert.ok(document.activeElement === tab(), 'focus moves to the tab');
+  tab().click();
+  assert.equal(sheetOf(root).hidden, false, 'the panel is back');
+  assert.equal(panel.isOpen(), true);
+  assert.equal(tab().hidden, true, 'the tab goes while the panel shows');
+  assert.ok(document.activeElement === input, 'focus goes to the question box');
+  assert.equal(root.withClass('chat-turn').length, turnsBefore, 'the transcript is intact');
+});
+
+test('narrow screens never show the Coach tab', async () => {
+  const { root, panel } = await setup();
+  assert.equal(root.withClass('coach-tab')[0].hidden, true);
+  panel.open();
+  panel.close();
+  assert.equal(root.withClass('coach-tab')[0].hidden, true);
+});
+
 test('docked: coach:open on the visible panel focuses the question box', async () => {
   const { input } = await setup({ wide: true });
   document.dispatch(OPEN_EVENT);
