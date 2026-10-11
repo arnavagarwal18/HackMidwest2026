@@ -3,30 +3,21 @@ from botocore.exceptions import (
     ClientError,
     ConnectTimeoutError,
     EndpointConnectionError,
-    NoCredentialsError,
     PartialCredentialsError,
     ProfileNotFound,
     ReadTimeoutError,
     SSOError,
-    TokenRetrievalError,
 )
 from strands.types.exceptions import ModelThrottledException
 
 from app.agents.config import ConfigError, Settings
+from app.agents.credentials import CREDENTIALS_EXPIRED_LINE, exception_chain, is_credential_error
 
 CONFIG_FIX = "Setup step: edit backend/.env (copy backend/.env.example first if you have no backend/.env)."
-CREDENTIAL_ERRORS = (NoCredentialsError, PartialCredentialsError, ProfileNotFound, TokenRetrievalError, SSOError)
+CREDENTIAL_ERRORS = (PartialCredentialsError, ProfileNotFound, SSOError)
 TIMEOUT_ERRORS = (ConnectTimeoutError, ReadTimeoutError, EndpointConnectionError)
 THROTTLE_CODES = {"ThrottlingException", "TooManyRequestsException", "ServiceQuotaExceededException"}
-ACCESS_DENIED_CODES = {"AccessDeniedException", "UnrecognizedClientException", "ExpiredTokenException", "ExpiredToken"}
-
-
-def _chain(exc: BaseException):
-    seen = set()
-    while exc is not None and id(exc) not in seen:
-        seen.add(id(exc))
-        yield exc
-        exc = exc.__cause__ or exc.__context__
+ACCESS_DENIED_CODES = {"AccessDeniedException"}
 
 
 def describe_config_error(exc: ConfigError) -> str:
@@ -41,6 +32,8 @@ def _profile_check(settings: Settings) -> str:
 def _explain(exc: BaseException, step: str, model_id: str, settings: Settings) -> str | None:
     if isinstance(exc, ConfigError):
         return describe_config_error(exc)
+    if is_credential_error(exc):
+        return f"{CREDENTIALS_EXPIRED_LINE}. Run `{_profile_check(settings)}` to check."
     if isinstance(exc, CREDENTIAL_ERRORS):
         return (
             f"AWS credentials were not found or have expired. Run `{_profile_check(settings)}` to check; "
@@ -73,7 +66,7 @@ def _explain(exc: BaseException, step: str, model_id: str, settings: Settings) -
 
 def describe_failure(exc: BaseException, step: str, model_id: str, settings: Settings) -> str:
     """One line for the first recognised cause in the exception chain, else a generic line."""
-    for cause in _chain(exc):
+    for cause in exception_chain(exc):
         line = _explain(cause, step, model_id, settings)
         if line:
             return line

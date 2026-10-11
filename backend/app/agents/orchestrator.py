@@ -8,6 +8,8 @@ from strands.tools.executors import ConcurrentToolExecutor
 
 from app.agents.coach import build_coach_agent
 from app.agents.context import CheckContext
+from app.agents.credential_stop import StopOnCredentialErrorHook
+from app.agents.credentials import is_credential_error
 from app.agents.holder import RunHolder
 from app.agents.hooks import TraceHook
 from app.agents.model import with_max_tokens
@@ -20,6 +22,14 @@ log = logging.getLogger(__name__)
 ORCHESTRATOR_MAX_TOKENS = 800  # tool calls and two short briefs; the Coach and Planner write the long outputs
 
 
+def _log_agent_failure(name: str, exc: Exception) -> None:
+    """For credentials, only the class: a traceback carries the error's message. run_ai_feedback logs the warning."""
+    if is_credential_error(exc):
+        log.error("The %s failed (%s)", name, type(exc).__name__)
+    else:
+        log.exception("The %s failed", name)
+
+
 def _sub_agent_tool(name: str, description: str, run_agent: Callable[[str], Awaitable[Any]],
                     accepted: Callable[[], dict | None], errors: list[Exception], trace: Trace):
     """An async tool that runs a fresh sub-agent on the brief and returns its accepted output as JSON."""
@@ -30,7 +40,7 @@ def _sub_agent_tool(name: str, description: str, run_agent: Callable[[str], Awai
             await run_agent(brief)
         except Exception as exc:
             # Kept for run_feedback, which tells a model failure from a rejection; the Orchestrator only needs to stop waiting.
-            log.exception("The %s failed", name)
+            _log_agent_failure(name, exc)
             errors.append(exc)
             trace.add(name, "error", type(exc).__name__)
             return json.dumps({"error": f"the {name} could not finish"})
@@ -56,6 +66,6 @@ def build_orchestrator(model: Any, measurement_tools: dict[str, Callable[..., st
         tools=[*[tool(fn) for fn in measurement_tools.values()], coach, planner],
         system_prompt=ORCHESTRATOR_PROMPT,
         tool_executor=ConcurrentToolExecutor(),  # the tool calls of one reply run at the same time
-        hooks=[TraceHook(trace, "orchestrator")],
+        hooks=[TraceHook(trace, "orchestrator"), StopOnCredentialErrorHook(holder)],
         callback_handler=None,
     )

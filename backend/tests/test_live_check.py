@@ -3,12 +3,13 @@ import json
 import time
 
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 from strands.agent import agent as strands_agent
 from strands.types.exceptions import ModelThrottledException
 
 from app.agents import ai_run, live_check
 from app.agents.config import Settings
+from app.agents.credentials import CREDENTIALS_EXPIRED_LINE
 from app.agents.prompts import COACH_PROMPT, ORCHESTRATOR_PROMPT, PLANNER_PROMPT
 from app.agents.smoke_errors import describe_failure
 from tests.fake_model import RoutedModel, sleep_turn, text_turn, tool_turn, tools_turn
@@ -144,3 +145,25 @@ def test_throttling_has_its_own_line_that_says_nothing_was_retried():
     for exc in (THROTTLED, ModelThrottledException("slow down")):
         line = describe_failure(exc, "text model", "text-model-id", SETTINGS)
         assert "throttled" in line and "not retried" in line
+
+
+@pytest.mark.parametrize("error", [
+    ClientError({"Error": {"Code": "ExpiredTokenException", "Message": "expired"}}, "ConverseStream"),
+    ClientError({"Error": {"Code": "AccessDeniedException", "Message": "The security token included in the request is invalid"}}, "ConverseStream"),
+    NoCredentialsError(),
+], ids=["ExpiredTokenException", "AccessDenied_token", "NoCredentialsError"])
+def test_expired_credentials_print_the_refresh_line(monkeypatch, tmp_path, capsys, error):
+    model = use_agents(monkeypatch, [error], [], [])
+    assert live_check.main(["--trace-out", str(tmp_path / "trace.json")]) == 1
+    [failure] = capsys.readouterr().err.splitlines()
+    assert failure.startswith(f"FAILED: {CREDENTIALS_EXPIRED_LINE}")
+    assert model.by_prompt[ORCHESTRATOR_PROMPT].calls == 1
+
+
+def test_expired_credentials_in_the_coach_print_the_refresh_line(monkeypatch, tmp_path, capsys):
+    orchestrator = [tool_turn("get_take_overview", {}), tools_turn(("coach", BRIEF), ("planner", BRIEF))]
+    expired = ClientError({"Error": {"Code": "ExpiredTokenException", "Message": "expired"}}, "ConverseStream")
+    use_agents(monkeypatch, orchestrator, [expired], [THROTTLED])
+    assert live_check.main(["--trace-out", str(tmp_path / "trace.json")]) == 1
+    [failure] = capsys.readouterr().err.splitlines()
+    assert failure.startswith(f"FAILED: {CREDENTIALS_EXPIRED_LINE}")
