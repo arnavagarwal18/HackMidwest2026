@@ -3,6 +3,10 @@
 before is the Snapshot of progress.before_take, with its clean_bpm worked out from the takes up to and including it, so
 later reps on the same bars (which overwrite session.clean_tempo) never move it. after is the Snapshot of the best scored rep, of any exercise whose bars
 exactly match the before take's bars. Best means fewest errors, then the higher tempo, then the later rep.
+
+events is the timeline, oldest first: one event per diagnosed take or scored rep, in the order the takes were recorded, plus an
+"exercise_done" event right after the rep that completed an exercise. "time" is the rep's start (epoch seconds) when stored; takes
+store no time, so their place in the list is their order.
 """
 import logging
 
@@ -16,6 +20,8 @@ logger = logging.getLogger("app.practice.progress_view")
 
 SOURCE_TAKE = "take"
 SOURCE_REP = "rep"
+EVENT_EXERCISE_DONE = "exercise_done"
+TAKE_PURPOSE = "take"
 
 
 def _count_errors(diagnosis: dict) -> int:
@@ -83,8 +89,38 @@ def _exercise_summary(exercise: dict, state: dict, results: dict) -> dict:
     }
 
 
+def _exercise_title(session_id: str, exercise_id: str | None) -> str | None:
+    exercise = find_exercise(session_id, exercise_id or "")
+    return exercise["title"] if exercise else None
+
+
+def _rep_event(session: store.Session, take: dict, result: dict) -> dict:
+    return {
+        **_snapshot(session, take, SOURCE_REP), "kind": SOURCE_REP, "time": take.get("started_at"),
+        "exercise_id": result["exercise_id"], "exercise_title": _exercise_title(session.session_id, result["exercise_id"]),
+        "tempo_bpm": result["tempo_bpm"], "passed": bool(result["passed"]), "reasons": result.get("reasons") or [],
+    }
+
+
+def _timeline_events(session: store.Session, progress: dict) -> list[dict]:
+    """The timeline: diagnosed takes and scored reps in recorded order, each completed exercise right after its last rep."""
+    events = []
+    for take_id, take in session.takes.items():
+        if not _usable_diagnosis(take):
+            continue
+        result = progress["reps"].get(take_id)
+        if take.get("purpose", TAKE_PURPOSE) == TAKE_PURPOSE:
+            events.append({**_snapshot(session, take, SOURCE_TAKE), "kind": SOURCE_TAKE, "time": None, "tempo_bpm": take.get("tempo_bpm")})
+        elif result is not None and result["status"] == STATUS_SCORED:
+            events.append(_rep_event(session, take, result))
+            if result.get("exercise_complete"):
+                events.append({"kind": EVENT_EXERCISE_DONE, "take_id": take_id, "time": take.get("started_at"),
+                               "exercise_id": result["exercise_id"], "exercise_title": events[-1]["exercise_title"]})
+    return events
+
+
 def build_progress_view(session_id: str) -> dict:
-    """{before, after, exercises}; an empty view for a session with no practice progress."""
+    """{before, after, exercises, events}; an empty view for a session with no practice progress."""
     session = store.get(session_id)
     progress = read_progress(session_id)
     before_take = session.takes.get(progress["before_take"] or "")
@@ -101,4 +137,5 @@ def build_progress_view(session_id: str) -> dict:
         "before": before,
         "after": _best_rep_snapshot(session, progress, before_take) if before else None,
         "exercises": summaries,
+        "events": _timeline_events(session, progress),
     }

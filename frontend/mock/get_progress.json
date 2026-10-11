@@ -35,5 +35,77 @@
       "reps": 4,
       "passes": 2
     }
+  ],
+  "events": [
+    {
+      "bar_from": 3,
+      "bar_to": 4,
+      "form_flags": 1,
+      "form_checked": true,
+      "kind": "take",
+      "source": "take",
+      "take_id": "take_1",
+      "time": null,
+      "tempo_bpm": 88,
+      "errors": 3,
+      "error_rate": 0.5,
+      "played_bpm": 88,
+      "clean_bpm": 80
+    },
+    {
+      "bar_from": 3,
+      "bar_to": 4,
+      "form_flags": 1,
+      "form_checked": true,
+      "kind": "rep",
+      "source": "rep",
+      "take_id": "rep_1",
+      "time": 1760000000,
+      "exercise_id": "ex1",
+      "exercise_title": "Bar 3 slow",
+      "tempo_bpm": 60,
+      "passed": false,
+      "reasons": [
+        "2 wrong notes"
+      ],
+      "errors": 2,
+      "error_rate": 0.3,
+      "played_bpm": 60,
+      "clean_bpm": null
+    },
+    {
+      "bar_from": 3,
+      "bar_to": 4,
+      "form_flags": 1,
+      "form_checked": true,
+      "kind": "rep",
+      "source": "rep",
+      "take_id": "take_2",
+      "time": 1760000600,
+      "exercise_id": "ex1",
+      "exercise_title": "Bar 3 slow",
+      "tempo_bpm": 66,
+      "passed": true,
+      "reasons": [],
+      "errors": 0,
+      "error_rate": 0.0,
+      "played_bpm": 92,
+      "clean_bpm": 92
+    },
+    {
+      "bar_from": 3,
+      "bar_to": 4,
+      "form_flags": 1,
+      "form_checked": true,
+      "kind": "take",
+      "source": "take",
+      "take_id": "take_3",
+      "time": null,
+      "tempo_bpm": 92,
+      "errors": 1,
+      "error_rate": 0.1,
+      "played_bpm": 92,
+      "clean_bpm": 90
+    }
   ]
 }

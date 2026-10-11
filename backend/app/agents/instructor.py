@@ -1,11 +1,12 @@
 """The Instructor agent: answers a learner's chat message about one take and finishes by calling submit_reply."""
 import json
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 from strands import Agent, tool
 
 from app import store
+from app.agents.chat_history import with_earlier_coaches
 from app.agents.coach import CoachSentence
 from app.agents.context import CheckContext
 from app.agents.holder import ReplyHolder
@@ -22,7 +23,6 @@ from app.score.exceptions import NotConfirmed
 
 log = logging.getLogger(__name__)
 
-HISTORY_TURNS = 10
 RECENT_REPS = 5
 INSTRUMENT = "trumpet"  # the app is trumpet only, so the Instructor never hears of another instrument, whatever the session says
 REP_RESULT_FIELDS = ("take_id", "tempo_bpm", "status", "passed", "errors", "reasons")
@@ -92,21 +92,14 @@ def make_chat_tools(session_id: str, take: dict) -> dict[str, Callable[..., str]
     return {fn.__name__: fn for fn in (get_score_summary, get_plan)}
 
 
-def history_messages(turns: list[dict]) -> list[dict]:
-    """The last chat turns as plain text model messages, starting with a learner's message."""
-    recent = [{"role": "user" if t["role"] == "user" else "assistant", "content": [{"text": t["text"]}]}
-              for t in turns[-HISTORY_TURNS:]]
-    while recent and recent[0]["role"] != "user":
-        recent.pop(0)
-    return recent
-
-
 def build_instructor_agent(model: Any, tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: ReplyHolder,
-                           trace: Trace, history: list[dict], style: PersonaRun = PersonaRun()) -> Agent:
+                           trace: Trace, history: list[dict], style: PersonaRun = PersonaRun(), earlier_turns: Sequence[dict] = ()) -> Agent:
+    """`history` is the messages this coach style wrote or heard; `earlier_turns` are all saved turns, so other coaches' replies reach it as labelled context only."""
+    persona = style.persona
     agent = Agent(
         model=model,
         tools=[*[tool(fn) for fn in tools.values()], submit_reply],
-        system_prompt=with_persona(INSTRUCTOR_PROMPT, style.persona, "instructor"),
+        system_prompt=with_persona(with_earlier_coaches(INSTRUCTOR_PROMPT, earlier_turns, persona.id, persona.label), persona, "instructor"),
         messages=history,
         hooks=[TraceHook(trace, "instructor"), *style_hooks(style.persona, CHAT_SUBMIT, trace, "instructor"),
                CheckerHook(CHAT_SUBMIT, ctx, holder, trace)],
