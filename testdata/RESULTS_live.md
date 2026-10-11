@@ -88,3 +88,39 @@ Cause (read from the saved traces, c4/c6): in both fallbacks the model ended its
 Repeat run, same 3 questions, same session (extra, to see if it is flaky): fix-first fallback (model_error), rushed fallback (model_error), most-wrong-notes ai ("Bar 8 had the most wrong notes - you played 1 extra note there. Bar 4 also had 1 extra note. Fix bar 8 first ..."). Traces again show plain `end_turn` text with no submit_reply on the failures. Overall 3 of 6 turns used the AI; when the model does call submit_reply the Checker passes it (try 2 on the first turn, try 1 later).
 
 Note (not fixed, no code changes allowed): the smoke test's one chat turn (section 1) passed with ai mode, so a one-turn smoke hides this rate.
+
+## Sonnet 4.6 vs Haiku 4.5 (TASK-29): DECISION: stayed on Haiku 4.5
+Date: 2026-10-11 (UTC). Commit tested: 3793932. Sonnet 4.6 profile: `us.anthropic.claude-sonnet-4-6` (text + image, used for both BEDROCK_TEXT_MODEL and BEDROCK_VISION_MODEL). `list-inference-profiles` is AccessDenied for this role (IAM), so the ID came from `list-foundation-models` (`anthropic.claude-sonnet-4-6`, TEXT+IMAGE) and was verified by one converse call (867 ms, 20 tokens, no retries). Haiku 4.5 figures are from the sections above.
+
+| step | Haiku 4.5 | Sonnet 4.6 |
+|---|---|---|
+| smoke: score reader (vision) | 4.6 s | 11.3 s |
+| smoke: coach / planner (ai, accepted) | 11.4 s | 21.6 s |
+| smoke: chat (ai, accepted) | 9.0 s | 8.8 s |
+| smoke total (analysis + feedback) | 63.9 s run, 36.8 s analysis | 48.8 s analysis |
+| live_check (`python -m app.agents.live_check`) | not recorded | OK, 18.4 s total; coach 12.1 s, planner 14.5 s; Checker rejected 4 coach sentences / 1 exercise on try 1 |
+| HTTP flow: feedback run (ode_to_joy_trumpet, trumpet11.mp4, bars 1-8) | 14.7 s, mode ai, Checker 2nd try (coach and planner) | 22.3 s, mode ai, fallback_reason null, Checker 2nd try (coach and planner) |
+| HTTP flow: analysis done | 32.1 s | 38.0 s |
+| chat "What should I fix first?" | 8.2 s, ai | 11.1 s, ai (submit_reply called twice; both tries failed the Checker, 2 of 3 sentences dropped, 1 kept) |
+| chat "Where did I rush?" | 3.3 s, fallback model_error | 2.9 s, fallback model_error (no submit_reply: model ended with text after list_problems / list_form_flags) |
+| chat "Which bar had the most wrong notes?" | 2.1 s, fallback model_error | 3.7 s, ai (submit_reply called, Checker passed 1st try) |
+| chat turns with AI mode | 1 of 3 (3 of 6 over two runs) | 2 of 3 |
+| chat turns where the model called submit_reply | 1 of 3 | 2 of 3 |
+
+Sonnet feedback text (ai): bar 4 and bar 8 extra A4 plus slouching in bars 1, 3, 7-8; plan ai with 3 exercises. Session afaad22eaae046698230feca450cfb3d, take t1, fb1.
+
+Verdict criteria: smoke passes (yes), feedback mode=ai (yes), feedback agent run under the 30 s limit (22.3 s, yes), no step over its limit (yes; reader 11.3 s is under its 30 s limit). The criteria were met, but the owner decided against the switch (below). Cost: every AI step is roughly 1.5-2.5x slower. Not fixed by the model: chat still falls back when the model ends with plain text instead of calling `submit_reply` (1 of 3 here), and one chat answer in each run ("zero wrong notes" next to "extra notes in bars 4 and 8") passed the Checker while contradicting itself.
+
+**Chat rerun on main with TEAM-12's submit_reply fix (f988c03 is an ancestor; run in-process with FastAPI TestClient, so no server was left running; feedback run 23.3 s ai, analysis 39.1 s):**
+
+| question | time | mode | submit_reply called / Checker |
+|---|---|---|---|
+| "What should I fix first?" | 8.0 s | ai | called, passed 1st try (4 claims) |
+| "Where did I rush?" | 5.0 s | fallback `checker_rejected` | called twice; both tries failed ("uncited: a sentence must cite at least one measurement"), then fallback |
+| "Which bar had the most wrong notes?" | 5.6 s | ai | called, passed 1st try (5 claims) |
+
+After the fix every turn reaches submit_reply (Sonnet: 3 of 3; the 2 fallbacks before it were plain-text `model_error`), and the one fallback is now the Checker rejecting an uncited answer. AI mode 2 of 3 on Sonnet. TEAM-12's own Haiku 4.5 run after the fix: 10 of 10 ai, 2.5-7.1 s (reported by TEAM-12, not re-run here), so Haiku is currently more reliable and faster on chat; the switch rests on the owner's request (H-214/H-215) and the criteria above.
+
+Deviation: `backend/app/agents/config.py` has no model defaults and `test_enabled_without_required_setting_names_it` requires a ConfigError for an empty model setting, so the default lives in `backend/.env.example` (Haiku 4.5 IDs, Sonnet 4.6 ID in a comment as a one-line swap). Full suite with Sonnet in `.env`: 1278 passed, 13 skipped (256.9 s).
+
+**Decision: Stayed on Haiku 4.5 (owner, 2026-10-11): chat 10/10 ai after f988c03 vs Sonnet 2/3; Sonnet ~2x slower on Coach/Planner (21.6–23.3 s, near the 30 s limit).**
