@@ -30,7 +30,7 @@ History (earlier diagnostics):
 | 9f983fa | pytest | 930 passed / 2 skipped |
 | 48d6182, 7ac42c7, c678f36 | pytest | 1014 passed / 11 skipped |
 
-Note: `dev/record-test.js` gives a false failure under a bare `node --test` (it is a dev page script, not a test). Run only `frontend/tests/*.test.mjs`.
+Note: `dev/record-test.js` gives a false failure under a bare `node --test`. Run only `frontend/tests/*.test.mjs`.
 
 ## Stress test numbers
 
