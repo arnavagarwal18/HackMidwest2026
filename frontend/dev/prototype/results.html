@@ -16,7 +16,12 @@
       --accent: #d4a340; --primary-ink: #161412; --primary-hover: #e2b459;
       --ok: #6cc48b; --flat: #8fb0ef; --sharp: #f0a25c; --error: #f08a80; --shadow-color: 0 0 0;
     }
-    html[data-theme="light"] { color-scheme: light; }
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f7f6f2; --surface: #ffffff; --ink: #1f1c18; --muted: #5c564d; --line-strong: #8a8378;
+      --accent: #7a5208; --primary-ink: #ffffff; --primary-hover: #664506;
+      --ok: #1f7a4d; --flat: #1f5fa8; --sharp: #a65300; --error: #b3261e; --shadow-color: 31 28 24;
+    }
 
     .proto-note { margin: 0; padding: var(--sp-1) var(--page-pad); background: var(--surface-2); color: var(--muted); font-size: var(--fs-caption); text-align: center; }
     .layout { display: flex; align-items: flex-start; min-height: calc(100dvh - 28px); }
