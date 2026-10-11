@@ -109,3 +109,4 @@ button.sentence-text:hover { color: var(--brass); text-decoration: underline; }
 .bar-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 0; }
 .bar-detail > .bar-actions { margin-top: var(--sp-3); }
 .loop-hint:empty { display: none; }
+.trace-link { display: inline-flex; align-items: center; min-height: var(--tap); }
