@@ -14,6 +14,7 @@ globalThis.fetch = async (url) => ({ ok: true, status: 200, json: async () => JS
 const { state } = await import('../js/state.js');
 const { ApiError } = await import('../js/http.js');
 const { orderPersonas, presetTempo, personaLabel, FALLBACK_COACH_TEXT, FEEDBACK_PENDING_TEXT } = await import('../js/persona/model.js');
+const { waitForNewFeedback, SLOW_FEEDBACK_TEXT } = await import('../js/persona/pending_feedback.js');
 const { loadPersonas } = await import('../js/persona/load.js');
 const { createSegmented } = await import('../js/persona/segmented.js');
 const { savePersona } = await import('../js/persona/change.js');
@@ -35,11 +36,11 @@ function deferred() {
 }
 
 const segments = (root) => root.withClass('segment');
-const chosen = (root) => segments(root).filter((s) => s.attributes['aria-checked'] === 'true').map((s) => s.textContent);
+const chosen = (root) => segments(root).filter((s) => s.attributes['aria-pressed'] === 'true').map((s) => s.textContent);
 const clickSegment = (root, label) => segments(root).find((s) => s.textContent === label).click();
 
 // A coach switch over fakes. Calls are recorded in `log` in the order they happen.
-function setupSwitch({ patch, rerun } = {}) {
+function setupSwitch({ patch, rerun, waitForFeedback } = {}) {
   const log = [];
   const errors = [];
   const drawn = [];
@@ -49,6 +50,8 @@ function setupSwitch({ patch, rerun } = {}) {
     take: 'take_1',
     savePersona: (sessionId, id) => savePersona(sessionId, id, async (...args) => { log.push(['patch', ...args]); return patch ? patch(...args) : { session_id: 's1', persona: args[1].persona }; }),
     rerunFeedback: async (...args) => { log.push(['rerun', ...args]); return rerun ? rerun(...args) : { id: 'fb_2', mode: 'ai', persona: 'concert' }; },
+    waitForFeedback: async (previousId) => { log.push(['wait', previousId]); return waitForFeedback ? waitForFeedback(previousId) : null; },
+    currentFeedbackId: () => 'fb_1',
     onFeedback: (body) => drawn.push(body),
     onCoachChanged: (label) => log.push(['coaching', label]),
     reportError: (err) => errors.push(err.message),
@@ -72,13 +75,15 @@ test('the options are Standard first, then the back end order; a persona names i
   assert.equal(presetTempo(byId('marching'), 96), 120, 'a fixed tempo ignores the written one');
   assert.equal(presetTempo(byId('beginner'), 40), 30, 'never below the allowed range');
   assert.equal(presetTempo({ tempo: {} }, 96), null);
+  assert.equal(presetTempo({ tempo: { kind: 'other', value: 2 } }, 96), null, 'an unknown kind is left alone');
   assert.equal(presetTempo(null, 96), null);
 });
 
 test('the fixture carries the four personas with their hints and tempo rules', () => {
   assert.equal(FIXTURE.default, 'standard');
   assert.deepEqual(FIXTURE.personas.map((p) => [p.id, p.tempo]), [
-    ['standard', { written_factor: 1 }], ['concert', { written_factor: 1 }], ['marching', { fixed_bpm: 120 }], ['beginner', { written_factor: 0.7 }],
+    ['standard', { kind: 'written_factor', value: 1 }], ['concert', { kind: 'written_factor', value: 1 }],
+    ['marching', { kind: 'fixed_bpm', value: 120 }], ['beginner', { kind: 'written_factor', value: 0.7 }],
   ]);
   assert.equal(FIXTURE.personas[2].hint, 'Marching band, pep band and field shows');
 });
@@ -156,20 +161,66 @@ test('a failed save puts the control back, shows the error and builds nothing', 
   assert.ok(segments(root).every((s) => !s.disabled));
 });
 
-test('a 409 on the re-run keeps the switch disabled and says the feedback is still being made', async () => {
+const stillRunning = async () => { throw new ApiError('wrong_state', 'Feedback is in progress.', 409); };
+
+test('a 409 on the re-run waits for the running feedback, then draws the record that differs from the one shown', async () => {
   const realError = console.error;
   console.error = () => {};
   try {
-    const { errors, root } = setupSwitch({ rerun: async () => { throw new ApiError('wrong_state', 'Feedback is in progress.', 409); } });
+    const arrives = deferred();
+    const { coach, log, errors, drawn, root } = setupSwitch({ rerun: stillRunning, waitForFeedback: () => arrives.promise });
     clickSegment(root, 'Beginner');
     await settle();
-    assert.ok(segments(root).every((s) => s.disabled));
-    assert.equal(root.withClass('coach-pending')[0].hidden, false);
-    assert.equal(root.withClass('coach-pending')[0].textContent, FEEDBACK_PENDING_TEXT);
-    assert.deepEqual(errors, [], 'a message in the panel, not the red banner');
+    assert.ok(segments(root).every((s) => s.disabled), 'disabled while waiting');
+    const pending = root.withClass('coach-pending')[0];
+    assert.equal(pending.hidden, false);
+    assert.equal(pending.textContent, FEEDBACK_PENDING_TEXT);
+    assert.deepEqual(log.at(-1), ['wait', 'fb_1'], 'waits for a record other than the one shown');
+    arrives.resolve({ id: 'fb_3', mode: 'ai' });
+    await settle();
+    assert.deepEqual(drawn, [{ id: 'fb_3', mode: 'ai' }]);
+    coach.enable(); // what the results screen does once it has drawn the record
+    assert.ok(segments(root).every((s) => !s.disabled));
+    assert.equal(pending.hidden, true);
+    assert.deepEqual(errors, []);
   } finally {
     console.error = realError;
   }
+});
+
+test('when no new feedback arrives in time the switch is enabled again and the banner says so', async () => {
+  const realError = console.error;
+  console.error = () => {};
+  try {
+    const { errors, drawn, root } = setupSwitch({ rerun: stillRunning, waitForFeedback: async () => null });
+    clickSegment(root, 'Beginner');
+    await settle();
+    assert.deepEqual(errors, ['Feedback is taking longer than usual']);
+    assert.equal(SLOW_FEEDBACK_TEXT, 'Feedback is taking longer than usual');
+    assert.deepEqual(drawn, []);
+    assert.ok(segments(root).every((s) => !s.disabled));
+    assert.equal(root.withClass('coach-pending')[0].hidden, true);
+  } finally {
+    console.error = realError;
+  }
+});
+
+test('waitForNewFeedback polls every 2 s for up to 60 s, skipping not-ready answers and the id already shown', async () => {
+  const waits = [];
+  const answers = [() => { throw new ApiError('wrong_state', 'Feedback not ready.', 409); }, () => ({ id: 'fb_1' }), () => ({ id: 'fb_2' })];
+  const body = await waitForNewFeedback({ previousId: 'fb_1', getFeedback: async () => answers.shift()(), wait: async (ms) => { waits.push(ms); } });
+  assert.deepEqual(body, { id: 'fb_2' });
+  assert.deepEqual(waits, [2000, 2000, 2000]);
+
+  const slowWaits = [];
+  const none = await waitForNewFeedback({ previousId: 'fb_1', getFeedback: async () => ({ id: 'fb_1' }), wait: async (ms) => { slowWaits.push(ms); } });
+  assert.equal(none, null);
+  assert.equal(slowWaits.length, 30, '30 polls of 2 s make the 60 s limit');
+
+  await assert.rejects(
+    waitForNewFeedback({ previousId: 'fb_1', getFeedback: async () => { throw new ApiError('boom', 'Server error.', 500); }, wait: async () => {} }),
+    /Server error/,
+  );
 });
 
 test('another re-run failure shows the error and gives the switch back', async () => {
@@ -208,6 +259,8 @@ async function setupPanel({ history = [], rerun, patch } = {}) {
         personas: PERSONAS, sessionId: 's1', take: 'take_1',
         savePersona: (sessionId, id) => savePersona(sessionId, id, patch ?? (async (_s, body) => ({ session_id: 's1', persona: body.persona }))),
         rerunFeedback: rerun ?? (async () => ({ id: 'fb_2', mode: 'ai' })),
+        waitForFeedback: async () => null,
+        currentFeedbackId: () => 'fb_1',
         onFeedback: (body) => { drawn.push(body); panel.setResults({ feedback: { ...body, sentences: [] } }); },
         onCoachChanged, reportError: () => {},
       });

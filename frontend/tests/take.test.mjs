@@ -211,7 +211,11 @@ function holdRecorderStart() {
 
 function recordFetchCalls(answer) {
   const calls = [];
-  globalThis.fetch = (url, options) => new Promise((resolve) => calls.push({ url, options, answer: () => resolve({ ok: true, status: 202, json: async () => answer }) }));
+  globalThis.fetch = (url, options) => {
+    // The coach style list is not part of what these tests count: answer it as unavailable (the picker stays hidden).
+    if (String(url).endsWith('/personas')) return Promise.resolve({ ok: false, status: 404, json: async () => ({ error: { code: 'not_found', message: 'Not found.' } }) });
+    return new Promise((resolve) => calls.push({ url, options, answer: () => resolve({ ok: true, status: 202, json: async () => answer }) }));
+  };
   return calls;
 }
 

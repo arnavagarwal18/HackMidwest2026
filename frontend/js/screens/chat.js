@@ -1,8 +1,9 @@
-import { getChat, rerunFeedback, sendChat } from '../api.js';
+import { getChat, getFeedback, rerunFeedback, sendChat } from '../api.js';
 import { reportError } from '../banner.js';
 import { createChatPanel } from '../chat/panel.js';
 import { savePersona } from '../persona/change.js';
 import { createCoachSwitch } from '../persona/coach_switch.js';
+import { waitForNewFeedback } from '../persona/pending_feedback.js';
 import { loadPersonas } from '../persona/load.js';
 import { state } from '../state.js';
 
@@ -11,8 +12,18 @@ function mountCoachSwitch(take, onFeedback) {
   return async (slot, { onCoachChanged }) => {
     const personas = await loadPersonas();
     if (!personas) return null;
+    const sessionId = state.session_id ?? 'no-session';
     const coach = createCoachSwitch({
-      personas, sessionId: state.session_id ?? 'no-session', take, savePersona, rerunFeedback, onFeedback, onCoachChanged, reportError,
+      personas,
+      sessionId,
+      take,
+      savePersona,
+      rerunFeedback,
+      waitForFeedback: (previousId) => waitForNewFeedback({ getFeedback: () => getFeedback(sessionId, take), previousId }),
+      currentFeedbackId: () => state.current_feedback_id,
+      onFeedback,
+      onCoachChanged,
+      reportError,
     });
     slot.append(coach.element);
     return coach;

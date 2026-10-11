@@ -4,25 +4,25 @@
       "id": "standard",
       "label": "Standard",
       "hint": "The usual coach, no particular style",
-      "tempo": { "written_factor": 1.0 }
+      "tempo": { "kind": "written_factor", "value": 1.0 }
     },
     {
       "id": "concert",
       "label": "Concert",
       "hint": "Band, orchestra, solos and etudes",
-      "tempo": { "written_factor": 1.0 }
+      "tempo": { "kind": "written_factor", "value": 1.0 }
     },
     {
       "id": "marching",
       "label": "Marching",
       "hint": "Marching band, pep band and field shows",
-      "tempo": { "fixed_bpm": 120 }
+      "tempo": { "kind": "fixed_bpm", "value": 120 }
     },
     {
       "id": "beginner",
       "label": "Beginner",
       "hint": "New to trumpet, any style",
-      "tempo": { "written_factor": 0.7 }
+      "tempo": { "kind": "written_factor", "value": 0.7 }
     }
   ],
   "default": "standard"
