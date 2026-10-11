@@ -58,3 +58,65 @@ Visual check (picture model, weak evidence; I looked at 8 face crops at 0.5, 1.0
 - Does cheekPuff track the puffing? No: it stays at 0.000 to 0.001 and does not change anywhere.
 - Does cheek width track it? Not shown: it moves little, has no on/off pattern, and only its one spike at 22.2 s agrees with a (weak) visual call. No threshold proposed, since there is no ratio that separates two states in this data; a per-player-median ratio (for example width above 1.1 x the player's median) would fire only on that one spike.
 - Separate finding: on this clip the app's face crop fails (face_quality 0.10), so even a working signal would be skipped; the crop would need to follow the head better (for example a larger crop, or one centred on the face detector rather than the pose nose).
+
+## Good-posture statistics (YouTube set)
+
+Run: `backend/.venv/bin/python backend/scripts/posture_stats.py` (per-video percentiles in `testdata/youtube/posture_stats.csv`). Each video's first 120 s sampled at 5 fps (app.form.track.track_video), pose tracked with the app's tracker, view detected per video with app.form.view (one view per video), absolute (not baseline-relative) measure values on every tracked frame.
+
+Videos in the manifest: 90; used: 70 (51 front, 19 side); skipped: 20.
+
+`bell_proxy` (mouth = midpoint of pose landmarks 9 and 10, hands = midpoint of the wrists 15 and 16): **side view** = degrees above horizontal of the line from the mouth to the wrist midpoint (positive = wrists higher than the mouth), sign-corrected for the facing direction (nose vs the near ear); **front view** = (wrist-midpoint y - mouth y) / shoulder width (positive = wrists *below* the mouth, so the sign is opposite to the side view). Image-space proxies, not true bell angles.
+
+Front measures (head_drop, neck_ratio, torso_lean, elbow gaps) are also taken in side videos but are scaled by the tiny side-on shoulder width there, so for the side view use head_pitch, neck_side and side_torso_lean. Elbow gap = horizontal elbow-to-hip distance / shoulder width, as `trumpet_elbows_pinned` takes it.
+
+### Front view: pooled over 51 videos
+
+| Measure | Videos | Frames | p1 | p5 | p50 | p95 | p99 | median of per-video p1 | median of per-video p99 |
+|---|---|---|---|---|---|---|---|---|---|
+| head_drop | 51 | 20460 | -0.14 | 0.01 | 0.08 | 0.17 | 0.27 | 0.02 | 0.17 |
+| neck_ratio | 51 | 20460 | 0.09 | 0.35 | 0.58 | 0.81 | 1.48 | 0.46 | 0.74 |
+| torso_lean | 42 | 11138 | 0.05 | 0.24 | 2.89 | 68.94 | 131.96 | 0.20 | 8.58 |
+| elbow_gap_left | 41 | 10582 | 0.01 | 0.04 | 0.37 | 0.78 | 2.18 | 0.15 | 0.75 |
+| elbow_gap_right | 42 | 10508 | 0.02 | 0.07 | 0.45 | 0.89 | 1.78 | 0.16 | 0.84 |
+| bell_proxy | 49 | 15650 | -0.48 | 0.03 | 0.78 | 1.46 | 1.89 | 0.42 | 1.27 |
+
+### Side view: pooled over 19 videos
+
+| Measure | Videos | Frames | p1 | p5 | p50 | p95 | p99 | median of per-video p1 | median of per-video p99 |
+|---|---|---|---|---|---|---|---|---|---|
+| head_pitch | 19 | 8222 | -55.78 | -30.11 | 13.37 | 37.34 | 77.59 | 3.95 | 27.75 |
+| head_drop | 19 | 8203 | -0.33 | -0.17 | 0.09 | 0.43 | 1.07 | 0.04 | 0.22 |
+| neck_ratio | 19 | 8203 | 0.25 | 0.58 | 0.79 | 2.12 | 5.56 | 0.59 | 1.29 |
+| neck_side | 19 | 8206 | 0.02 | 0.06 | 0.17 | 0.35 | 0.41 | 0.09 | 0.23 |
+| torso_lean | 16 | 5872 | 0.05 | 0.32 | 4.88 | 82.78 | 97.44 | 0.20 | 9.56 |
+| side_torso_lean | 16 | 5994 | 0.73 | 2.25 | 7.81 | 85.59 | 98.14 | 2.41 | 13.24 |
+| elbow_gap_left | 17 | 5486 | 0.01 | 0.07 | 0.43 | 3.72 | 8.76 | 0.09 | 1.19 |
+| elbow_gap_right | 15 | 4491 | 0.06 | 0.21 | 0.54 | 1.65 | 2.95 | 0.34 | 0.91 |
+| bell_proxy | 17 | 5883 | -100.05 | -92.97 | -51.77 | -25.35 | -8.68 | -81.60 | -38.02 |
+
+### Skipped videos
+
+| Video id | Reason |
+|---|---|
+| nEwnXo02C1Y | download failed: [youtube] nEwnXo02C1Y: This video is not available |
+| Xm5Q_ydreGI | download failed: [youtube] Xm5Q_ydreGI: This video is not available |
+| hrfrmjL1Dtw | download failed: [youtube] hrfrmjL1Dtw: This video is not available |
+| jpno20OL-ag | no visible player: pose in only 0 of 281 sampled frames |
+| KF4553PAQok | no visible player: pose in only 33 of 601 sampled frames |
+| RGrE7TEHu-k | no visible player: pose in only 0 of 258 sampled frames |
+| NswDK689SK4 | download failed: [youtube] NswDK689SK4: This video is not available |
+| cHxfCXHhbKQ | no visible player: pose in only 0 of 530 sampled frames |
+| lKI1V0RqOKI | download failed: [youtube] lKI1V0RqOKI: This video is not available |
+| Gi-xalf4SfU | download failed: [youtube] Gi-xalf4SfU: This video is not available |
+| iOH8JYJYUic | no visible player: pose in only 16 of 601 sampled frames |
+| Qn3RQJiFY_s | no visible player: pose in only 0 of 601 sampled frames |
+| a6BMMasXmts | no visible player: pose in only 1 of 600 sampled frames |
+| 2CDXhMwqz-E | no visible player: pose in only 0 of 601 sampled frames |
+| 6b_nIBYQxX8 | no visible player: pose in only 0 of 317 sampled frames |
+| 41gfqnSFgWU | no visible player: pose in only 0 of 601 sampled frames |
+| shA2E-8WpcE | no visible player: pose in only 0 of 191 sampled frames |
+| 1M-YhmKU6YA | no visible player: pose in only 0 of 120 sampled frames |
+| rj7rMppaZl0 | download failed: [youtube] rj7rMppaZl0: This video is not available |
+| neNzJCDWH-E | download failed: [youtube] neNzJCDWH-E: This video is not available |
+
+Caveats (added by hand after the run; re-running the script regenerates the section above without them): the tails are noisy. In the pooled front table torso_lean reaches 69 degrees at p95 and 132 at p99, and neck_ratio 1.48 at p99, while the medians of the per-video p99 are 8.6 degrees and 0.74. Likely (an inference, not verified frame by frame) a few videos where the hips are cropped or occluded and the tracker still reports them above the 0.5 visibility cut, so fixed limits should be taken from the per-video medians or the p5/p50/p95 columns rather than the pooled p1/p99. Each video has one view (the median ratio over its first 120 s), so a video that cuts between a front and a side camera is counted wholly in one view. The 12 "no visible player" skips were not looked at, so whether they are title cards, ensembles or a player too small for the tracker is unverified. The side-view bell_proxy is negative throughout (median -52 degrees, p99 -9): the wrist midpoint sits below the mouth in these videos, so use it as a relative measure.
