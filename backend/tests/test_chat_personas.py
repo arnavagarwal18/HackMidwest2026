@@ -138,15 +138,17 @@ def test_the_history_window_is_the_same_for_every_coach():
     assert len(history_messages(turns)) == 0  # as Standard, every reply in the window is another coach's
 
 
-def test_after_a_switch_each_coach_answers_the_plan_chip_in_its_own_voice_with_stand_alone_sentences(client, monkeypatch, fixture_data):
-    from app.agents.persona_styles import OWN_VOICE
 
-    order = ["standard", "concert", "beginner", "marching", "standard"]
+def test_after_a_switch_each_coach_answers_the_plan_chip_with_its_own_focus_last_and_stand_alone_sentences(
+        client, monkeypatch, fixture_data):
+    from app.agents.persona_styles import BEGINNER_FOCUS, CONCERT_FOCUS, MARCHING_FOCUS, STAND_ALONE, STYLE_CLOSING
+
+    focus_lines = {"concert": CONCERT_FOCUS, "marching": MARCHING_FOCUS, "beginner": BEGINNER_FOCUS}
     monkeypatch.setitem(globals(), "QUESTION", "Practice plan")  # the suggestion chip
-    captured = ask_each(client, monkeypatch, fixture_data, order)
-    for persona_id in ("concert", "beginner", "marching"):
+    captured = ask_each(client, monkeypatch, fixture_data, ["standard", "concert", "beginner", "marching", "standard"])
+    for persona_id, focus in focus_lines.items():
         system = captured[persona_id]["system"]
-        assert FOCUS[persona_id] in system and OWN_VOICE in system
-        assert "never begin one with Then, Next, Finally" in system
-        assert "never retell the plan's steps in order" in system
+        assert FOCUS[persona_id] in system and STAND_ALONE in system
+        assert system.rstrip().endswith(f"{focus}\n\n{STYLE_CLOSING}")  # the coach's own focus is read last
+        assert all(other not in system for other in focus_lines.values() if other != focus)
     assert captured["standard"]["system"] == INSTRUCTOR_PROMPT  # Standard is unchanged
