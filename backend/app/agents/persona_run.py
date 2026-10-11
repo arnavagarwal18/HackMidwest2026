@@ -1,10 +1,13 @@
 """The persona one feedback run or chat reply uses: read from the session once, traced, and written onto the agents."""
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 from app.agents.personas import STANDARD, Persona, focus_order, get_persona, is_known
 from app.agents.trace import Trace
+
+log = logging.getLogger(__name__)
 
 PERSONA_STATE_KEY = "persona"
 FOCUS_ORDER_STATE_KEY = "focus_order"
@@ -26,8 +29,14 @@ def resolve_persona(stored_id: str | None, trace: Trace, agent: str) -> Persona:
 
 
 def build_persona_run(stored_id: str | None, problems: list[dict], trace: Trace, agent: str = "orchestrator") -> PersonaRun:
-    persona = resolve_persona(stored_id, trace, agent)
-    return PersonaRun(persona, tuple(focus_order(problems, persona)))
+    """The persona and focus order for a run. Never raises: odd problem data gives a Standard run (logged and traced), so the learner still gets feedback."""
+    try:
+        persona = resolve_persona(stored_id, trace, agent)
+        return PersonaRun(persona, tuple(focus_order(problems, persona)))
+    except Exception:
+        log.exception("Could not build the %r persona run; using Standard with no focus order", stored_id)
+        trace.add(agent, "persona_error", str(stored_id), "the persona run could not be built; Standard is used")
+        return PersonaRun()
 
 
 def tag_agent(agent: Any, run: PersonaRun) -> Any:
