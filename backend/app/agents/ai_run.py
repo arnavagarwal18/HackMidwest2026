@@ -15,7 +15,7 @@ from app.agents.trace import Trace
 
 log = logging.getLogger(__name__)
 
-TIME_LIMIT_S = 30
+TIME_LIMIT_S = 45  # shared by the feedback run and the instructor chat
 ORCHESTRATOR_REQUEST = "Feedback for take {take_id}. Read the overview first."
 
 
