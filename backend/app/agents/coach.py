@@ -7,8 +7,11 @@ from strands import Agent, tool
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
 from app.agents.hooks import FEEDBACK_SUBMIT, CheckerHook, TraceHook
+from app.agents.model import with_max_tokens
 from app.agents.prompts import COACH_PROMPT
 from app.agents.trace import Trace
+
+COACH_MAX_TOKENS = 1500  # up to 6 cited sentences with their claims, as one submit_feedback call
 
 
 class Claim(BaseModel):
@@ -44,7 +47,7 @@ def submit_feedback(output: CoachOutput) -> dict:
 
 def build_coach_agent(model: Any, measurement_tools: list[Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace) -> Agent:
     return Agent(
-        model=model,
+        model=with_max_tokens(model, COACH_MAX_TOKENS),
         tools=[*[tool(fn) for fn in measurement_tools], submit_feedback],
         system_prompt=COACH_PROMPT,
         hooks=[TraceHook(trace, "coach"), CheckerHook(FEEDBACK_SUBMIT, ctx, holder, trace)],

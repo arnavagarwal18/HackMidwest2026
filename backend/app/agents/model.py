@@ -1,4 +1,7 @@
 """Builds Bedrock models for Strands agents from Settings."""
+import copy
+from typing import Any
+
 import boto3
 from botocore.config import Config as BotocoreConfig
 from strands.models import BedrockModel
@@ -27,3 +30,15 @@ def build_agent_model(settings: Settings) -> BedrockModel:
     """The text model every feedback agent uses."""
     return _bedrock(settings, settings.text_model, DEFAULT_TIMEOUT_SECONDS, AGENT_READ_TIMEOUT_SECONDS, AGENT_RETRIES,
                     temperature=AGENT_TEMPERATURE, max_tokens=AGENT_MAX_TOKENS)
+
+
+def with_max_tokens(model: Any, max_tokens: int) -> Any:
+    """A copy of a Bedrock model that asks for `max_tokens` (Bedrock charges the daily quota by that cap, not by what is generated).
+
+    Anything that isn't a BedrockModel (a scripted model in tests) is returned unchanged.
+    """
+    if not isinstance(model, BedrockModel):
+        return model
+    capped = copy.copy(model)
+    capped.config = {**model.config, "max_tokens": max_tokens}
+    return capped

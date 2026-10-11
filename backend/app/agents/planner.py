@@ -8,10 +8,12 @@ from app.agents.coach import Claim
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
 from app.agents.hooks import PLAN_SUBMIT, CheckerHook, TraceHook
+from app.agents.model import with_max_tokens
 from app.agents.prompts import PLANNER_PROMPT
 from app.agents.trace import Trace
 
 PLANNER_TOOLS = ("list_problems", "get_bar", "get_history")
+PLANNER_MAX_TOKENS = 1500  # up to 4 exercises with pass marks and claims, as one submit_plan call
 
 
 class PassMark(BaseModel):
@@ -46,7 +48,7 @@ def submit_plan(output: PlannerOutput) -> dict:
 
 def build_planner_agent(model: Any, measurement_tools: dict[str, Callable[..., str]], ctx: CheckContext, holder: RunHolder, trace: Trace) -> Agent:
     return Agent(
-        model=model,
+        model=with_max_tokens(model, PLANNER_MAX_TOKENS),
         tools=[*[tool(measurement_tools[name]) for name in PLANNER_TOOLS], submit_plan],
         system_prompt=PLANNER_PROMPT,
         hooks=[TraceHook(trace, "planner"), CheckerHook(PLAN_SUBMIT, ctx, holder, trace)],

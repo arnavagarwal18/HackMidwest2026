@@ -10,11 +10,14 @@ from app.agents.coach import build_coach_agent
 from app.agents.context import CheckContext
 from app.agents.holder import RunHolder
 from app.agents.hooks import TraceHook
+from app.agents.model import with_max_tokens
 from app.agents.planner import build_planner_agent
 from app.agents.prompts import ORCHESTRATOR_PROMPT
 from app.agents.trace import Trace
 
 log = logging.getLogger(__name__)
+
+ORCHESTRATOR_MAX_TOKENS = 800  # tool calls and two short briefs; the Coach and Planner write the long outputs
 
 
 def _sub_agent_tool(name: str, description: str, run_agent: Callable[[str], Awaitable[Any]],
@@ -49,7 +52,7 @@ def build_orchestrator(model: Any, measurement_tools: dict[str, Callable[..., st
         lambda brief: build_planner_agent(model, measurement_tools, ctx, holder, trace).invoke_async(brief),
         lambda: holder.plan, holder.planner_errors, trace)
     return Agent(
-        model=model,
+        model=with_max_tokens(model, ORCHESTRATOR_MAX_TOKENS),
         tools=[*[tool(fn) for fn in measurement_tools.values()], coach, planner],
         system_prompt=ORCHESTRATOR_PROMPT,
         tool_executor=ConcurrentToolExecutor(),  # the tool calls of one reply run at the same time
