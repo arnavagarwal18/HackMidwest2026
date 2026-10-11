@@ -11,7 +11,7 @@ from tests.feedback_helpers import add_diagnosed_take
 
 PLAN_KEYS = {"id", "take_id", "feedback_id", "mode", "exercises"}
 FEEDBACK_KEYS = {"id", "take_id", "created_at", "mode", "fallback_reason", "cant_tell", "tier1", "sentences",
-                 "dropped", "plan_id", "check", "duration_ms"}
+                 "dropped", "plan_id", "check", "duration_ms", "persona"}
 TAKE = {"take_id": "t1", "bar_from": 1, "bar_to": 4}
 
 

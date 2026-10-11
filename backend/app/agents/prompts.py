@@ -1,4 +1,5 @@
 """System prompts for the feedback agents. They carry rules only; every fact comes from tool results."""
+from app.agents.personas import Persona
 
 ORCHESTRATOR_PROMPT = """You coordinate the feedback for one trumpet practice take. You never write feedback yourself and never state a measurement: your own text is not shown to the learner.
 
@@ -86,3 +87,12 @@ For an off-topic question, give one polite sentence steering the learner back to
 Your own text is never shown to the learner: every answer, even a short one, must end with a call to submit_reply. Never answer in plain text instead.
 Finish by calling submit_reply once with your sentences. If the reply says accepted is false, fix or remove exactly the sentences it lists and submit again.
 """
+
+
+def with_persona(base: str, persona: Persona, role: str) -> str:
+    """The base prompt with the persona's style block for `role` ('coach', 'planner' or 'instructor') added at the end.
+
+    The base prompts carry the rules and are never edited; Standard has no style block, so it gets the base back unchanged.
+    """
+    block = persona.style_block(role)
+    return f"{base}\n{block}\n" if block else base

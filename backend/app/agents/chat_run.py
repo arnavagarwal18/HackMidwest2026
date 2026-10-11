@@ -10,6 +10,7 @@ from app.agents.fallback import tier1_sentences
 from app.agents.holder import ReplyHolder
 from app.agents.hooks import CHAT_SUBMIT
 from app.agents.instructor import build_instructor_agent, history_messages, make_chat_tools
+from app.agents.persona_run import PersonaRun, resolve_persona
 from app.agents.submit_retry import invoke_until_submitted
 from app.agents.trace import Trace
 
@@ -40,10 +41,11 @@ def _fallback(take: dict | None, reason: str, trace: Trace) -> Reply:
 
 
 async def _ask(session_id: str, take: dict, turns: list[dict], message: str, holder: ReplyHolder, trace: Trace) -> None:
+    """One Instructor turn, in the coach style the session has now (read at reply time)."""
     session = store.get(session_id)
     ctx, tools = ai_run.context_and_tools(session_id, take, run.earlier_takes(session.takes, take))
     agent = build_instructor_agent(ai_run.new_model(), {**tools, **make_chat_tools(session_id, take)}, ctx, holder, trace,
-                                   history_messages(turns))
+                                   history_messages(turns), PersonaRun(resolve_persona(session.persona, trace, "instructor")))
     await asyncio.wait_for(
         invoke_until_submitted(agent, message, agent_name="instructor", tool_name=CHAT_SUBMIT.tool_name,
                                accepted=lambda: holder.reply is not None, trace=trace),
