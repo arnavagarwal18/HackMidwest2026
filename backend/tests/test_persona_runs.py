@@ -231,3 +231,14 @@ def test_the_chat_fallback_says_so_with_mode_and_reason_and_keeps_its_text(clien
     turn = say(client, session_id).json()["instructor_turn"]
     assert (turn["mode"], turn["fallback_reason"]) == ("fallback", "disabled")
     assert turn["text"].startswith(FALLBACK_INTRO)
+
+
+def test_odd_problem_data_gives_a_standard_run_not_an_error(sessions_root, fixture_data, ai_on, monkeypatch, caplog):
+    use_persona_agents(monkeypatch, STANDARD)
+    problems = [{**p, "numbers": ["not", "a", "dict"]} if p["kind"] == "form" else p for p in fixture_data["diagnosis"]["problems"]]
+    session_id, take_id = add_diagnosed_take(fixture_data, problems=problems)
+    store.update(session_id, "persona", "concert")
+    feedback_id = run.run_feedback(session_id, take_id)
+    feedback = store.get(session_id).feedback[feedback_id]
+    assert (feedback["persona"], feedback["mode"]) == ("standard", "ai")
+    assert "Could not build the 'concert' persona run" in caplog.text
