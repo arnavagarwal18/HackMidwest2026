@@ -79,3 +79,15 @@ SIDE_HEAD_PITCH_DELTA = 15  # side view: head_pitch above baseline plus this man
 SIDE_NECK_RATIO = SHOULDERS_RAISED_RATIO  # side view: neck_side below this fraction of the baseline; kept equal to the front ratio (0.70)
 SIDE_NECK_SPAN_FRACTION = 0.35  # severity span for side shoulders_raised, as a share of the baseline (front: 0.2 of a 0.55 baseline)
 SIDE_HEAD_PITCH_SPAN_DEG = 20  # severity span for side trumpet_head_down
+
+# Embouchure checks with the Face Landmarker (LLD-4 change 8)
+FACE_ENABLED = True  # when False the face is not checked and no face rule appears in take.form
+FACE_MODEL_PATH = MODELS_DIR / "face_landmarker.task"
+FACE_MIN_QUALITY = 0.3  # below this share of frames (inside notes) with a face, the face rules are skipped as not_visible
+CHEEK_PUFF_MAX = 0.45  # 'cheekPuff' blendshape above this
+SMILE_MAX = 0.5  # the larger of 'mouthSmileLeft' and 'mouthSmileRight' above this
+FACE_SPAN = 0.4  # severity span for both face rules (blendshape scores)
+FACE_CROP_MIN_PX = 160  # the face crop is at least this many pixels on a side
+FACE_CROP_SHOULDER_RATIO = 1.2  # front view: crop side = this x shoulder width
+FACE_CROP_EAR_RATIO = 4  # side view: crop side = this x the near ear-to-nose distance
+SEVERITY_SPANS.update({"trumpet_cheeks_puffed": FACE_SPAN, "trumpet_smile_embouchure": FACE_SPAN})

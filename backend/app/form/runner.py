@@ -28,7 +28,7 @@ def _tracking_summary(result: TrackResult) -> dict:
 
 def _failed_form(error: type[FormError]) -> dict:
     """take.form for a run that got no usable result."""
-    return {"fps_sampled": None, "frames_total": 0, "frames_tracked": 0, "tracking_quality": 0.0, "view": FRONT, "view_ratio": None,
+    return {"fps_sampled": None, "frames_total": 0, "frames_tracked": 0, "tracking_quality": 0.0, "view": FRONT, "view_ratio": None, "face_quality": None,
             "baseline": None, "rules_skipped": [], "flags": [], "error": error.as_dict()}
 
 
@@ -37,11 +37,13 @@ def _analysed_form(session_id: str, take_id: str) -> dict:
     session = store.get(session_id)
     take = session.takes[take_id]
     result = track_take(session_id, take_id)
-    form = {**_tracking_summary(result), "view": FRONT, "view_ratio": None, "baseline": None, "rules_skipped": [], "flags": [], "error": None}
+    face_quality = result.face.face_quality if result.face else None
+    form = {**_tracking_summary(result), "face_quality": face_quality, "view": FRONT, "view_ratio": None,
+            "baseline": None, "rules_skipped": [], "flags": [], "error": None}
     if result.tracking_quality < config.TRACKING_QUALITY_MIN:
         form["error"] = TrackingPoor.as_dict()
     else:
-        analysis = analyse(result.frames, session.instrument, take_id, result.width, result.height)
+        analysis = analyse(result.frames, session.instrument, take_id, result.width, result.height, result.face)
         spans = read_bar_spans(session_id, take["bar_from"], take["bar_to"])
         form.update(view=analysis["view"], view_ratio=analysis["view_ratio"], baseline=analysis["baseline"], rules_skipped=analysis["rules_skipped"],
                     flags=add_bars_and_links(analysis["flags"], take.get("diagnosis"), spans))

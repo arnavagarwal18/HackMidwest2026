@@ -76,7 +76,7 @@ def test_run_hands_the_video_size_and_instrument_to_the_rules(video_take, rerank
     session_id, take_id = video_take
     seen = {}
 
-    def fake_analyse(frames, instrument, take, width=None, height=None):
+    def fake_analyse(frames, instrument, take, width=None, height=None, face=None):
         seen.update(instrument=instrument, take=take, width=width, height=height, frames=len(frames))
         return ANALYSIS
 
@@ -166,8 +166,8 @@ def test_a_run_past_the_time_limit_keeps_what_was_checked_with_a_partial_warning
     session_id, take_id = video_take
     real_track_video = track.track_video
     ticks = iter(range(100))  # a fake clock: one tick per look at the time, so the limit hits after a few frames
-    monkeypatch.setattr(track, "track_video", lambda path, with_hands: real_track_video(
-        path, with_hands, time_limit_s=3, clock=lambda: next(ticks)))
+    monkeypatch.setattr(track, "track_video", lambda path, with_hands, on_frame=None: real_track_video(
+        path, with_hands, time_limit_s=3, clock=lambda: next(ticks), on_frame=on_frame))
     form.run(session_id, take_id)
     take = stored(session_id)
     assert take["form_status"] == "done"
