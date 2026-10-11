@@ -1,11 +1,12 @@
 // Renders a finished analysis: the six parts of the results screen.
-//   1 can't-tell message + transposition  2 tier 1 and coach sentences  3 problem bars
+//   1 can't-tell message + transposition  2 bar strip, tier 1 and coach sentences  3 problem bars
 //   4 media (and the form flag slot)      5 plan exercises             6 'How the AI worked'
 import { takeMediaUrl } from '../api.js';
 import { button, element } from '../dom.js';
 import { state } from '../state.js';
 import { createBarList } from './bars.js';
 import { createJumper } from './jumper.js';
+import { renderBarActions } from './loop.js';
 import { buildMeasurementIndex } from './measurements.js';
 import { createMediaPlayer, isVideoTake } from './media.js';
 import { renderCantTell } from './cant_tell.js';
@@ -13,6 +14,7 @@ import { renderDetectionChip } from './detection.js';
 import { renderPlan, renderTraceLink } from './plan.js';
 import { renderSentenceList } from './sentences.js';
 import { renderStatStrip } from './stats.js';
+import { createBarStrip } from './strip.js';
 import { renderStopped } from './status.js';
 
 export const FALLBACK_TEXT = 'AI coach unavailable; showing measured results.';
@@ -50,8 +52,10 @@ export function renderDone(view, data, context) {
 
   const video = isVideoTake(analysis, state.take_setup.kind);
   const player = createMediaPlayer({ video, url: takeMediaUrl(context.sessionId, context.take) });
-  const barList = createBarList(analysis);
+  const renderActions = (bar) => renderBarActions(bar, { plan, analysis });
+  const barList = createBarList(analysis, renderActions);
   const jumpContext = { index: buildMeasurementIndex(analysis), jumper: createJumper({ player, barList }) };
+  const barStrip = createBarStrip(analysis, { ...jumpContext, renderActions });
 
   view.replaceChildren(element('h1', 'Results'));
   if (context.note) view.append(element('p', context.note, 'notice autokey-note', { role: 'status' }));
@@ -60,6 +64,7 @@ export function renderDone(view, data, context) {
   const stats = renderStatStrip(analysis);
   if (stats) view.append(stats);
   view.append(playAgainActions());
+  if (barStrip) view.append(barStrip.section);
   const tier1 = analysis.tier1 ?? [];
   if (tier1.length) view.append(sentenceSection('What I measured', 'tier1', tier1, jumpContext));
   const coach = coachSentences(feedback, tier1);
@@ -67,5 +72,5 @@ export function renderDone(view, data, context) {
   if (!tier1.length && !coach.length) view.append(element('p', 'No problems were found in this take.', 'muted'));
   view.append(barList.section, player.section, renderPlan(plan));
   if (feedback.id) view.append(renderTraceLink(feedback.id));
-  return { ...jumpContext, player, barList, analysis, feedback };
+  return { ...jumpContext, player, barList, barStrip, analysis, feedback };
 }

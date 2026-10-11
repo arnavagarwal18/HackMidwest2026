@@ -82,6 +82,36 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.deepEqual(await text(page, 'button.primary'), ['Play again'], 'one filled button on the results');
 });
 
+await test('the bar strip tints and marks every bar, shows the detail on a tap and seeks without moving the list', async (open) => {
+  const page = await open('take_1');
+  await page.waitFor(`document.querySelector('.bar-cell')`);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-cell')].map((c) => c.dataset.bar + c.className.replace('bar-cell', ''))`), ['3 tone-sharp', '4 tone-late']);
+  assert.deepEqual(await text(page, '.bar-cell-glyph'), ['↑', '→'], 'a glyph, not only a colour');
+  assert.match(await page.eval(`document.querySelector('.bar-cell').getAttribute('aria-label')`), /^Bar 3: sharp/);
+  assert.equal(await count(page, '#bar-detail .bar-actions'), 0, 'nothing is open until a tap');
+  await click(page, '.bar-cell', 1);
+  await page.waitFor(`document.querySelector('video').currentTime >= 5 && document.querySelector('video').currentTime < 6`);
+  assert.match((await text(page, '#bar-detail'))[0], /late.*Bar 4.*dragging/);
+  assert.equal(await page.eval(`document.querySelectorAll('.bar-cell')[1].getAttribute('aria-pressed')`), 'true');
+  assert.equal(await count(page, '.bar-row.highlighted'), 0, 'a strip tap does not scroll the list');
+  assert.deepEqual(await text(page, '#bar-detail .loop-bar'), ['Loop this bar']);
+  assert.deepEqual(await text(page, 'button.primary'), ['Play again'], 'the bar buttons are not filled');
+});
+
+await test('Loop this bar opens the plan exercise with the bars and about 75% of the take tempo as a hint; Play again goes to the take screen', async (open) => {
+  const page = await open('take_1');
+  await page.waitFor(`document.querySelector('.bar-row .loop-bar')`);
+  assert.deepEqual(await page.eval(`[...document.querySelectorAll('.bar-row .loop-bar')].map((a) => a.dataset.bar + a.getAttribute('href'))`), ['3#/exercise/ex1', '4#/exercise/ex1']);
+  await click(page, '.bar-row .loop-bar', 1);
+  await page.waitFor(`location.hash === '#/exercise/ex1'`);
+  await page.waitFor(`document.querySelector('.loop-hint')?.textContent`);
+  assert.match((await text(page, '.loop-hint'))[0], /Looping bar 4.*start near 66 BPM/);
+  await page.eval(`location.hash = '#/results/take_1'`);
+  await page.waitFor(`document.querySelector('.bar-row .play-again-bar')`);
+  await click(page, '.bar-row .play-again-bar');
+  await page.waitFor(`location.hash === '#/take'`);
+});
+
 await test('clicking a sentence or chip seeks 1 s earlier, highlights and scrolls to the bar row', async (open) => {
   const page = await open('take_1', `${FAST}`);
   await page.waitFor(`document.querySelector('.results .tier1')`);

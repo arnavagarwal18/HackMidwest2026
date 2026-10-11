@@ -25,6 +25,7 @@ function freshState() {
     last_take_upload: null, // { take_id, file, fields } of the last take sent: kept in memory only, so other bars can be tried
     current_feedback_id: null,
     current_exercise_id: null,
+    loop_request: null, // { exercise_id, bar, bpm } from "Loop this bar"; the trainer screen reads it once for its hint
   };
 }
 

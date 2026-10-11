@@ -50,22 +50,29 @@ function renderMeter(bar) {
   return meter;
 }
 
-function barRow(bar) {
-  const row = element('li', '', 'bar-row', { id: `bar-row-${bar.bar}`, 'data-bar': String(bar.bar), tabindex: '-1' });
-  row.append(element('strong', `Bar ${bar.bar}`), element('span', countsText(bar), 'bar-counts'));
+// The detail of one bar (its number, counts, drift and meter), added to `container`; the bar list rows and the bar strip share it.
+export function addBarDetail(container, bar) {
+  container.append(element('strong', `Bar ${bar.bar}`), element('span', countsText(bar), 'bar-counts'));
   const drift = driftText(bar);
-  if (drift) row.append(element('span', drift, `bar-drift drift-${bar.drift}`));
-  row.append(renderMeter(bar));
+  if (drift) container.append(element('span', drift, `bar-drift drift-${bar.drift}`));
+  container.append(renderMeter(bar));
+  return container;
+}
+
+function barRow(bar, renderActions) {
+  const row = element('li', '', 'bar-row', { id: `bar-row-${bar.bar}`, 'data-bar': String(bar.bar), tabindex: '-1' });
+  addBarDetail(row, bar);
+  if (renderActions) row.append(renderActions(bar));
   return row;
 }
 
-// Returns { section, highlight(bar) }.
-export function createBarList(analysis) {
+// renderActions(bar) gives the buttons on each row (optional). Returns { section, highlight(bar) }.
+export function createBarList(analysis, renderActions = null) {
   const section = element('section', '', 'bar-list', { id: 'problem-bars' });
   section.append(element('h2', 'Bars to work on'));
   const bars = problemBars(analysis);
   const list = element('ol', '', 'bar-rows');
-  bars.forEach((bar) => list.append(barRow(bar)));
+  bars.forEach((bar) => list.append(barRow(bar, renderActions)));
   section.append(bars.length ? list : element('p', 'No bars with problems.', 'muted'));
 
   function highlight(barNumber) {

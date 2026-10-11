@@ -3,6 +3,8 @@ import { openStream, recordTake, stopStream } from '../record.js';
 import { state } from '../state.js';
 import { createTrainer } from '../exercise/trainer.js';
 import { pollThresholds } from '../results/polling.js';
+import { element } from '../dom.js';
+import { loopHintText, takeLoopRequest } from '../results/loop.js';
 
 const DEFAULT_BEATS_PER_BAR = 4;
 
@@ -11,6 +13,9 @@ export async function render(root, { ex }) {
   const sessionId = state.session_id ?? 'no-session';
   state.current_exercise_id = ex;
   const setup = state.take_setup;
+  const loopRequest = takeLoopRequest(ex);
+  const hint = element('p', '', 'notice loop-hint', { role: 'status' });
+  root.append(hint);
   const trainer = createTrainer(root, {
     sessionId,
     ex,
@@ -28,4 +33,6 @@ export async function render(root, { ex }) {
     },
   }, { getExercise, uploadRep, getRep, openStream, recordTake, stopStream });
   await trainer.start();
+  if (loopRequest && trainer.model.exercise) hint.textContent = loopHintText(loopRequest, trainer.model.exercise);
+  else hint.remove();
 }

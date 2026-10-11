@@ -115,3 +115,27 @@ button.sentence-text:hover { color: var(--brass-ink); text-decoration: underline
 .detect-chip button { min-height: 0; padding: 2px var(--s3); }
 .heard-summary, .next-action { margin: 0 0 var(--s2); }
 .next-action { font-weight: 600; }
+
+/* Bar strip: one cell per bar, tinted by result and carrying a glyph. Each tone has its own light tint with dark text, fixed so it reads the same in dark mode. */
+.bar-strip-section { --tint-ok: #dcf0e4; --edge-ok: #1f7a4d; --ink-ok: #11452b;
+  --tint-flat: #dbe7f6; --edge-flat: #1f5fa8; --ink-flat: #0e365f;
+  --tint-sharp: #f8e5cf; --edge-sharp: #a65300; --ink-sharp: #552a00;
+  --tint-unclear: #ebe7df; --edge-unclear: #6b6454; --ink-unclear: #2f2b24; }
+.bar-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr)); gap: var(--s2); margin: 0 0 var(--s2); }
+.bar-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: var(--tap); min-height: 3.5rem; padding: var(--s1); border: 2px solid var(--edge-ok); border-radius: var(--r-sm); background: var(--tint-ok); color: var(--ink-ok); line-height: 1.1; }
+.bar-cell:hover { border-color: var(--ink-ok); }
+.bar-cell-num { font-size: var(--fs-sm); font-weight: 600; }
+.bar-cell-glyph { font-size: var(--fs-lg); font-weight: 700; }
+.bar-cell.tone-flat, .bar-cell.tone-early { border-color: var(--edge-flat); background: var(--tint-flat); color: var(--ink-flat); }
+.bar-cell.tone-sharp, .bar-cell.tone-late { border-color: var(--edge-sharp); background: var(--tint-sharp); color: var(--ink-sharp); }
+.bar-cell.tone-unclear { border-color: var(--edge-unclear); background: var(--tint-unclear); color: var(--ink-unclear); }
+.bar-cell.selected { box-shadow: 0 0 0 3px var(--focus-color); outline: 2px solid currentColor; outline-offset: 2px; }
+.bar-legend { margin: 0 0 var(--s3); font-size: var(--fs-sm); }
+.bar-detail:empty { display: none; }
+.bar-detail { padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.bar-detail-verdict { margin: 0 0 var(--s2); font-weight: 600; }
+.bar-detail-body { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--s2) var(--s3); }
+.bar-detail-body .meter { grid-column: 2 / -1; }
+.bar-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: var(--s2) 0 0; }
+.bar-detail > .bar-actions { margin-top: var(--s3); }
+.loop-hint:empty { display: none; }
