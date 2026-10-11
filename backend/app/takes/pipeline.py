@@ -88,7 +88,7 @@ def _check_form(session_id: str, take_id: str, run: Step | None) -> None:
         update_take(session_id, take_id, form_status="failed")
 
 
-def _give_feedback(session_id: str, take_id: str, run: Step | None) -> None:
+def give_take_feedback(session_id: str, take_id: str, run: Step | None) -> None:
     """Feedback for a practice take (not for other purposes); run_feedback handles its own failures."""
     if store.get(session_id).takes[take_id].get("purpose", "take") != "take":
         return
@@ -139,7 +139,7 @@ def run_take_pipeline(session_id: str, take_id: str, *, transcriber=None, diagno
             if rep:
                 _score_rep(session_id, take_id, score)
             else:
-                _give_feedback(session_id, take_id, give_feedback)
+                give_take_feedback(session_id, take_id, give_feedback)
             if store.get(session_id).takes[take_id]["status"] != "failed":  # run_feedback marks the take failed if it can't save
                 update_take(session_id, take_id, status="done")
         except (MediaError, StepFailed) as exc:
