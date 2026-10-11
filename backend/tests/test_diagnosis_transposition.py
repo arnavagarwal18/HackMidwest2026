@@ -23,7 +23,10 @@ def scale_with(written_transpose=None) -> dict:
 def fake_qualities(monkeypatch, quality_by_semitones: dict) -> None:
     monkeypatch.setattr(
         transposition, "align_take",
-        lambda score, played, take, semitones: {"alignment_quality": quality_by_semitones.get(semitones, 0.0)},
+        lambda score, played, take, semitones: {
+            "alignment_quality": quality_by_semitones.get(semitones, 0.0),
+            "score_quality": quality_by_semitones.get(semitones, 0.0),
+        },
     )
 
 
@@ -128,7 +131,7 @@ def test_a_base_that_cannot_be_beaten_skips_the_search(monkeypatch):
 
     def counting_align(score, played, take, semitones):
         calls.append(semitones)
-        return {"alignment_quality": 0.9}
+        return {"alignment_quality": 0.9, "score_quality": 0.9}
 
     monkeypatch.setattr(transposition, "align_take", counting_align)
     chosen, _ = transposition.detect_transposition(scale_with(), [], make_take(), DEFAULT_BASE)
@@ -309,3 +312,10 @@ def test_one_failing_rerun_does_not_stop_the_others(client, confirmed_session, m
         assert post_transposition(client, confirmed_session, {"semitones": 0}).status_code == 200
     assert seen == ["t1", "t2"]
     assert "Diagnosis rerun failed for take" in caplog.text
+
+
+def test_a_take_of_the_first_half_only_keeps_the_base_transposition():
+    played = perfect_played([m - 2 for m in SCALE_MIDIS[:8]])  # bars 1-2 of 4, at the base transposition
+    chosen, alignment = transposition.align_with_transposition(scale_with(), played, make_take(), "trumpet", None)
+    assert chosen == DEFAULT_BASE
+    assert alignment["played_bars"] == [1, 2] and alignment["alignment_quality"] == 1.0

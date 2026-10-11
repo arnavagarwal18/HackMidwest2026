@@ -48,7 +48,10 @@ def _body(problem: dict) -> str:
         return _notes_text(numbers)
     if kind in (config.TIMING_LATE, config.TIMING_EARLY):
         return f"{numbers['count']} notes {kind}, {round(numbers['mean_ms'])} ms on average"
-    return f"{kind}, about {round(numbers['drift_pct'])}% {DRIFT_DIRECTION[kind]} than {numbers['target_bpm']:g} BPM"
+    return (
+        f"{kind}, about {round(numbers['drift_pct'])}% {DRIFT_DIRECTION[kind]} "
+        f"than your own tempo ({round(numbers['reference_bpm'])} BPM)"
+    )
 
 
 def sentence_text(problem: dict) -> str:

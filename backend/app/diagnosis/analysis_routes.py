@@ -44,6 +44,7 @@ def _tempo(diagnosis: dict, session, take: dict) -> dict:
         "played_bpm": diagnosis["played_bpm"],
         "target_bpm": diagnosis["target_bpm"],
         "clean_bpm": session.clean_tempo.get(key),
+        "tempo_vs_goal_pct": diagnosis.get("tempo_vs_goal_pct"),
     }
 
 
@@ -54,6 +55,9 @@ def build_analysis(session_id: str, take_id: str) -> dict:
     diagnosis = diagnosis or {}
     return {
         "status": take["status"],
+        "kind": take["kind"],
+        "bar_from": take["bar_from"],
+        "bar_to": take["bar_to"],
         "error": _error(take),
         "form_status": take.get("form_status", "none"),
         "calibrated": take.get("calibrated", False),
@@ -65,6 +69,8 @@ def build_analysis(session_id: str, take_id: str) -> dict:
         "notes": diagnosis.get("notes", []),
         "extras": diagnosis.get("extras", []),
         "outside_count": diagnosis.get("outside_count", 0),
+        "played_bars": diagnosis.get("played_bars"),
+        "not_played_count": diagnosis.get("not_played_count", 0),
         "tuning_cents": diagnosis.get("tuning_cents", 0),
         "bars": diagnosis.get("bars", []),
         "problems": diagnosis.get("problems", []),

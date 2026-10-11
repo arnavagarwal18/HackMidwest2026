@@ -76,3 +76,27 @@ def make_take(**overrides) -> dict:
 def perfect_played(midis: list[int], offset_s: float = 1.0, sec_per_beat: float = 0.5) -> list[dict]:
     """One quarter-note-spaced played note per midi, exactly on the grid."""
     return [played_note(i, offset_s + i * sec_per_beat, midi) for i, midi in enumerate(midis)]
+
+
+LONG_BAR_COUNT = 16
+NOTES_PER_BAR = 4
+
+
+def long_scale_midis(bar_count: int = LONG_BAR_COUNT) -> list[int]:
+    """The scale bars repeated to `bar_count` bars, each 4-bar block a semitone higher so no block repeats another."""
+    return [midi + n // len(SCALE_BARS) for n in range(bar_count) for midi in SCALE_BARS[n % len(SCALE_BARS)]]
+
+
+def tempo_by_bar_played(midis: list[int], sec_per_beat_of_bar, offset_s: float = 1.0) -> list[dict]:
+    """Quarter notes (4 to a bar) whose spacing follows the bar they start in: `sec_per_beat_of_bar(bar)`."""
+    onset_s = offset_s
+    played = []
+    for i, midi in enumerate(midis):
+        played.append(played_note(i, onset_s, midi))
+        onset_s += sec_per_beat_of_bar(i // NOTES_PER_BAR + 1)
+    return played
+
+
+def make_long_score(bar_count: int = LONG_BAR_COUNT) -> dict:
+    midis = long_scale_midis(bar_count)
+    return make_score([midis[i:i + NOTES_PER_BAR] for i in range(0, len(midis), NOTES_PER_BAR)])

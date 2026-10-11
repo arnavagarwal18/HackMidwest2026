@@ -21,7 +21,8 @@ SETTLED_STATUSES = (STATUS_DIAGNOSED, "done")  # a re-run keeps these
 NOT_TRANSCRIBED_STATUSES = ("processing", STATUS_FAILED)
 DIAGNOSIS_KEYS = (
     "latency_ms", "grid", "played_bpm", "target_bpm", "alignment_quality", "cant_tell", "cant_tell_reason",
-    "error_rate", "notes", "extras", "outside_count", "tuning_cents", "bars",
+    "error_rate", "notes", "extras", "outside_count", "tuning_cents", "bars", "played_bars", "not_played_count",
+    "tempo_vs_goal_pct", "reference_bpm",
 )
 MS_PER_S = 1000
 

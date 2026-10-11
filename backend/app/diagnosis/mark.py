@@ -106,6 +106,16 @@ def cant_tell_reason(expected_count: int, pair_count: int, quality: float) -> st
     return None
 
 
+def played_window(expected: list[ExpectedNote], pairs: list[Pair]) -> tuple[int, int] | None:
+    """(first, last) bar that holds a paired expected note; None with no pairs."""
+    bars = [expected[e].bar for e, _ in pairs]
+    return (min(bars), max(bars)) if bars else None
+
+
+def _not_played(result: dict) -> dict:
+    return {**result, "status": config.STATUS_NOT_PLAYED}
+
+
 def mark_alignment(
     take_id: str,
     expected: list[ExpectedNote],
@@ -115,7 +125,11 @@ def mark_alignment(
     bar_starts: list[tuple[int, float]],
     beat_s: float,
 ) -> dict:
-    """Returns notes, extras, outside_count, tuning_cents, alignment_quality, cant_tell and cant_tell_reason.
+    """Returns notes, extras, outside_count, tuning_cents, played_bars, not_played_count, alignment_quality, cant_tell
+    and cant_tell_reason, plus `score_quality` (ok count over every expected note, for the transposition search).
+
+    Expected notes in whole bars before the first or after the last bar holding a pair are 'not_played': never
+    missed, and left out of the quality and can't-tell checks (`played_bars` is [first, last], None with no pairs).
 
     Notes are marked against the player's own tuning (see `tuning_offset`); cents_off is relative to it.
 
@@ -125,10 +139,17 @@ def mark_alignment(
     tuning = tuning_offset(expected, played, pairs)
     partner = {e: played[p] for e, p in pairs}
     paired_played = {p for _, p in pairs}
+    window_bars = played_window(expected, pairs)
     notes = [
         _note_result(note, grid["offset_s"] + note.onset_beats * grid["sec_per_beat"], partner.get(index), tuning)
         for index, note in enumerate(expected)
     ]
+    if window_bars is not None:
+        notes = [
+            _not_played(result) if not window_bars[0] <= result["bar"] <= window_bars[1] else result
+            for result in notes
+        ]
+    judged = [note for note in notes if note["status"] != config.STATUS_NOT_PLAYED]
     window = _outside_window(expected, played, pairs, beat_s)
     extras = []
     outside_count = 0
@@ -140,15 +161,19 @@ def mark_alignment(
         elif note["confidence"] >= config.CONFIDENCE_THRESHOLD:
             beat = (note["onset_s"] - grid["offset_s"]) / grid["sec_per_beat"]
             extras.append(_extra(take_id, note, _bar_at(bar_starts, beat)))
-    ok_count = sum(1 for note in notes if note["status"] == config.STATUS_OK)
-    quality = ok_count / len(expected) if expected else 0.0
-    reason = cant_tell_reason(len(expected), len(pairs), quality)
+    ok_count = sum(1 for note in judged if note["status"] == config.STATUS_OK)
+    quality = ok_count / len(judged) if judged else 0.0
+    score_quality = ok_count / len(notes) if notes else 0.0
+    reason = cant_tell_reason(len(judged), len(pairs), quality)
     return {
         "notes": notes,
         "extras": extras,
         "outside_count": outside_count,
         "tuning_cents": round(tuning * config.CENTS_PER_SEMITONE),
+        "played_bars": list(window_bars) if window_bars else None,
+        "not_played_count": len(notes) - len(judged),
         "alignment_quality": quality,
+        "score_quality": score_quality,
         "cant_tell": reason is not None,
         "cant_tell_reason": reason,
     }

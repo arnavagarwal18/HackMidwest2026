@@ -1,6 +1,7 @@
 """Step 5 (timing, drift per bar) and step 6 (error rate, clean tempo) of note diagnosis."""
 import logging
 from collections import Counter
+from statistics import median
 
 from .. import store
 from . import config
@@ -34,11 +35,11 @@ def drift_label(drift_pct: float | None) -> str | None:
 
 
 def error_rate(notes: list[dict]) -> float | None:
-    """(wrong + missed + late + early) / expected; uncertain notes count on neither side.
+    """(wrong + missed + late + early) / expected; uncertain and not-played notes count on neither side.
 
     None when no expected note is left to judge.
     """
-    judged = [note for note in notes if note["status"] != config.STATUS_UNCERTAIN]
+    judged = [note for note in notes if note["status"] not in config.UNJUDGED_STATUSES]
     if not judged:
         return None
     errors = sum(1 for note in judged if note["status"] in (config.STATUS_WRONG, config.STATUS_MISSED))
@@ -78,14 +79,22 @@ def _local_bpm(points: list[tuple[float, float]]) -> float | None:
     return None if line is None else SECONDS_PER_MINUTE / line.sec_per_beat
 
 
+def _local_bpms(ok_points: dict[int, list[tuple[float, float]]], bar_from: int, bar_to: int) -> dict[int, float | None]:
+    """Per bar: the tempo through its ok notes plus the first ok note of the next bar (None below 2 points)."""
+    bpms = {}
+    for bar in range(bar_from, bar_to + 1):
+        following = ok_points.get(bar + 1, [])[:1]
+        bpms[bar] = _local_bpm(ok_points.get(bar, []) + following)
+    return bpms
+
+
 def _bar_result(
-    take_id: str, bar: int, notes: list[dict], extras: list[dict], points: list[tuple[float, float]], target_bpm: float
+    take_id: str, bar: int, notes: list[dict], extras: list[dict], local_bpm: float | None, reference_bpm: float | None
 ) -> dict:
-    in_bar = [note for note in notes if note["bar"] == bar]
+    in_bar = [note for note in notes if note["bar"] == bar and note["status"] != config.STATUS_NOT_PLAYED]
     counts = Counter(note["status"] for note in in_bar)
     timings = [note["timing_ms"] for note in in_bar if note["timing_ms"] is not None]
-    local_bpm = _local_bpm(points)
-    drift_pct = None if local_bpm is None else (local_bpm - target_bpm) / target_bpm * 100
+    drift_pct = None if local_bpm is None else (local_bpm - reference_bpm) / reference_bpm * 100
     return {
         "id": f"b:{take_id}:{bar}",
         "bar": bar,
@@ -105,8 +114,9 @@ def _bar_result(
 def add_timing(result: dict, played: list[dict], take: dict) -> dict:
     """Add steps 5-6 to `align_take`'s result for the same played notes and take.
 
-    Returns the result with timing_ms on each note plus `bars`, `played_bpm`, `target_bpm`, `latency_ms`
-    and `error_rate`. played_bpm comes from the step 3 fit; with no fit it is the grid's tempo.
+    Returns the result with timing_ms on each note plus `bars`, `played_bpm`, `target_bpm`, `tempo_vs_goal_pct`,
+    `reference_bpm` (the median of the bars' local tempos, None with none), `latency_ms` and `error_rate`.
+    played_bpm comes from the step 3 fit; with no fit it is the grid's tempo. A bar's drift is against `reference_bpm`.
     """
     onset_by_i = {note["i"]: note["onset_s"] for note in played}
     missing = [i for note in result["notes"] if (i := note["played_i"]) is not None and i not in onset_by_i]
@@ -115,16 +125,22 @@ def add_timing(result: dict, played: list[dict], take: dict) -> dict:
     latency_s = take.get("latency_s") or 0.0
     notes, ok_points = _time_notes(result["notes"], onset_by_i, result["grid"], latency_s)
     sec_per_beat = (result["fit"] or result["grid"])["sec_per_beat"]
+    local_bpms = _local_bpms(ok_points, take["bar_from"], take["bar_to"])
+    known = [bpm for bpm in local_bpms.values() if bpm is not None]
+    reference_bpm = median(known) if known else None
     bars = [
-        _bar_result(take["take_id"], bar, notes, result["extras"], ok_points.get(bar, []), take["tempo_bpm"])
-        for bar in range(take["bar_from"], take["bar_to"] + 1)
+        _bar_result(take["take_id"], bar, notes, result["extras"], local_bpm, reference_bpm)
+        for bar, local_bpm in local_bpms.items()
     ]
+    played_bpm = SECONDS_PER_MINUTE / sec_per_beat
     timed = {
         **result,
         "notes": notes,
         "bars": bars,
-        "played_bpm": _round(SECONDS_PER_MINUTE / sec_per_beat),
+        "played_bpm": _round(played_bpm),
         "target_bpm": take["tempo_bpm"],
+        "tempo_vs_goal_pct": _round((played_bpm - take["tempo_bpm"]) / take["tempo_bpm"] * 100),
+        "reference_bpm": _round(reference_bpm),
         "latency_ms": latency_s * config.MS_PER_S,
         "error_rate": error_rate(notes),
     }

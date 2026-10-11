@@ -81,3 +81,22 @@ Extras went up by 3 on video1 and video2 (more splits inside long notes); ok not
 - The acted clip `form/bad_posture_example.mp4` currently flags nothing and has no fault times in `form_expectations.json`, so its test skips until Xavier or Caleb supplies the times.
 
 Removed 2026-10-11: owner marked bad_posture_example.mp4 as bad data.
+
+## r4 (2026-10-11, branch task/TASK-41, `AI_ENABLED=false`, port 8137, one fresh server per take)
+Change: piecewise time map from pass 1's same-midi pairs (anchors off the line of their neighbours by more than 0.5 beat dropped), played-bars window, per-bar tempo against the take's own median tempo (+-7%), `tempo_vs_goal_pct`. Runs: Ode to Joy `score.musicxml --bars 1-16 --bpm 100`; video1 `trumpet_video1_sheet.webp --bars 1-16`; video2 `trumpet_video2_sheet.webp --bars 1-20`; take files from `testdata/mistakes/` and the unmodified recordings. "Before" = the ANSWER_KEY.md Results table (main 1e81bac). Every take: status done, `played_bars` = every asked bar, `not_played_count` 0 (all takes play the whole piece).
+
+| Take | Align (before > after) | ok / wrong / missed after | Rushing (key: bars 5-8, 15%) | False-missed before > after |
+|---|---|---|---|---|
+| Ode baseline | 1.000 > 1.000 | 62 / 0 / 0 | none (right) | none |
+| ode_wrong_note | 0.968 > 0.968 | 60 / 2 / 0 | none | none; both wrong notes found (bar 3, bar 14) |
+| ode_missed_and_rushing | 0.984 > 0.984 | 61 / 0 / 1 | FOUND exactly: rushing bars 5-8, 12.0% (before: bars 5-7, 14.7%); bars 5-8 drift 13.4 / 12.8 / 11.9 / 9.9% | none; designed miss bar 11 B4 found; no more dragging on bar 8 |
+| video1 baseline | 0.981 > 0.981 | 102 / 0 / 2 | n/a; bars 1, 3, 9, 11 read rushing 12-14% and bar 12 dragging 10% (the player is uneven) | baseline-missed bar 10, 12 unchanged |
+| video1_wrong_note | 0.962 > 0.962 | 100 / 2 / 2 | n/a | same baseline misses; both wrong notes found (bar 3, bar 13) |
+| video1_missed_and_rushing | 0.962 > 0.971 | 101 / 0 / 3 | PARTLY: rushing bars 5-6 (13.8 / 10.7%); bars 7-8 read steady (2.8 / 3.3%) | bar 1 A#4 (2nd) and bar 16 A3 > bar 1 only; the bar 16 G3 "wrong" and its extra G3 are gone; designed miss bar 14 D5 found; bar 10 is the baseline miss |
+| video2 baseline | 0.983 > 0.983 | 119 / 0 / 2 | n/a (bar 1 rushing 9.5%, bar 12 dragging) | baseline-missed bar 3, 9 unchanged |
+| video2_wrong_note | 0.967 > 0.967 | 117 / 2 / 2 | n/a | same baseline misses; both wrong notes found (bar 6, bar 9) |
+| video2_missed_and_rushing | 0.950 > 0.950 | 115 / 0 / 6 | FOUND, one bar short: tier-1 "Bars 5-7: rushing, about 13% faster than your own tempo (96 BPM)" (bar 8 not flagged); before: bars 1-8, 18% against 90 BPM | bars 5 (C#5), 11 (D#4), 15 (C#5) > unchanged; bar 3, 9 baseline; designed miss bar 16 found |
+
+Remaining false-missed notes: every one is the second note of a same-pitch repeat (video1 bar 1 A#4 A#4; video2 bar 5 C#5 C#5, bar 11 D#4 D#4, bar 15 C#5 C#5 C#5; also the baseline's video2 bars 3 and 9). The status is missed with no extra note beside it, and the baseline has the same pattern, so the cause is upstream of the alignment: the transcriber returns one note for the two repeated notes (inferred from this pattern; I did not inspect the transcription itself). The alignment now pairs the one played note with its own copy (video1 bar 16 is fixed), but it cannot invent the second note.
+
+Not changed by r4 (found while checking): the tier-1 "N notes early / late, X ms" sentences still appear on every rushed take (e.g. video1 "Bars 6-13: 47 notes early, 521 ms"). `timing_ms` is still measured against the single fitted line, so the time saved by a sped-up phrase shows as early/late notes before and after it. The spec's time map is used for the alignment only. Bars 1-2 of video1 and the other uneven-bar drift problems (bars 10, 12, 13, 15, 16 dragging 9-17% in the rushed video1 take) come from the player's own uneven tempo against the median.

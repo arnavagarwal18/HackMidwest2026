@@ -1,5 +1,6 @@
 """Step 3: line up expected notes with played notes (two Needleman-Wunsch passes) and pick a time grid."""
 import logging
+from bisect import bisect_right
 from dataclasses import dataclass
 from statistics import median
 from typing import Callable
@@ -93,28 +94,91 @@ def fit_line(points: list[tuple[float, float]], min_points: int = config.MIN_FIT
     return Fit(offset_s=mean_y - slope * mean_x, sec_per_beat=slope)
 
 
+@dataclass
+class TimeMap:
+    """Expected beat -> played time: straight lines between anchors, the least-squares line beyond them."""
+
+    anchors: list[tuple[float, float]]  # (expected beat, played onset_s), beats and times both rising
+    fit: Fit
+
+    def __post_init__(self) -> None:
+        self._beats = [beat for beat, _ in self.anchors]
+
+    def time_at(self, beat: float) -> float:
+        first, last = self.anchors[0], self.anchors[-1]
+        if beat < first[0] or beat > last[0]:
+            return self.fit.offset_s + beat * self.fit.sec_per_beat
+        upper = min(bisect_right(self._beats, beat), len(self._beats) - 1)
+        (beat_a, time_a), (beat_b, time_b) = self.anchors[upper - 1], self.anchors[upper]
+        return time_a + (beat - beat_a) / (beat_b - beat_a) * (time_b - time_a)
+
+
+def _same_midi_anchors(expected: list[ExpectedNote], played: list[dict], pass1: list[Pair]) -> list[tuple[float, float]]:
+    """Pass 1's same-midi pairs as (beat, onset_s); one whose onset (or beat) does not move on from the previous
+    kept anchor's is dropped."""
+    anchors: list[tuple[float, float]] = []
+    for e, p in pass1:
+        if expected[e].midi != played[p]["midi"]:
+            continue
+        point = (expected[e].onset_beats, played[p]["onset_s"])
+        if not anchors or (point[1] > anchors[-1][1] and point[0] > anchors[-1][0]):
+            anchors.append(point)
+    return anchors
+
+
+def _off_line(index: int, anchors: list[tuple[float, float]], sec_per_beat: float) -> bool:
+    """True when the anchor's onset is more than ANCHOR_MAX_OFF_BEATS from the line through its neighbours
+    (up to ANCHOR_NEIGHBOURS on each side, itself excluded); False with too few neighbours to fit a line."""
+    reach = config.ANCHOR_NEIGHBOURS
+    neighbours = anchors[max(0, index - reach):index] + anchors[index + 1:index + 1 + reach]
+    line = fit_line(neighbours, min_points=2)
+    if line is None:
+        return False
+    beat, onset_s = anchors[index]
+    return abs(onset_s - (line.offset_s + beat * line.sec_per_beat)) > config.ANCHOR_MAX_OFF_BEATS * sec_per_beat
+
+
+def _drop_off_line_anchors(anchors: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Drop anchors that sit off the line their neighbours make (pass 1 paired a repeated note with the wrong copy,
+    and the map would bend through that pair); a second round catches neighbours whose fit the first drop changed.
+    A steady speed-up stays on its neighbours' line, so it keeps its anchors."""
+    for _ in range(config.ANCHOR_ROUNDS):
+        overall = fit_line(anchors)
+        if overall is None:
+            return anchors
+        kept = [a for i, a in enumerate(anchors) if not _off_line(i, anchors, overall.sec_per_beat)]
+        if len(kept) == len(anchors):
+            break
+        anchors = kept
+    return anchors
+
+
+def build_time_map(expected: list[ExpectedNote], played: list[dict], pass1: list[Pair]) -> TimeMap | None:
+    """The step 3 time map from pass 1's pairs; None (pass 1 stands) with fewer than MIN_FIT_PAIRS anchors or no
+    rising line through them."""
+    anchors = _same_midi_anchors(expected, played, pass1)
+    anchors = _drop_off_line_anchors(anchors)
+    fit = fit_line(anchors)
+    return None if fit is None else TimeMap(anchors, fit)
+
+
 def align_notes(expected: list[ExpectedNote], played: list[dict]) -> Alignment:
-    """Pass 1 has no time limit; if >= 3 same-midi pairs give a fit, pass 2 limits pairs to +-1 beat of it
-    and takes off each pair's score in proportion to its distance in time, so closer pairings win ties."""
+    """Pass 1 has no time limit; if the time map has >= 3 anchors, pass 2 limits pairs to +-1 beat of the map's
+    time and takes off each pair's score in proportion to its distance in time, so closer pairings win ties."""
     pass1 = needleman_wunsch(expected, played)
-    same_midi = [
-        (expected[e].onset_beats, played[p]["onset_s"])
-        for e, p in pass1
-        if expected[e].midi == played[p]["midi"]
-    ]
-    fit = fit_line(same_midi)
-    if fit is None:
-        logger.info("alignment: no usable fit from %d same-midi pairs; pass 1 stands", len(same_midi))
+    time_map = build_time_map(expected, played, pass1)
+    if time_map is None:
+        logger.info("alignment: no usable time map from pass 1's same-midi pairs; pass 1 stands")
         return Alignment(pairs=pass1, fit=None)
+    sec_per_beat = time_map.fit.sec_per_beat
 
     def time_penalty(note: ExpectedNote, played_note: dict) -> float | None:
-        fitted_s = fit.offset_s + note.onset_beats * fit.sec_per_beat
-        distance_beats = abs(played_note["onset_s"] - fitted_s) / fit.sec_per_beat
+        distance_beats = abs(played_note["onset_s"] - time_map.time_at(note.onset_beats)) / sec_per_beat
         if distance_beats > config.PASS2_WINDOW_BEATS:
             return None
         return config.PASS2_TIME_PENALTY * min(1.0, distance_beats)
 
-    return Alignment(pairs=needleman_wunsch(expected, played, time_penalty), fit=fit)
+    return Alignment(pairs=needleman_wunsch(expected, played, time_penalty), fit=time_map.fit)
 
 
 def build_grid(

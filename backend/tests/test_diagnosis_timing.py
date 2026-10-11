@@ -11,7 +11,10 @@ from app.diagnosis.timing import (
     save_clean_tempo,
     timing_flag,
 )
-from diagnosis_samples import SCALE_BARS, make_scale_score, make_score, make_take, perfect_played, played_note
+from diagnosis_samples import (
+    SCALE_BARS, long_scale_midis, make_long_score, make_scale_score, make_score, make_take, perfect_played, played_note,
+    tempo_by_bar_played,
+)
 
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
 
@@ -69,19 +72,40 @@ def test_a_take_delayed_only_by_the_latency_is_on_time():
 
 
 def test_rushing_bars_five_and_six():
-    score = make_score([[60, 62, 64, 65]] * 6)
-    midis = [60, 62, 64, 65] * 2
-    played = perfect_played(midis, offset_s=1.0, sec_per_beat=0.5 / 1.1)  # 10% faster than 120 BPM
+    played = tempo_by_bar_played(long_scale_midis(), lambda bar: 0.5 / 1.1 if bar in (5, 6) else 0.5)  # 10% faster
+    take = make_take(bar_from=1, bar_to=16)
 
-    result = run(score, played, make_take(bar_from=5, bar_to=6))
+    result = add_timing(align_take(make_long_score(), played, take, 0), played, take)
 
-    assert [b["bar"] for b in result["bars"]] == [5, 6]
     for bar_result in result["bars"]:
-        assert bar_result["drift"] == "rushing"
-        assert bar_result["drift_pct"] == pytest.approx(10, abs=0.1)
-        assert bar_result["local_bpm"] == pytest.approx(132, abs=0.2)
-    assert result["played_bpm"] == pytest.approx(132, abs=0.2)
+        rushing = bar_result["bar"] in (5, 6)
+        assert bar_result["drift"] == ("rushing" if rushing else "steady")
+        assert bar_result["local_bpm"] == pytest.approx(132 if rushing else 120, abs=0.2)
+    assert bar(result, 5)["drift_pct"] == pytest.approx(10, abs=0.1)
+    assert result["reference_bpm"] == pytest.approx(120, abs=0.1)
     assert result["target_bpm"] == 120
+    assert result["tempo_vs_goal_pct"] == pytest.approx((result["played_bpm"] - 120) / 120 * 100, abs=0.01)
+
+
+def test_a_whole_take_at_one_tempo_is_steady_whatever_the_goal_and_saves_how_far_it_is_from_the_goal():
+    played = perfect_played(SCALE_MIDIS, sec_per_beat=0.5 / 1.1)  # 10% faster than the 120 BPM goal
+
+    result = run(make_scale_score(), played, make_take())
+
+    assert all(b["drift"] == "steady" for b in result["bars"])
+    assert result["reference_bpm"] == pytest.approx(132, abs=0.2)
+    assert result["tempo_vs_goal_pct"] == pytest.approx(10, abs=0.1)
+
+
+def test_a_bars_tempo_uses_the_first_ok_note_of_the_next_bar():
+    # Bar 1 has two ok notes (beats 0 and 1); its last two are never played. The next bar's first note comes
+    # on the beat, so bar 1's tempo comes from 3 points (beats 0, 1 and 4), not 2.
+    played = [p for p in perfect_played(SCALE_MIDIS) if p["i"] in (0, 1, 4, 5, 6, 7)]
+
+    result = run(make_scale_score(), played, make_take())
+
+    assert bar(result, 1)["ok"] == 2
+    assert bar(result, 1)["local_bpm"] == pytest.approx(120)
 
 
 def test_fitted_grid_for_an_upload_take():
@@ -143,7 +167,8 @@ def test_only_ok_and_wrong_notes_get_timing_and_bars_count_statuses():
     assert (bar_two["expected"], bar_two["ok"], bar_two["wrong"], bar_two["missed"]) == (4, 1, 1, 1)
     assert (bar_two["uncertain"], bar_two["extra"]) == (1, 1)
     assert bar_two["mean_timing_ms"] == pytest.approx(0, abs=0.01)
-    assert bar_two["local_bpm"] is None and bar_two["drift_pct"] is None and bar_two["drift"] is None
+    # one ok note, plus the first ok note of bar 3 for its tempo: two points on the 120 BPM grid
+    assert bar_two["local_bpm"] == pytest.approx(120) and bar_two["drift"] == "steady"
 
 
 def test_bar_with_one_ok_note_has_no_tempo():
@@ -172,7 +197,7 @@ def test_late_and_early_threshold(ms, flag):
 
 
 @pytest.mark.parametrize(
-    "pct, label", [(5, "steady"), (5.1, "rushing"), (-5, "steady"), (-5.1, "dragging"), (None, None)]
+    "pct, label", [(7, "steady"), (7.1, "rushing"), (-7, "steady"), (-7.1, "dragging"), (None, None)]
 )
 def test_drift_label(pct, label):
     assert drift_label(pct) == label

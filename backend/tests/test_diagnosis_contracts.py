@@ -17,8 +17,8 @@ from tests.test_sessions import assert_error
 
 SCALE_MIDIS = [midi for bar in SCALE_BARS for midi in bar]
 ANALYSIS_KEYS = {
-    "status", "error", "form_status", "calibrated", "transposition", "alignment_quality", "cant_tell",
-    "cant_tell_reason", "tempo", "notes", "extras", "outside_count", "tuning_cents", "bars", "problems", "tier1", "form", "media_url",
+    "status", "kind", "bar_from", "bar_to", "error", "form_status", "calibrated", "transposition", "alignment_quality", "cant_tell",
+    "cant_tell_reason", "tempo", "notes", "extras", "outside_count", "played_bars", "not_played_count", "tuning_cents", "bars", "problems", "tier1", "form", "media_url",
 }
 
 
@@ -47,6 +47,7 @@ def test_analysis_before_diagnosis_has_empty_results(client, sessions_root):
 
     assert set(body) == ANALYSIS_KEYS
     assert (body["status"], body["error"], body["transposition"], body["tempo"]) == ("transcribed", None, None, None)
+    assert (body["played_bars"], body["not_played_count"]) == (None, 0)
     assert (body["notes"], body["extras"], body["bars"], body["problems"], body["tier1"], body["form"]) == ([],) * 6
     assert body["media_url"] == f"/sessions/{session_id}/takes/t1/media"
 
@@ -61,6 +62,9 @@ def test_analysis_after_diagnosis_follows_the_contract(client, sessions_root):
     assert body["transposition"] == {"semitones": 0, "source": "default"}
     assert body["alignment_quality"] == 1.0
     assert body["tempo"]["target_bpm"] == 120
+    assert body["tempo"]["tempo_vs_goal_pct"] == pytest.approx(body["tempo"]["played_bpm"] / 120 * 100 - 100, abs=0.1)
+    assert (body["kind"], body["bar_from"], body["bar_to"]) == ("mic", 1, 4)
+    assert (body["played_bars"], body["not_played_count"]) == ([1, 4], 0)
     assert body["tempo"]["played_bpm"] == pytest.approx(120, abs=1)
     assert body["tempo"]["clean_bpm"] == pytest.approx(0.7 * body["tempo"]["played_bpm"], abs=0.01)  # no clean take yet
     assert len(body["notes"]) == 16 and len(body["bars"]) == 4
