@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 
 import librosa
 import numpy as np
+from scipy.signal import find_peaks
 
 from app.errors import AppError
 
@@ -30,6 +31,10 @@ ONSET_DIP_DB = 3.0  # an onset inside a note only counts if the level dips this 
 ONSET_LOOKBACK_FRAMES = 10
 ONSET_LOOKAHEAD_FRAMES = 10  # librosa's backtrack can land before the dip when a decaying note is bowed again
 EDGE_LEVEL_DB = 3.0
+# A soft re-articulation (same pitch tongued again, or slurred) has a weak onset-strength peak librosa often misses,
+# but the level always sags first: on the Ode to Joy take every boundary dips 6.5-22 dB, steady playing under 2 dB.
+LEVEL_DIP_PROMINENCE_DB = 5.0
+MERGE_SPLIT_FRAMES = 5  # two split candidates this close are one re-articulation
 
 
 class TranscribeError(AppError):
@@ -146,12 +151,28 @@ def _onset_dip_frame(level_db: np.ndarray, frame: int) -> int | None:
     return frame + int(np.argmin(after))
 
 
+def _level_dip_frames(level_db: np.ndarray) -> set[int]:
+    """Frames where the level bottoms out in a dip at least LEVEL_DIP_PROMINENCE_DB deep: re-articulations librosa misses."""
+    frames, _ = find_peaks(-level_db, prominence=LEVEL_DIP_PROMINENCE_DB)
+    return set(frames.tolist())
+
+
+def _merge_close(frames: set[int]) -> set[int]:
+    """Keep the first of any run of frames less than MERGE_SPLIT_FRAMES apart."""
+    kept: list[int] = []
+    for frame in sorted(frames):
+        if not kept or frame - kept[-1] >= MERGE_SPLIT_FRAMES:
+            kept.append(frame)
+    return set(kept)
+
+
 def _split_into_segments(
     midi: np.ndarray, voiced: np.ndarray, level_db: np.ndarray, onset_frames: set[int]
 ) -> list[list[int]]:
     """Group voiced frame indices into notes using onsets, pitch jumps and silence."""
     smoothed = _running_median(midi)
-    split_frames = {dip for dip in (_onset_dip_frame(level_db, f) for f in onset_frames) if dip is not None}
+    onset_dips = {dip for dip in (_onset_dip_frame(level_db, f) for f in onset_frames) if dip is not None}
+    split_frames = _merge_close(onset_dips | _level_dip_frames(level_db))
     segments: list[list[int]] = []
     current: list[int] = []
     jump_run: list[int] = []  # consecutive voiced frames far from the current note's median

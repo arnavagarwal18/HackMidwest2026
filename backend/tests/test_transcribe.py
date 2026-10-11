@@ -133,3 +133,30 @@ def test_repeated_pitch_on_a_decaying_note_is_two_notes(tmp_path):
     assert [n.midi for n in notes] == [60, 60, 67, 67]
     for note, beat in zip(notes, range(4)):
         assert abs(note.onset_s - (1.0 + beat * NOTE_S)) <= 0.05
+
+
+def long_tone(midi, seconds, dip_at_s=None, dip_db=12.0, dip_s=0.2, vibrato_cents=0.0, tremolo_db=0.0):
+    """One unbroken tone: optional smooth soft dip in level (a slurred or soft-tongued re-articulation), vibrato and tremolo."""
+    t = np.arange(int(seconds * SAMPLE_RATE)) / SAMPLE_RATE
+    freq = midi_to_hz(midi) * 2 ** (vibrato_cents * np.sin(2 * np.pi * 5.5 * t) / 1200)
+    gain_db = tremolo_db * np.sin(2 * np.pi * 5.5 * t)
+    if dip_at_s is not None:
+        gain_db = gain_db - dip_db * np.clip(1 - np.abs(t - dip_at_s) / (dip_s / 2), 0, 1)
+    tone = 0.3 * 10 ** (gain_db / 20) * np.sin(2 * np.pi * np.cumsum(freq) / SAMPLE_RATE)
+    envelope = np.minimum(1.0, np.minimum(t, seconds - t) / 0.03)
+    padding = np.zeros(int(0.3 * SAMPLE_RATE))
+    return np.concatenate([padding, tone * envelope, padding]).astype(np.float32)
+
+
+def test_soft_dip_between_same_pitch_tones_is_two_notes(tmp_path):
+    """Soft tonguing: the level sags and returns with no hard attack for librosa to catch; still two notes."""
+    audio = long_tone(71, 1.4, dip_at_s=0.7, dip_db=8.0, dip_s=0.5)
+    notes = transcribe(write_wav(tmp_path, audio), "trumpet", {})
+    assert [n.midi for n in notes] == [71, 71]
+    assert abs(notes[1].onset_s - (0.3 + 0.7)) <= 0.2
+
+
+def test_steady_tone_with_vibrato_and_tremolo_is_one_note(tmp_path):
+    audio = long_tone(71, 1.4, vibrato_cents=30, tremolo_db=1.5)
+    notes = transcribe(write_wav(tmp_path, audio), "trumpet", {})
+    assert [n.midi for n in notes] == [71]
