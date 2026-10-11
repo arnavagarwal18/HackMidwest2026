@@ -13,11 +13,11 @@ State when written: main b6a27a0 (2026-10-11 04:40 UTC). Smoke tests on main: 91
 - [ ] Optional clips: good posture that then goes bad; bad posture from the side; front-view good/bad pair; puffed cheeks close up; take 5 side view with hips in frame
 
 ## Jameson (MacBook Pro M5, 24 GB): heavy posture compute
-- [ ] LLD-4 change 11: fixed limits on head pitch, neck angle and back angle in backend/app/form/, set from testdata/youtube/posture_stats.csv (about p1/p99 of good players, loose enough for camera angle and body build); keep the baseline rules for drift during the take
-- [ ] The 3 good-posture clips (testdata/form/good_posture_*.mp4) no longer raise trumpet_head_down; remove their known_false_positive marks in testdata/form_expectations.json
-- [ ] Xavier's take 5 front and side clips still give their expected flags; `pytest backend/tests/test_form*.py` passes
+- [x] LLD-4 change 11: fixed limits on head pitch, neck angle and back angle in backend/app/form/, set from testdata/youtube/posture_stats.csv (about p1/p99 of good players, loose enough for camera angle and body build); keep the baseline rules for drift during the take
+- [x] The 3 good-posture clips (testdata/form/good_posture_*.mp4) no longer raise trumpet_head_down; remove their known_false_positive marks in testdata/form_expectations.json
+- [x] Xavier's take 5 front and side clips still give their expected flags; `pytest backend/tests/test_form*.py` passes
 - [ ] Write testdata/youtube/fault_candidates_reviewed.csv (one-line fault per video)
-- [ ] Merge or delete branch origin/task/TASK-45
+- [x] Merge or delete branch origin/task/TASK-45
 - [ ] Push to main and post the results on LLD-4 comment 01a128f9 for Caleb
 
 ## Caleb (AMD Ryzen 9 270, 16 GB): review and clean-up
