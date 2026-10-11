@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from app import form, store
+from app.agents.tools import make_tools
 from app.errors import AppError
 from app.form import config, runner, track
 from app.takes.take_store import update_take
@@ -253,3 +254,29 @@ def test_get_flags_raises_not_found_for_an_unknown_take(video_take):
     with pytest.raises(AppError) as caught:
         form.get_flags(session_id, "t9")
     assert caught.value.code == "take_not_found"
+
+
+def test_saved_form_carries_the_take_status_and_the_instrument(video_take, judged, reranks):
+    session_id, take_id = video_take
+    form.run(session_id, take_id)
+    saved = stored(session_id)["form"]
+    assert (saved["status"], saved["instrument"]) == ("done", "trumpet")
+    file_form = json.loads((store.session_dir(session_id) / "t1_form.json").read_text(encoding="utf-8"))
+    assert (file_form["status"], file_form["instrument"]) == ("done", "trumpet")
+
+
+def test_a_failed_form_carries_status_failed_and_the_instrument(video_take, reranks, monkeypatch):
+    session_id, take_id = video_take
+    monkeypatch.setattr(runner, "track_take", lambda *args: (_ for _ in ()).throw(RuntimeError("boom")))
+    form.run(session_id, take_id)
+    saved = stored(session_id)["form"]
+    assert (saved["status"], saved["instrument"]) == ("failed", "trumpet")
+
+
+def test_the_agents_overview_tool_sees_the_saved_form_status_and_instrument(video_take, judged, reranks):
+    session_id, take_id = video_take
+    form.run(session_id, take_id)
+    take = stored(session_id)
+    tools = make_tools(session_id, take_id, get_diagnosis=lambda s, t: take["diagnosis"], get_form=lambda s, t: take["form"])
+    overview = json.loads(tools["get_take_overview"]())
+    assert (overview["form_status"], overview["instrument"]) == ("done", "trumpet")
