@@ -108,6 +108,12 @@ Check again / Record again; shorten for tests with `?poll_ms=100&slow_after_s=1&
 renders the finished take. `results/load.js` is the only place that knows the shape of `GET .../feedback` (the back end
 sends `{...feedback, plan}`; an older mock wrapped it as `{feedback, plan}`; both are accepted).
 
+The key: the back end finds it (`diagnosis/transposition.py`) and the analysis carries `transposition: { semitones, source }`
+(source `detected`, `user`, `file` or `default`). The browser does not search keys. The results screen shows it as "Key: -4, detected"
+(`keyLabel` in `results/transposition.js`; the detection chip, and the can't-tell screen). The Transposition select posts
+`POST /sessions/{id}/transposition` (source `user`); `results/rerun.js` then waits for the analysis to show the new key and for the
+rebuilt feedback (a new feedback id) and never posts feedback itself. In mock mode a transposition POST has the same effect (`js/mock_transposition.js`).
+
 For the overlay and chat coders:
 
 - **Video container:** `#results-media` > `.video-stage` (position: relative) > `<video>`; put the overlay canvas in `.video-stage`.

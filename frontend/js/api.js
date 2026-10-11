@@ -52,7 +52,6 @@ export const checkCamera = (id, jpeg, view) => postForm(`${sess(id)}/camera-chec
 
 // ---- Feedback, trace and chat (LLD-5) ----
 export const getFeedback = (id, take) => get(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
-export const requestFeedback = (id, take) => postJson(`${sess(id)}/takes/${encodeURIComponent(take)}/feedback`);
 export const getTrace = (id, feedbackId) => get(`${sess(id)}/feedback/${encodeURIComponent(feedbackId)}/trace`);
 export const getChat = (id) => get(`${sess(id)}/chat`);
 export const sendChat = (id, message, takeId = null) => postJson(`${sess(id)}/chat`, { message, take_id: takeId });

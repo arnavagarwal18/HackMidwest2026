@@ -4,7 +4,7 @@
 // Polled routes (poll) answer with <processingFile> (one file, or a list: one per poll) for their first `polls` requests, then with
 // the final file, so screens can test their polling. A POST that starts the work (resets) restarts
 // the count for that group. The mock only reads static files; nothing reaches a real route.
-import { analysisVariant, AUTOKEY_TAKE, NOKEY_TAKE, rememberMockTransposition, withChosenTransposition } from './mock_transposition.js';
+import { rememberMockTransposition, withChosenTransposition, withRebuiltFeedback } from './mock_transposition.js';
 
 const MOCK_DELAY_MS = 150;
 
@@ -36,7 +36,6 @@ const ROUTES = [
     poll: { group: 'camera', processingFile: 'post_camera_check', polls: 3 } },
   { method: 'GET', pattern: '/sessions/:id/takes/:take/feedback', file: 'get_feedback',
     poll: { group: 'feedback', processingFile: 'error_feedback_not_ready' } },
-  { method: 'POST', pattern: '/sessions/:id/takes/:take/feedback', file: 'post_feedback' },
   { method: 'GET', pattern: '/sessions/:id/feedback/:fb/trace', file: 'get_trace' },
   { method: 'GET', pattern: '/sessions/:id/chat', file: 'get_chat' },
   { method: 'POST', pattern: '/sessions/:id/chat', file: 'post_chat' },
@@ -58,9 +57,7 @@ const SESSION_VARIANTS = {
 const TAKE_VARIANTS = {
   take_mic: { get_analysis: 'get_analysis_mic' }, // a mic take: no form check
   take_failed: { get_analysis: 'get_analysis_failed' },
-  take_cant_tell: { get_analysis: 'get_analysis_cant_tell_few_pairs', get_feedback: 'get_feedback_cant_tell' }, // not low_match, so no automatic key search
-  [AUTOKEY_TAKE]: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' }, // low_match; good only in one key: mock_transposition.js
-  [NOKEY_TAKE]: { get_analysis: 'get_analysis_cant_tell', get_feedback: 'get_feedback_cant_tell' }, // low_match in every key
+  take_cant_tell: { get_analysis: 'get_analysis_cant_tell_few_pairs', get_feedback: 'get_feedback_cant_tell' },
   take_fallback: { get_feedback: 'get_feedback_fallback', post_chat: 'post_chat_fallback' }, // the chat POST names its take in the body
   take_stuck: { get_analysis: 'get_analysis_transcribed' }, // never finishes
 };
@@ -71,7 +68,7 @@ const FAILED_CALIBRATION = { group: 'calibration', processingFile: 'error_calibr
 const calibrationVariant = () => new URLSearchParams(window.location.search).get('calibration');
 
 // error_*.json files stand for a failed response; most are a 404, these have their own status.
-const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409, error_feedback_busy: 409 };
+const ERROR_STATUS = { error_calibration_failed: 422, error_transposition_wrong_state: 409 };
 
 // Exercise ids that change what the exercise routes answer, so the loop trainer can be tried in each state.
 // ex_fail / ex_not_counted: the rep is a FAIL / does not count. ex_complete: one pass from the target, and the rep completes it.
@@ -112,12 +109,9 @@ export function mockFileFor(method, path, requestBody) {
   const takeId = /\/takes\/([^/]+)\//.exec(pathOnly)?.[1] ?? requestBody?.take_id;
   const exerciseId = /\/exercises\/([^/]+)/.exec(pathOnly)?.[1];
   const finalFile = (TAKE_VARIANTS[takeId] ?? EXERCISE_VARIANTS[exerciseId])?.[route.file] ?? route.file;
-  if (route.poll) return pollFile(route, pathOnly, route.file === 'get_analysis' ? analysisVariant(takeId, finalFile) : finalFile);
+  if (route.poll) return pollFile(route, pathOnly, finalFile);
   if (route.file === 'post_calibration' && calibrationVariant() === 'failed') {
     return pollFile({ poll: FAILED_CALIBRATION }, pathOnly, finalFile);
-  }
-  if (route.file === 'post_feedback' && pathOnly.split('/')[2] === 'sess_feedback_busy') { // not ready for the first two asks
-    return pollFile({ poll: { group: 'feedback_busy', processingFile: 'error_feedback_busy', polls: 2 } }, pathOnly, finalFile);
   }
   if (route.file === 'post_transposition' && pathOnly.split('/')[2] === 'sess_unconfirmed') return 'error_transposition_wrong_state';
   if (route.file === 'get_session') return SESSION_VARIANTS[pathOnly.split('/')[2]] ?? route.file;
@@ -137,7 +131,7 @@ export async function mockResponse(method, path, requestBody) {
     return null;
   }
   const json = await res.json();
-  const body = file.startsWith('get_analysis') ? withChosenTransposition(json) : json;
+  const body = file.startsWith('get_analysis') ? withChosenTransposition(json) : withRebuiltFeedback(file, json);
   const isError = file.startsWith('error_'); // error_*.json files stand for a failed (non-2xx) response
   return { ok: !isError, status: isError ? (ERROR_STATUS[file] ?? 404) : 200, body };
 }

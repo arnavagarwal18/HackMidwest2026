@@ -1,12 +1,15 @@
 """Run the form pipeline with the face check on a video and dump the Face Landmarker's per-frame readings.
 
-Usage (from backend/): .venv/Scripts/python scripts/dump_face_readings.py VIDEO CSV_OUT [--split-s SECONDS] [--cheek-width]
+Usage (from backend/): .venv/Scripts/python scripts/dump_face_readings.py VIDEO CSV_OUT [--split-s SECONDS] [--cheek-width] [--max-seconds 290]
 
 --cheek-width adds a cheek_width column: the distance between Face Mesh landmarks 234 and 454 (the cheeks' outer edges)
 divided by the distance between landmarks 33 and 263 (the outer eye corners), in the face crop's pixels.
 
 Frames are read with the whole video as one 'note' so every sampled frame has a reading; the form rules are then judged
 on only the frames inside the notes transcribed from the video's audio, as the app does.
+
+Only the first --max-seconds (default 290, the video-length cap of video_cap.py that bounds memory use; 0 lifts it, for deliberate
+full-length runs on other machines) of the video are tracked; the audio is still transcribed whole.
 """
 import argparse
 import csv
@@ -16,17 +19,21 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
+sys.path.insert(0, str(Path(__file__).parent))  # for the sibling video_cap module
 
 from app.form import config  # noqa: E402
 from app.form import face  # noqa: E402
 from app.form.face import FaceReader, FaceResult  # noqa: E402
 from app.form.rules import analyse  # noqa: E402
-from app.form.track import track_video  # noqa: E402
 from app.takes.media_tools import extract_wav  # noqa: E402
 from app.takes.transcribe import transcribe  # noqa: E402
+from video_cap import add_max_seconds_argument, analysis_window, track_video_capped  # noqa: E402
 
 
 LEFT_CHEEK, RIGHT_CHEEK, LEFT_EYE_OUTER, RIGHT_EYE_OUTER = 234, 454, 33, 263  # Face Mesh landmark indices
+
+WALL_LIMIT_S = 10_000  # track_video's own wall-clock limit: effectively none, the video-time cap decides
+NO_CAP_WINDOW_S = 1e6  # the reader window when the video is not capped
 
 cheek_widths: dict[float, float] = {}  # frame time -> cheek width / inter-eye distance, filled when --cheek-width is on
 
@@ -63,13 +70,14 @@ class _WidthRecordingReader(FaceReader):
                 cheek_widths[seconds] = width
 
 
-def read_frames(video: Path, view: str | None, duration_s: float, with_width: bool = False):
+def read_frames(video: Path, view: str | None, limit_s: float, with_width: bool = False):
+    """(tracked, face result) for the first limit_s seconds of video."""
     cheek_widths.clear()
     reader_class = _WidthRecordingReader if with_width else FaceReader
     if with_width:
         face._create_landmarker = _WidthRecordingLandmarker
-    with reader_class([{"onset_s": 0.0, "offset_s": duration_s}], view) as reader:
-        tracked = track_video(video, with_hands=False, time_limit_s=10_000, on_frame=reader.read)
+    with reader_class([{"onset_s": 0.0, "offset_s": limit_s}], view) as reader:
+        tracked = track_video_capped(video, limit_s, WALL_LIMIT_S, on_frame=reader.read)
     return tracked, reader.result
 
 
@@ -104,7 +112,9 @@ def main() -> None:
     parser.add_argument("csv_out", type=Path)
     parser.add_argument("--split-s", type=float, help="where the owner says the behaviour changes (adds the half-by-half summary)")
     parser.add_argument("--cheek-width", action="store_true", help="add the landmark-based cheek_width column")
+    add_max_seconds_argument(parser)
     args = parser.parse_args()
+    window_s = analysis_window(NO_CAP_WINDOW_S, args.max_seconds)  # seconds of video tracked and read
 
     with tempfile.TemporaryDirectory() as folder:
         wav = Path(folder) / "audio.wav"
@@ -112,10 +122,10 @@ def main() -> None:
         notes = [{"onset_s": n.onset_s, "offset_s": n.offset_s} for n in transcribe(wav, "trumpet")]
     print(f"notes transcribed: {len(notes)}, first {notes[0]['onset_s']:.2f}s, last end {notes[-1]['offset_s']:.2f}s")
 
-    tracked, everywhere = read_frames(args.video, None, 1e6, args.cheek_width)
+    tracked, everywhere = read_frames(args.video, None, window_s, args.cheek_width)
     analysis = analyse(tracked.frames, "trumpet", "t1", tracked.width, tracked.height, everywhere)
     if analysis["view"] == "side":
-        tracked, everywhere = read_frames(args.video, "side", 1e6, args.cheek_width)
+        tracked, everywhere = read_frames(args.video, "side", window_s, args.cheek_width)
     in_notes = FaceResult(readings={t: r for t, r in everywhere.readings.items() if any(a <= t < b for a, b in map(lambda n: (n["onset_s"], n["offset_s"]), notes))})
     final = analyse(tracked.frames, "trumpet", "t1", tracked.width, tracked.height, in_notes)
     print(f"view={final['view']} view_ratio={final['view_ratio']} face_quality(in notes)={in_notes.face_quality} "

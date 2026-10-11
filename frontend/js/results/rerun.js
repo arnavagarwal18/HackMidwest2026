@@ -1,12 +1,22 @@
-// After the user changes the transposition by hand: the back end re-checks the notes in the background but does not
-// write the feedback again, so the old feedback (often the can't-tell one) would be shown unchanged. This waits for the
-// re-check, asks for new feedback once, and returns the same { done, analysis, feedback, plan } the screen shows.
-import { waitForKey, writeFeedbackAgain } from './autokey_run.js';
+// After the user changes the transposition by hand: the back end checks the notes again in the background and then
+// builds the take's feedback again. This waits for the new key to show in the analysis, then for the new feedback (a
+// different id from the one on screen), and returns the same { done, analysis, feedback, plan } the screen shows.
+import { fetchResultsOnce } from './load.js';
+import { pollUntilDone } from './polling.js';
+import { keyThresholds, waitForKey } from './take_wait.js';
 
 // Resolves to { outcome: 'done', result } | { outcome: 'timeout' } | { outcome: 'stopped' }. Errors propagate.
-export async function refreshAfterKeyChange({ sessionId, take, semitones, isActive }) {
-  const polled = await waitForKey(sessionId, take, semitones, isActive);
-  if (polled.outcome !== 'done') return { outcome: polled.outcome };
-  const result = await writeFeedbackAgain(sessionId, take, polled.result.analysis, isActive);
-  return isActive() ? { outcome: 'done', result } : { outcome: 'stopped' }; // the user may leave during the feedback request
+export async function refreshAfterKeyChange({ sessionId, take, semitones, previousFeedbackId, isActive }) {
+  const rechecked = await waitForKey(sessionId, take, semitones, isActive);
+  if (rechecked.outcome !== 'done') return { outcome: rechecked.outcome };
+  const rebuilt = await pollUntilDone({
+    isActive,
+    thresholds: keyThresholds(),
+    onTick: () => {},
+    fetchOnce: async () => {
+      const result = await fetchResultsOnce(sessionId, take);
+      return { ...result, done: result.done && result.feedback?.id !== previousFeedbackId };
+    },
+  });
+  return rebuilt.outcome === 'done' ? { outcome: 'done', result: rebuilt.result } : { outcome: rebuilt.outcome };
 }

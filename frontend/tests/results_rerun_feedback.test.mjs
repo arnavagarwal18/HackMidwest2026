@@ -1,4 +1,5 @@
-// After a hand-made transposition change the feedback is asked for once; a fresh take is never asked.
+// After a hand-made transposition change the screen waits for the back end's new analysis and its rebuilt feedback;
+// it never asks for feedback itself (POST .../feedback).
 // Run: node --test frontend/tests/results_rerun_feedback.test.mjs   (mock mode on the real api.js; no browser)
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -12,38 +13,37 @@ globalThis.fetch = async (url) => {
   return { ok: true, status: 200, json: async () => JSON.parse(body) };
 };
 const realSetTimeout = globalThis.setTimeout;
-globalThis.setTimeout = (fn, ms, ...args) => realSetTimeout(fn, Math.min(ms, 2), ...args); // the mock's 150 ms delay, the poll wait and the 1 s retry gap
+globalThis.setTimeout = (fn, ms, ...args) => realSetTimeout(fn, Math.min(ms, 2), ...args); // the mock's 150 ms delay and the poll waits
 
 const { setTransposition } = await import('../js/api.js');
 const { fetchResultsOnce } = await import('../js/results/load.js');
 const { pollUntilDone } = await import('../js/results/polling.js');
-const { FEEDBACK_TRIES } = await import('../js/results/autokey_run.js');
 const { refreshAfterKeyChange } = await import('../js/results/rerun.js');
 const { mockRequestLog } = await import('../js/mock.js');
 
 const SESSION = 'sess_mock1';
 const TAKE = 'take_cant_tell';
 const feedbackPosts = () => mockRequestLog.filter((r) => r.method === 'POST' && r.path.endsWith('/feedback')).length;
-const refresh = (semitones, sessionId = SESSION) => refreshAfterKeyChange({ sessionId, take: TAKE, semitones, isActive: () => true });
+const refresh = (semitones, previousFeedbackId = 'fb_1', isActive = () => true) =>
+  refreshAfterKeyChange({ sessionId: SESSION, take: TAKE, semitones, previousFeedbackId, isActive });
 
-test('after a manual key change the feedback is requested exactly once and the result is shown', async () => {
+test('after a manual key change the rebuilt feedback is shown, and feedback is never requested by the screen', async () => {
   mockRequestLog.length = 0;
   await setTransposition(SESSION, 3);
   const refreshed = await refresh(3);
   assert.equal(refreshed.outcome, 'done');
-  assert.equal(feedbackPosts(), 1);
+  assert.equal(feedbackPosts(), 0);
   assert.equal(refreshed.result.done, true);
   assert.equal(refreshed.result.analysis.transposition.semitones, 3);
-  assert.ok(refreshed.result.feedback, 'the new feedback is in the result');
+  assert.notEqual(refreshed.result.feedback.id, 'fb_1', 'the feedback is the rebuilt one, not the old one');
 });
 
-test('a 409 from the feedback request (back end busy) is retried and succeeds', async () => {
+test('feedback that still has the old id is not shown: the wait ends at the limit', async () => {
   mockRequestLog.length = 0;
-  await setTransposition('sess_feedback_busy', 2); // the mock answers 409 to the first two feedback requests of this session
-  const refreshed = await refresh(2, 'sess_feedback_busy');
-  assert.equal(refreshed.outcome, 'done');
-  assert.equal(feedbackPosts(), 3, 'two 409s, then the answer');
-  assert.ok(feedbackPosts() <= FEEDBACK_TRIES);
+  await setTransposition(SESSION, 4);
+  const { result: current } = await pollUntilDone({ fetchOnce: () => fetchResultsOnce(SESSION, TAKE), onTick: () => {}, isActive: () => true });
+  const refreshed = await refresh(4, current.feedback.id); // the back end has not rebuilt anything newer than this
+  assert.deepEqual(refreshed, { outcome: 'timeout' });
 });
 
 test('a fresh take that becomes ready is never asked for feedback', async () => {
@@ -59,24 +59,10 @@ test('a re-check that never shows the new key stops at the limit instead of wait
   await setTransposition(SESSION, 5);
   const refreshed = await refresh(-7); // the take keeps showing +5
   assert.deepEqual(refreshed, { outcome: 'timeout' });
-  assert.equal(feedbackPosts(), 0, 'no feedback is requested for a re-check that did not finish');
 });
 
-test('leaving the screen stops the wait without asking for feedback', async () => {
+test('leaving the screen stops the wait', async () => {
   mockRequestLog.length = 0;
-  const refreshed = await refreshAfterKeyChange({ sessionId: SESSION, take: TAKE, semitones: 5, isActive: () => false });
-  assert.deepEqual(refreshed, { outcome: 'stopped' });
-  assert.equal(feedbackPosts(), 0);
-});
-
-test('leaving the screen during the feedback request gives no result to show', async () => {
-  mockRequestLog.length = 0;
-  await setTransposition(SESSION, 3);
-  let active = true;
-  const refreshing = refreshAfterKeyChange({ sessionId: SESSION, take: TAKE, semitones: 3, isActive: () => active });
-  const leaveWhenFeedbackAsked = setInterval(() => { if (feedbackPosts() > 0) active = false; }, 0);
-  const refreshed = await refreshing;
-  clearInterval(leaveWhenFeedbackAsked);
-  assert.equal(feedbackPosts(), 1);
+  const refreshed = await refresh(5, 'fb_1', () => false);
   assert.deepEqual(refreshed, { outcome: 'stopped' });
 });

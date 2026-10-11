@@ -5,7 +5,7 @@
   "calibrated": true,
   "transposition": {
     "semitones": 0,
-    "source": "auto"
+    "source": "default"
   },
   "alignment_quality": null,
   "cant_tell": false,

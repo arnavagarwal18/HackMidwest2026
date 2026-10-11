@@ -243,7 +243,6 @@ export async function render(root, _params, isCurrent = () => true) {
         return true;
       }
       state.current_take_id = answer.take_id;
-      state.last_take_upload = { take_id: answer.take_id, file, fields };
       state.take_setup = { ...setup };
       window.location.hash = `#/results/${encodeURIComponent(answer.take_id)}`;
       return true;
