@@ -136,7 +136,7 @@ Detailed feedback. From 901px `#coach-root` is a sticky right column (`.results-
 For the overlay and chat coders:
 
 - **Video container:** `#results-media` > `.video-stage` (position: relative) > `<video>`; put the overlay canvas in `.video-stage`.
-  Beside it is an empty `#form-flag-slot` for the form flag list. `view.js`'s `renderDone` returns `{ index, jumper, player, barStrip, ... }`.
+  Under it is `#overlay-controls-slot`, which holds the overlay's "Show body lines" checkbox (there is no list of form flags; they show only as lines and captions on the video). `view.js`'s `renderDone` returns `{ index, jumper, player, barStrip, ... }`.
 - **Jumping:** `jumper.jumpTo(place)` moves the media and selects the bar's box in Bar by bar (scrolled into view). Form flags: `jumpTo(resolveId(flag.id, index))`
   seeks to `peak_s` exactly (sentences start 1 s early).
 - **Reusable rendering** (`results/sentences.js`): `renderSentence`, `renderSentenceList`, `renderChip`; they take a jump context
@@ -167,7 +167,7 @@ and `css/persona.css`. Tests: `node --test frontend/tests/chat.test.mjs`, `speec
 
 ### Video overlay (`js/results/overlay.js`)
 
-For a video take the results screen draws the tracked body over the video and lists the form flags. `screens/results.js` calls
+For a video take the results screen draws the tracked body over the video (with the form flags as red points and a caption while one is active); the flags are not listed. `screens/results.js` calls
 `mountOverlay(renderDone(...), { sessionId, take })` after rendering and destroys the previous overlay when the screen is rendered
 again; a mic take returns `null` (no canvas, no tracks fetch).
 
@@ -177,11 +177,10 @@ again; a mic take returns `null` (no canvas, no tracks fetch).
 | `geometry.js` | `contentRect(box, intrinsic, objectFit)` (where the picture sits in the element, so letterboxing lines up) and `toCanvas`. |
 | `flag_points.js` | `RULE_LANDMARKS` (rule -> pose points; `trumpet_head_down`, `trumpet_elbows_pinned`, `trumpet_elbows_wide`, `trumpet_bell_angle`, `shoulders_raised`, `slouching`), `involvedLandmarks(flag)` (respects `side`), `activeFlags`. |
 | `draw.js` | Pose lines (shoulders, elbows, wrists, ears to shoulders, shoulders to hips), hand points, red points and the label during a flag. |
-| `flag_list.js` | The list in `#form-flag-slot`; each row jumps with `jumpTo(resolveId(flag.id, index))` to `peak_s`. |
 
 `GET .../tracks` is fetched once, when `form_status` is `done` (`onAnalysis(analysis)` does nothing after the first fetch). A failure
 (4xx, 5xx, unreachable, or an answer with no `frames`) is logged, hides the overlay and shows "Body lines unavailable" next to the
-checkbox slot; the flag list and the rest of the screen keep working and nothing retries. The "Show body lines" checkbox stops the
+checkbox slot; the rest of the screen keeps working and nothing retries. The "Show body lines" checkbox stops the
 animation-frame loop and clears the canvas. The loop and the `hashchange` listener stop on leaving the route (and the loop also stops
 by itself if the screen was replaced). In mock mode `mock/get_tracks.json` covers the 12 s mock video, with a flagged second at 6 to 7 s.
 

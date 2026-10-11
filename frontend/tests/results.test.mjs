@@ -69,7 +69,10 @@ await test('video take renders the recording, verdict, bars, plan and detail row
   await click(page, '.bar-box', 1);
   assert.match((await text(page, '#bar-detail'))[0], /dragging \(-8%\)/);
   assert.equal(await count(page, '.video-stage video[controls]'), 1);
-  assert.equal(await count(page, '#form-flag-slot'), 1);
+  assert.equal(await count(page, '#overlay-controls-slot'), 1);
+  await page.waitFor(`document.querySelector('#overlay-toggle')`); // the overlay has loaded its tracks
+  assert.equal(await count(page, '.form-flags, .form-flag'), 0, 'no list of form flags under the video');
+  assert.equal(await count(page, '#overlay-controls-slot .sentence-text'), 0);
   assert.equal(await page.eval(`document.querySelector('.exercise a').getAttribute('href')`), '#/exercise/ex1');
   assert.deepEqual(await text(page, '.exercise a'), ['Practice this']);
   assert.equal(await page.eval(`document.querySelector('a.trace-link').getAttribute('href')`), '#/trace/fb_1');
@@ -207,7 +210,7 @@ await test('a mic take shows an audio player and jumps in it', async (open) => {
   const page = await open('take_mic');
   await page.waitFor(`document.querySelector('.results .tier1')`);
   assert.equal(await count(page, 'video'), 0);
-  assert.equal(await count(page, '#form-flag-slot'), 0);
+  assert.equal(await count(page, '#overlay-controls-slot'), 0);
   await click(page, '.tier1 .sentence-text', 0); // bar 3 at 4.5 s
   await page.waitFor(`document.querySelector('audio').currentTime >= 3.5 && document.querySelector('audio').currentTime < 4.5`);
   await click(page, '.bar-box', 1);

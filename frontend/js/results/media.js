@@ -7,16 +7,16 @@ export function isVideoTake(analysis, takeSetupKind) {
   return takeSetupKind === 'video' || (analysis.form_status ?? 'none') !== 'none';
 }
 
-// Returns { section, mediaElement, stage, formFlagSlot, seekTo(seconds) }.
-// stage is the box around the video (position: relative) for the overlay; formFlagSlot is empty, for the form flag list.
+// Returns { section, mediaElement, stage, overlayControlsSlot, seekTo(seconds) }.
+// stage is the box around the video (position: relative) for the overlay; overlayControlsSlot is empty, for the overlay's checkbox.
 export function createMediaPlayer({ video, url }) {
   const mediaElement = element(video ? 'video' : 'audio', '', video ? 'take-video' : 'take-audio', { controls: '', preload: 'auto', src: url });
   const stage = element('div', '', 'video-stage', { id: 'video-stage' });
   stage.append(mediaElement);
-  const formFlagSlot = element('div', '', 'form-flag-slot', { id: 'form-flag-slot', 'data-slot': 'form-flags' });
+  const overlayControlsSlot = element('div', '', 'overlay-controls-slot', { id: 'overlay-controls-slot' });
   const section = element('section', '', 'results-media', { id: 'results-media', 'aria-label': video ? 'Your video' : 'Your recording' });
   section.append(stage);
-  if (video) section.append(formFlagSlot);
+  if (video) section.append(overlayControlsSlot);
 
   mediaElement.addEventListener('error', () => {
     const code = mediaElement.error?.code ?? 'unknown';
@@ -35,5 +35,5 @@ export function createMediaPlayer({ video, url }) {
     }
   }
 
-  return { section, mediaElement, stage, formFlagSlot, seekTo };
+  return { section, mediaElement, stage, overlayControlsSlot, seekTo };
 }

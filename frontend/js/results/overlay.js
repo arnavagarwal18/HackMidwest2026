@@ -1,10 +1,9 @@
 // The body-lines overlay on a video take's results: a canvas over the <video> that draws the tracked pose and hands,
-// red points and the label while a form flag is active, an off checkbox, and the form flag list.
+// red points and the label while a form flag is active, and an off checkbox.
 // The tracks (several MB) are fetched once, when form_status is 'done'; a failure hides the overlay and is not retried.
 import { getTracks } from '../api.js';
 import { element } from '../dom.js';
 import { drawOverlay } from './overlay/draw.js';
-import { renderFlagList } from './overlay/flag_list.js';
 import { activeFlags } from './overlay/flag_points.js';
 import { nearestFrame } from './overlay/frames.js';
 import { contentRect } from './overlay/geometry.js';
@@ -19,11 +18,11 @@ function validTracks(tracks) {
   return Array.isArray(tracks?.frames) && tracks.frames.every((frame) => Number.isFinite(frame?.t));
 }
 
-// rendered: what renderDone returned ({ index, jumper, player, analysis }). context: { sessionId, take }.
+// rendered: what renderDone returned ({ player, analysis }). context: { sessionId, take }.
 // deps (for tests): getTracks, requestAnimationFrame, cancelAnimationFrame, win, objectFitOf.
 // Returns { onAnalysis(analysis), destroy() }, or null for a mic take (no video, no overlay, no tracks fetch).
 export function mountOverlay(rendered, { sessionId, take }, deps = {}) {
-  const { player, analysis, index, jumper } = rendered;
+  const { player, analysis } = rendered;
   const video = player.mediaElement;
   if (video.tagName !== 'VIDEO') return null;
   const {
@@ -41,9 +40,7 @@ export function mountOverlay(rendered, { sessionId, take }, deps = {}) {
   let destroyed = false;
 
   const controls = element('div', '', 'overlay-controls'); // the checkbox, or the note when the tracks failed
-  const flagList = renderFlagList(flags, { index, jumper });
-  player.formFlagSlot.append(controls);
-  if (flagList) player.formFlagSlot.append(flagList);
+  player.overlayControlsSlot.append(controls);
 
   function clear() {
     ctx?.clearRect(0, 0, canvas.width, canvas.height);

@@ -11,8 +11,6 @@ const { nearestFrame } = await import('../js/results/overlay/frames.js');
 const { contentRect, toCanvas } = await import('../js/results/overlay/geometry.js');
 const { activeFlags, involvedLandmarks } = await import('../js/results/overlay/flag_points.js');
 const { mountOverlay, TOGGLE_TEXT, UNAVAILABLE_TEXT } = await import('../js/results/overlay.js');
-const { createJumper } = await import('../js/results/jumper.js');
-const { buildMeasurementIndex } = await import('../js/results/measurements.js');
 const { mockFileFor } = await import('../js/mock.js');
 
 const tracks = readMock('get_tracks');
@@ -130,16 +128,14 @@ function setup({ tag = 'video', analysisOverride = {}, getTracks = async () => t
   Object.assign(mediaElement, { currentTime: 0, videoWidth: 640, videoHeight: 480, clientWidth: size.width, clientHeight: size.height });
   const stage = dom.document.createElement('div');
   stage.append(mediaElement);
-  const formFlagSlot = dom.document.createElement('div');
+  const overlayControlsSlot = dom.document.createElement('div');
   const section = dom.document.createElement('section');
-  section.append(stage, formFlagSlot);
+  section.append(stage, overlayControlsSlot);
   dom.body.append(section);
 
-  const seeks = [];
-  const player = { mediaElement, stage, formFlagSlot, seekTo: (seconds) => seeks.push(seconds) };
+  const player = { mediaElement, stage, overlayControlsSlot };
   const analysisUsed = { ...analysis, ...analysisOverride };
-  const jumper = createJumper({ player, barBoxes: { select() {} } });
-  const rendered = { player, analysis: analysisUsed, index: buildMeasurementIndex(analysisUsed), jumper };
+  const rendered = { player, analysis: analysisUsed };
 
   const fetches = [];
   const frameQueue = new Map();
@@ -153,7 +149,7 @@ function setup({ tag = 'video', analysisOverride = {}, getTracks = async () => t
   const step = () => { const [id, fn] = [...frameQueue][0]; frameQueue.delete(id); fn(); };
   const overlay = mountOverlay(rendered, { sessionId: 'sess_mock1', take: 'take_1' }, deps);
   mounted.push(overlay);
-  return { overlay, rendered, mediaElement, stage, formFlagSlot, section, seeks, fetches, canvases, frameQueue, cancelled, step };
+  return { overlay, rendered, mediaElement, stage, overlayControlsSlot, section, fetches, canvases, frameQueue, cancelled, step };
 }
 
 const drawAt = (env, seconds) => { env.mediaElement.currentTime = seconds; env.canvases[0].context.log.arcs.length = 0; env.canvases[0].context.log.texts.length = 0; env.step(); return env.canvases[0].context.log; };
@@ -241,9 +237,9 @@ test('the checkbox turns the overlay off and on', async () => {
   const env = setup();
   env.overlay.onAnalysis({ form_status: 'done' });
   await settle();
-  const box = env.formFlagSlot.all().find((n) => n.tagName === 'INPUT');
+  const box = env.overlayControlsSlot.all().find((n) => n.tagName === 'INPUT');
   assert.ok(box.checked);
-  assert.match(env.formFlagSlot.textContent, new RegExp(TOGGLE_TEXT));
+  assert.match(env.overlayControlsSlot.textContent, new RegExp(TOGGLE_TEXT));
   const clears = env.canvases[0].context.log.clears;
   box.checked = false;
   box.listeners.change.forEach((fn) => fn());
@@ -255,7 +251,7 @@ test('the checkbox turns the overlay off and on', async () => {
   env.overlay.destroy();
 });
 
-test('a failed tracks fetch shows a note, no canvas, no retry; the flag list still jumps', async () => {
+test('a failed tracks fetch shows a note, no canvas, no retry', async () => {
   const failures = [];
   const original = console.error;
   console.error = (...args) => failures.push(args);
@@ -268,10 +264,8 @@ test('a failed tracks fetch shows a note, no canvas, no retry; the flag list sti
     assert.equal(env.fetches.length, 1, 'no auto-retry');
     assert.equal(env.canvases.length, 0);
     assert.equal(env.frameQueue.size, 0);
-    assert.deepEqual(env.formFlagSlot.texts('overlay-note'), [UNAVAILABLE_TEXT]);
+    assert.deepEqual(env.overlayControlsSlot.texts('overlay-note'), [UNAVAILABLE_TEXT]);
     assert.equal(failures.length, 1, 'the failure is logged');
-    env.formFlagSlot.withClass('sentence-text')[0].click();
-    assert.deepEqual(env.seeks, [6.5]);
   } finally {
     console.error = original;
   }
@@ -284,27 +278,20 @@ test('an answer without a frames list counts as a failure', async () => {
     const env = setup({ getTracks: async () => ({ fps: 10 }) });
     env.overlay.onAnalysis({ form_status: 'done' });
     await settle();
-    assert.deepEqual(env.formFlagSlot.texts('overlay-note'), [UNAVAILABLE_TEXT]);
+    assert.deepEqual(env.overlayControlsSlot.texts('overlay-note'), [UNAVAILABLE_TEXT]);
     assert.equal(env.canvases.length, 0);
   } finally {
     console.error = original;
   }
 });
 
-test('the flag list jumps to peak_s exactly, from the label and from the chip', () => {
+test('the flags are drawn on the video only: no list of them is rendered', () => {
   const env = setup();
-  assert.deepEqual(env.formFlagSlot.texts('sentence-text'), analysis.form.map((f) => f.label), 'the new flags are listed too');
-  env.formFlagSlot.withClass('sentence-text')[0].click();
-  env.formFlagSlot.withClass('chip')[0].click();
-  assert.deepEqual(env.seeks, [6.5, 6.5], 'no 1 s lead for a form flag');
-  assert.equal(env.formFlagSlot.withClass('chip')[0].textContent, '6.5 s');
-  env.formFlagSlot.withClass('sentence-text').slice(1).forEach((item) => item.click());
-  assert.deepEqual(env.seeks.slice(2), [8.5, 10.5], 'the new flags jump to their own peak_s');
-});
-
-test('no flags: no list', () => {
-  const env = setup({ analysisOverride: { form: [] } });
-  assert.equal(env.formFlagSlot.withClass('form-flags').length, 0);
+  assert.ok(analysis.form.length > 0, 'the mock take has flags');
+  assert.equal(env.overlayControlsSlot.withClass('form-flags').length, 0);
+  assert.equal(env.overlayControlsSlot.withClass('form-flag').length, 0);
+  assert.equal(env.overlayControlsSlot.withClass('sentence-text').length, 0);
+  assert.equal(env.overlayControlsSlot.withClass('overlay-controls').length, 1, 'only the overlay controls are in the slot');
 });
 
 test('leaving the route (hashchange) stops the loop and drops the listener', async () => {
