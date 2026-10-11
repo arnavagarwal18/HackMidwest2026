@@ -5,7 +5,7 @@ import threading
 from .. import store
 from ..practice import needs_form_check, score_rep
 from .media_tools import MediaError, extract_wav, probe, wav_duration_s
-from .pipeline_steps import Step, StepFailed, resolve_step, transcribe_take
+from .pipeline_steps import Step, StepFailed, resolve_feedback_step, resolve_step, transcribe_take
 from .take_store import update_take
 
 logger = logging.getLogger("app.takes.pipeline")
@@ -92,7 +92,11 @@ def _give_feedback(session_id: str, take_id: str, run: Step | None) -> None:
     """Feedback for a practice take (not for other purposes); run_feedback handles its own failures."""
     if store.get(session_id).takes[take_id].get("purpose", "take") != "take":
         return
-    run = run or resolve_step("app.agents.run", "run_feedback")
+    try:
+        run = run or resolve_feedback_step()
+    except StepFailed as exc:  # feedback alone is unavailable: the take keeps its diagnosis and form result
+        logger.warning("Feedback for take %s/%s skipped: %s", session_id, take_id, exc.code)
+        return
     if run:
         run(session_id, take_id)
 

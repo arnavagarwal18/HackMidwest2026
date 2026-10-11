@@ -87,3 +87,12 @@ def resolve_step(module_name: str, attr: str = "run") -> Step | None:
     if run is None:
         logger.warning("%s.%s is not available yet; skipping that step", module_name, attr)
     return run
+
+
+def resolve_feedback_step() -> Step | None:
+    """app.agents.run.run_feedback; raises StepFailed("feedback_unavailable") if the agents can't be imported (strands, boto3...)."""
+    try:
+        return resolve_step("app.agents.run", "run_feedback")
+    except Exception as exc:
+        logger.exception("The feedback agents could not be imported")
+        raise StepFailed("feedback_unavailable") from exc
