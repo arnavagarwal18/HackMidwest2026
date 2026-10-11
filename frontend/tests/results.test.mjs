@@ -72,6 +72,14 @@ await test('video take renders all six parts and the stages', async (open) => {
   assert.equal(await page.eval(`document.querySelector('a.trace-link').getAttribute('href')`), '#/trace/fb_1');
   assert.deepEqual(await text(page, 'a.trace-link'), ['How the AI worked']);
   assert.equal(await count(page, '.fallback-notice'), 0);
+  assert.match((await text(page, '.headline'))[0], /\w/, 'a headline sentence leads the summary');
+  assert.deepEqual(await text(page, '.score-strip .lbl:not(.detail)'), ['Pitch', 'Rhythm', 'Bars to fix']);
+  assert.deepEqual(await text(page, '.detect-text'), ['Heard: in the written key · bars 3–4']);
+  assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), true);
+  await click(page, '.detect-change');
+  assert.equal(await page.eval(`document.getElementById('detect-panel').hidden`), false);
+  assert.equal(await count(page, '#detect-panel #transposition-select'), 1, 'Change opens the existing key override');
+  assert.deepEqual(await text(page, 'button.primary'), ['Play again'], 'one filled button on the results');
 });
 
 await test('clicking a sentence or chip seeks 1 s earlier, highlights and scrolls to the bar row', async (open) => {
@@ -123,6 +131,9 @@ await test("a can't-tell take shows the message, the transposition control and R
   assert.match((await text(page, '.stopped-message'))[0], /couldn't tell/);
   assert.deepEqual(await page.eval(`(() => { const o = [...document.querySelectorAll('#transposition-select option')]; return [o.length, o[0].value, o.at(-1).value]; })()`), [25, '-12', '12']);
   assert.equal(await count(page, 'button.record-again'), 1);
+  assert.deepEqual(await text(page, '.heard-summary'), ['What I heard: best match to the score 21%.']);
+  assert.match((await text(page, '.next-action'))[0], /closer to the microphone/); // the mock take is few_pairs
+  assert.deepEqual(await text(page, 'button.primary'), ['Record again'], 'one next action, filled');
   assert.equal(await count(page, '.bar-list'), 0);
   assert.equal(await count(page, '.exercise'), 1, 'the plan is still shown');
   await page.eval(`(() => { const s = document.getElementById('transposition-select'); s.value = '3'; })()`);
@@ -132,13 +143,22 @@ await test("a can't-tell take shows the message, the transposition control and R
   await page.waitFor(`document.querySelector('.stopped-message')`); // still can't tell in the mock, so the control is back
 });
 
+await test('the wait screen lists the steps with Cancel, which goes back to recording', async (open) => {
+  const page = await open('take_stuck', 'poll_ms=100&slow_after_s=60&give_up_after_s=120');
+  await page.waitFor(`document.querySelector('.wait-steps')`);
+  assert.deepEqual(await text(page, '.wait-step'), ['Uploading', 'Finding notes', 'Matching key and bars', 'Writing feedback']);
+  assert.equal(await count(page, '.wait-step.current[aria-current="step"]'), 1);
+  await click(page, 'button.cancel-wait');
+  await page.waitFor(`location.hash === '#/take'`);
+});
+
 await test('a mock analysis that never finishes shows Still working, then stops at the limit', async (open) => {
   const page = await open('take_stuck', 'poll_ms=100&slow_after_s=1&give_up_after_s=3');
   await page.waitFor(`document.querySelector('.slow-note')`, 5000);
   assert.deepEqual(await text(page, '.slow-note'), ['Still working - this can take a while for long takes']);
   await page.waitFor(`document.querySelector('.too-long')`, 8000);
   assert.deepEqual(await text(page, '.too-long .stage'), ['This is taking too long']);
-  assert.deepEqual(await text(page, '.too-long button'), ['Check again', 'Record again']);
+  assert.deepEqual(await text(page, '.too-long button'), ['Try again', 'Record again']);
   const polled = await analysisRequests(page);
   await new Promise((resolve) => setTimeout(resolve, 1000));
   assert.equal(await analysisRequests(page), polled, 'no polling after the limit');

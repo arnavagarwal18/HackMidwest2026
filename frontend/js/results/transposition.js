@@ -8,8 +8,8 @@ export const TRANSPOSITION_RANGE = 12;
 
 const optionLabel = (semitones) => (semitones > 0 ? `+${semitones}` : String(semitones));
 
-// onChanged(semitones) runs after the back end accepted the change.
-export function renderTranspositionControl({ sessionId, current = 0, onChanged }) {
+// onChanged(semitones) runs after the back end accepted the change. primary: draw the button as the screen's main action.
+export function renderTranspositionControl({ sessionId, current = 0, onChanged, primary = false }) {
   const wrapper = element('div', '', 'transposition');
   const select = element('select', '', '', { id: 'transposition-select', 'aria-label': 'Transposition in semitones' });
   for (let semitones = -TRANSPOSITION_RANGE; semitones <= TRANSPOSITION_RANGE; semitones += 1) {
@@ -28,7 +28,7 @@ export function renderTranspositionControl({ sessionId, current = 0, onChanged }
       return;
     }
     onChanged(semitones);
-  });
+  }, primary ? 'primary' : '');
   wrapper.append(element('label', 'Transposition (semitones) ', '', { for: 'transposition-select' }), select, change);
   return wrapper;
 }

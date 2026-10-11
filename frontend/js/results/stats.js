@@ -1,33 +1,28 @@
-// The strip of key numbers at the top of the results: notes right, bars to fix and average timing. Everything comes from analysis.bars.
+// The summary at the top of the results: one headline sentence, then pitch and rhythm as separate scores and the bars to fix.
 import { element } from '../dom.js';
 import { problemBars } from './bars.js';
+import { headline, percent, pitchScore, rhythmScore, STRONG_PITCH, STRONG_RHYTHM } from './scores.js';
 
-function sum(bars, field) {
-  return bars.reduce((total, bar) => total + (bar[field] ?? 0), 0);
-}
-
-function averageTimingMs(bars) {
-  const timings = bars.map((bar) => bar.mean_timing_ms).filter((ms) => typeof ms === 'number');
-  if (!timings.length) return null;
-  return Math.round(timings.reduce((total, ms) => total + ms, 0) / timings.length);
-}
-
-function stat(value, label, tone = '') {
+function stat(value, label, tone = '', detail = '') {
   const box = element('div', '', `stat ${tone}`.trim());
   box.append(element('div', value, 'num'), element('div', label, 'lbl'));
+  if (detail) box.append(element('div', detail, 'lbl detail'));
   return box;
 }
 
-// Returns the strip, or null when the analysis has no bars to count.
+const toneFor = (share, strong) => (share >= strong ? 'good' : share < 0.6 ? 'bad' : '');
+
+// Returns the summary (headline + strip), or null when the analysis has no bars to count.
 export function renderStatStrip(analysis) {
-  const bars = analysis.bars ?? [];
-  const expected = sum(bars, 'expected');
-  if (!expected) return null;
-  const right = sum(bars, 'ok');
+  const pitch = pitchScore(analysis);
+  if (!pitch) return null;
+  const rhythm = rhythmScore(analysis);
   const toFix = problemBars(analysis).length;
-  const timing = averageTimingMs(bars);
+  const summary = element('section', '', 'summary');
   const strip = element('div', '', 'score-strip', { role: 'group', 'aria-label': 'Summary of this take' });
-  strip.append(stat(`${right} / ${expected}`, 'Notes right', right === expected ? 'good' : ''), stat(String(toFix), 'Bars to fix', toFix ? 'bad' : 'good'));
-  if (timing !== null) strip.append(stat(`${timing > 0 ? '+' : ''}${timing} ms`, 'Avg timing'));
-  return strip;
+  strip.append(stat(percent(pitch.share), 'Pitch', toneFor(pitch.share, STRONG_PITCH), `${pitch.right} of ${pitch.expected} notes right`));
+  if (rhythm) strip.append(stat(percent(rhythm.share), 'Rhythm', toneFor(rhythm.share, STRONG_RHYTHM), `${rhythm.onTime} of ${rhythm.timed} on the beat`));
+  strip.append(stat(String(toFix), 'Bars to fix', toFix ? 'bad' : 'good'));
+  summary.append(element('p', headline(pitch, rhythm), 'headline'), strip);
+  return summary;
 }

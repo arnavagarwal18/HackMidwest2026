@@ -100,3 +100,18 @@ button.sentence-text:hover { color: var(--brass-ink); text-decoration: underline
 .chat-form { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
 .chat-input { width: 100%; padding: var(--s2) var(--s3); background: var(--surface); color: var(--ink); }
 @media (max-width: 56rem) { .chat-transcript { max-height: 50vh; } }
+
+/* The wait screen's step list, the summary headline, and the detection chip. Done/current/pending also differ by glyph, not colour alone. */
+.wait-steps { list-style: none; margin: 0 0 var(--s3); padding: 0; display: grid; gap: var(--s1); }
+.wait-step { color: var(--ink-2); }
+.wait-step::before { content: "○"; display: inline-block; width: 1.4em; }
+.wait-step.done::before { content: "✓"; color: var(--good); }
+.wait-step.current { color: inherit; font-weight: 600; }
+.wait-step.current::before { content: "●"; color: var(--brass-ink); }
+.headline { margin: 0 0 var(--s3); font-size: var(--fs-lg); font-weight: 600; }
+.stat .detail { font-size: var(--fs-sm); }
+.results > .actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s3) 0; }
+.detect-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s2); padding: var(--s1) var(--s3); border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); }
+.detect-chip button { min-height: 0; padding: 2px var(--s3); }
+.heard-summary, .next-action { margin: 0 0 var(--s2); }
+.next-action { font-weight: 600; }
