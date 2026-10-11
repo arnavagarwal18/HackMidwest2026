@@ -162,8 +162,8 @@ tapping it closes the sheet and jumps (turns about another take, or a take with 
 record as before; 'No AI coach connected' shows inside the sheet. Send is disabled while a reply is pending (the UI gives up after 35 s). Errors
 (including 409 "Instructor is already replying.") go to the banner and keep the typed text. A `mode: 'fallback'` turn shows "AI instructor
 unavailable". Mock mode: `take_fallback` gets the fallback reply (`mock/post_chat_fallback.json`), other takes the AI reply (`mock/post_chat.json`).
-Files: `sheet.js` (window behaviour), `panel.js` (content), `suggestions.js` (chips), `transcript.js`, `model.js`; styles in `css/coach.css`
-and `css/persona.css`. Tests: `node --test frontend/tests/chat.test.mjs` and `personas.test.mjs` (no browser).
+Files: `sheet.js` (window behaviour), `panel.js` (content), `suggestions.js` (chips), `transcript.js`, `model.js`, `speech_input.js` (the Speak button: browser speech recognition fills the question box, never sends); styles in `css/coach.css`
+and `css/persona.css`. Tests: `node --test frontend/tests/chat.test.mjs`, `speech_input.test.mjs` and `personas.test.mjs` (no browser).
 
 ### Video overlay (`js/results/overlay.js`)
 

@@ -82,6 +82,10 @@
 .chat-form { display: flex; align-items: flex-end; gap: var(--sp-2); }
 .chat-input { flex: 1 1 auto; min-height: var(--tap); padding: var(--sp-2) var(--sp-3); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); font: inherit; resize: none; }
 .chat-send { flex: none; }
+.chat-mic { flex: none; }
+.chat-mic[aria-disabled="true"] { pointer-events: auto; opacity: 0.5; cursor: not-allowed; } /* stays hoverable so the tooltip says why */
+.chat-mic.is-recording { color: var(--error); border-color: var(--error); }
+.chat-mic.is-recording::before { content: ""; display: inline-block; width: 0.6em; height: 0.6em; margin-right: var(--sp-2); border-radius: 50%; background: var(--error); animation: trainer-pulse 1.2s var(--ease) infinite alternate; }
 
 /* Docked: an ordinary block in the column, not a layer above the page. The transcript scrolls inside it (.coach-body); the header and
    the question box stay put. The height is the viewport less the sticky page header and a margin, because #coach-root is sticky and has no height of its own. */
@@ -102,4 +106,4 @@
 
 .coach-sheet.is-docked .coach-head { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
 
-@media (prefers-reduced-motion: reduce) { .coach-sheet { animation: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) { .coach-sheet { animation: none; transition: none; } .chat-mic.is-recording::before { animation: none; } }

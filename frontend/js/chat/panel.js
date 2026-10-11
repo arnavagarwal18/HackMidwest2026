@@ -9,6 +9,7 @@ import { loadStylesheet } from '../ui/styles.js';
 import { REPLY_TIMEOUT_MS, TIMEOUT_MESSAGE, openingTurn, suggestedQuestions, validateMessage, withTimeout } from './model.js';
 import { nowCoachingText } from '../persona/model.js';
 import { createSheet } from './sheet.js';
+import { createSpeechInput } from './speech_input.js';
 import { createSuggestions } from './suggestions.js';
 import { renderTranscript } from './transcript.js';
 
@@ -41,8 +42,9 @@ export function createChatPanel(root, deps) {
   const suggestions = createSuggestions({ onPick: (question) => ask(question) });
   const input = element('textarea', '', 'chat-input', { rows: '2', placeholder: 'Ask the coach', 'aria-label': 'Your question for the coach' });
   const send = button('Send', () => ask(input.value, { fromInput: true }), 'btn btn-primary chat-send');
+  const speech = createSpeechInput({ input, reportError });
   const form = element('div', '', 'chat-form');
-  form.append(input, send);
+  form.append(input, speech.element, send);
   sheet.headerSlot.append(title, menuSlot);
   sheet.body.append(statusSlot, transcript, thinking, suggestions.element);
   sheet.footer.append(form);
@@ -69,6 +71,7 @@ export function createChatPanel(root, deps) {
   function updateControls() {
     send.disabled = pending || loading;
     input.disabled = pending;
+    speech.setDisabled(pending);
     thinking.hidden = !pending;
     suggestions.setDisabled(pending || loading);
   }
@@ -80,6 +83,7 @@ export function createChatPanel(root, deps) {
 
   async function ask(text, { fromInput = false } = {}) {
     if (pending) return;
+    speech.stop();
     const problem = validateMessage(text);
     if (problem) return reportError(new Error(problem));
     const hadFocus = sheet.contains(document.activeElement);
