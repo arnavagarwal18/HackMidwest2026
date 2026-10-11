@@ -53,7 +53,7 @@ def test_the_best_rep_on_the_before_bars_is_the_after(client, practice):
     rep(practice, "t3", 1, 64)
     view = get_progress(client, practice)
     assert view["before"] == {"source": "take", "take_id": "t1", "bar_from": 1, "bar_to": 8, "errors": 6,
-                              "error_rate": 6 / 16, "played_bpm": 70.0, "clean_bpm": None, "form_flags": 0, "form_checked": False}
+                              "error_rate": 6 / 16, "played_bpm": 70.0, "clean_bpm": 49.0, "form_flags": 0, "form_checked": False}
     assert view["after"]["source"] == "rep"
     assert (view["after"]["take_id"], view["after"]["errors"], view["after"]["played_bpm"]) == ("t3", 1, 64.0)
     assert view["after"]["label"] == "best practice rep at 64 BPM"
@@ -101,11 +101,35 @@ def test_a_cant_tell_take_is_never_the_before(client, session_id):
 
 
 def test_snapshot_clean_tempo_and_form_flags(client, practice):
-    store.update(practice, "clean_tempo", {"1-8": 56.0})
     store.update(practice, "takes", {**store.get(practice).takes, "t1": {
-        **store.get(practice).takes["t1"], "kind": "video", "form_status": "done", "form": {"flags": [{"id": "f1"}, {"id": "f2"}]}}})
+        **store.get(practice).takes["t1"], "kind": "video", "form_status": "done", "form": {"flags": [{"id": "f1"}, {"id": "f2"}]},
+        "diagnosis": diag(0, 56.0)}})
     before = get_progress(client, practice)["before"]
     assert (before["clean_bpm"], before["form_flags"], before["form_checked"]) == (56.0, 2, True)
+
+
+def test_the_before_clean_tempo_stays_fixed_when_later_reps_change_the_shared_clean_tempo(client, session_id):
+    add_take(session_id, "t1", bar_from=1, bar_to=16, tempo_bpm=70.0, diagnosis=diag(1, 44.69, bars=(1, 16)))
+    save_plan(session_id, "pl1", exercise("ex1", 2, 3, start_bpm=60))
+    init_plan(session_id, "pl1")
+    store.update(session_id, "clean_tempo", {"1-16": 44.69})  # what the pipeline saved for the before take
+    rep(session_id, "t2", 0, 62.02, bars=(1, 16))
+    store.update(session_id, "clean_tempo", {"1-16": 62.02})  # what the pipeline saved after the rep
+    view = get_progress(client, session_id)
+    assert view["before"]["clean_bpm"] == 44.69
+    assert view["after"]["take_id"] == "t2" and view["after"]["clean_bpm"] == 62.02
+    rep(session_id, "t3", 0, 66, bars=(1, 16))
+    store.update(session_id, "clean_tempo", {"1-16": 66.0})
+    assert get_progress(client, session_id)["before"]["clean_bpm"] == 44.69
+
+
+def test_the_before_clean_tempo_counts_only_takes_recorded_before_it(client, session_id):
+    add_take(session_id, "t0", bar_from=1, bar_to=8, tempo_bpm=70.0, purpose="warmup", diagnosis=diag(0, 80.0))
+    add_take(session_id, "t1", bar_from=1, bar_to=8, tempo_bpm=70.0, diagnosis=diag(0, 50.0))
+    add_take(session_id, "t2", bar_from=1, bar_to=8, tempo_bpm=70.0, diagnosis=diag(0, 90.0))
+    save_plan(session_id, "pl1", exercise("ex1", 2, 3))
+    init_plan(session_id, "pl1")
+    assert get_progress(client, session_id)["before"]["clean_bpm"] == 80.0
 
 
 def test_extras_count_as_errors(client, practice):
