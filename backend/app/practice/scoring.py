@@ -13,6 +13,7 @@ STATUS_SCORED = "scored"
 STATUS_NOT_COUNTED = "not_counted"
 STATUS_FAILED = "failed"
 SCORING_FAILED_REASON = "scoring failed"
+SCORING_INTERRUPTED_REASON = "scoring interrupted"
 TAKE_FAILED = "failed"
 
 
@@ -34,6 +35,11 @@ def processing_rep_result(take: dict) -> dict:
     """The RepResult of a rep that was just accepted: only the take, exercise, tempo and status are filled."""
     unfilled = {"next_bpm": None, "streak": None, "exercise_complete": None}
     return {**_rep_result(take, None, STATUS_PROCESSING, []), **unfilled}
+
+
+def interrupted_rep_result(take: dict, state: dict | None) -> dict:
+    """The RepResult of a rep whose scoring never finished: failed, with the ladder as `state` has it."""
+    return _rep_result(take, state, STATUS_FAILED, [SCORING_INTERRUPTED_REASON])
 
 
 def _record_unchanged_ladder(session_id: str, take: dict, status: str, reasons: list[str]) -> None:

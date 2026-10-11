@@ -1,14 +1,17 @@
 """Rep routes: upload a practice rep of an exercise (202, scored in the background) and fetch its RepResult."""
 import logging
+import time
 
 from fastapi import APIRouter, File, Form, UploadFile
 
+from .. import store
 from ..errors import AppError
 from ..takes.pipeline import start_pipeline
 from ..takes.routes import accept_upload
 from ..takes.validation import check_content_type, new_take_fields, original_file_name, parse_take_request
 from .progress import exercise_with_state, read_progress, update_progress
 from .scoring import STATUS_PROCESSING, processing_rep_result
+from .stale_reps import sweep_stale_reps
 
 logger = logging.getLogger("app.practice.routes")
 router = APIRouter()
@@ -26,9 +29,25 @@ def check_can_start_rep(progress: dict, exercise_id: str) -> None:
         raise AppError(409, "wrong_state", "Your last rep is still being checked. Wait for it, then play again.")
 
 
+def _check_can_start_after_sweep(session_id: str, exercise_id: str) -> None:
+    """The early 409 check on a copy of the progress with stale reps swept, so a stuck rep can't turn the upload away."""
+    progress = read_progress(session_id)
+    sweep_stale_reps(progress, store.get(session_id).takes, time.time())
+    check_can_start_rep(progress, exercise_id)
+
+
 def _claim_rep(session_id: str, exercise_id: str, take: dict) -> None:
-    """In one progress update: re-check the 409 rules, write the processing RepResult and add the rep to the state."""
+    """In one progress update: sweep stale reps, re-check the 409 rules, write the processing RepResult and add the rep.
+
+    The takes are read first because the update runs under the store's lock; the upload holds the takes lock, so
+    they can't change before the update.
+    """
+    takes, now = store.get(session_id).takes, time.time()
+
     def start(progress: dict) -> None:
+        swept = sweep_stale_reps(progress, takes, now)
+        if swept:
+            logger.warning("Swept stale rep(s) of session %s stuck in processing: %s", session_id, ", ".join(swept))
         check_can_start_rep(progress, exercise_id)
         progress["reps"][take["take_id"]] = processing_rep_result(take)
         progress["exercises"][exercise_id]["rep_ids"].append(take["take_id"])
@@ -59,7 +78,7 @@ def create_rep(
     downbeat_s: str | None = Form(None),
 ) -> dict:
     exercise, state = exercise_with_state(session_id, exercise_id)
-    check_can_start_rep(read_progress(session_id), exercise_id)  # early answer; _claim_rep repeats it atomically
+    _check_can_start_after_sweep(session_id, exercise_id)  # early answer; _claim_rep repeats it atomically
     content_type = check_content_type(file.content_type)
     request = parse_take_request(
         {"kind": kind, "source": source, "bar_from": str(exercise["bar_from"]), "bar_to": str(exercise["bar_to"]),
@@ -69,7 +88,7 @@ def create_rep(
 
     def make_fields(take_id: str) -> dict:
         fields = new_take_fields(take_id, request, original_file_name(take_id, content_type))
-        return {**fields, "purpose": REP_PURPOSE, "exercise_id": exercise_id}
+        return {**fields, "purpose": REP_PURPOSE, "exercise_id": exercise_id, "started_at": time.time()}
 
     claimed: list[str] = []
 
